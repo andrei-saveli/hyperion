@@ -14,6 +14,7 @@ folder moves into the final project (see "Combining into the final project").
 | `scripts/check_handshakes.py` | Automatic checkpoint checklist: checks H0–H4 across everyone's parts | ✅ |
 | `data_io.py` | **FAKE** stand-in for the Data person's file, so this folder runs alone | replace later |
 | `requirements.txt` | numpy, pandas, scipy, pytest | ✅ |
+| `RESULTS.md` | Results on the real Giovanni data + suggested demo cases | ✅ |
 
 ## Run it
 ```bash
@@ -94,7 +95,7 @@ All keys from `docs/HANDSHAKES.md` H2, plus three extra keys (adding is allowed,
 4. Run `python -m pytest -q` and `python scripts/check_handshakes.py`; both must pass.
 
 ## Next (Person 4)
-- [ ] At sync 1: swap real data in, run `check_handshakes.py`
-- [ ] Results table on real data → team picks demo cases (sync 2)
+- [x] At sync 1: swap real data in, run `check_handshakes.py` (all checks pass with Task2's data)
+- [x] Results table on real data → [RESULTS.md](RESULTS.md); team picks demo cases (sync 2)
 - [ ] Deploy to Streamlit Community Cloud
 - [x] *(extra)* "years until significant" estimate
