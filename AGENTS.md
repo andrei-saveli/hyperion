@@ -178,8 +178,8 @@ data/                          places.csv, variables.csv, <place>_<code>.csv, SO
 
 ### Statistics (stats.py)
 Skip missing values (never zero). Deseasonalize (subtract each calendar month's mean). OLS slope
-per decade; 95% CI and t-test p-value corrected for lag-1 autocorrelation (effective n).
-Mann-Kendall as second check. Verdict: 🟢 p<0.05 · 🟡 p<0.10 · ⚪ otherwise · ⚫ fewer than 24 valid months.
+per decade; 95% CI and t-test p-value corrected for lag-1 autocorrelation (effective n,
+Santer et al. 2000). Mann-Kendall (same correction) + Sen's slope as second checks. Verdict: 🟢 p<0.05 · 🟡 p<0.10 · ⚪ otherwise · ⚫ fewer than 24 valid months.
 Non-significant ≠ "no change". Never state causes. "Years until significant" = labelled estimate.
 
 ## Current status / handover (update this when you finish something)
@@ -188,7 +188,11 @@ Non-significant ≠ "no change". Never state causes. "Years until significant" =
 - 🖥️ The frontend (P1) is built in a separate repo, `andrei-saveli/frontend-nasa`, against the
   fakes in `docs/HANDSHAKES.md`; its brief is that repo's `AGENTS.md`. Keep its copies of
   `PLAN.md`/`HANDSHAKES.md` in sync when these change.
-- ⏳ No code in the repo yet. **Do not start building until the team lead says so.**
+- ✅ **Person 4 (Trend & significance + integration)** built in `Task3/`: `stats.py` (`analyze`,
+  H2), 15 passing tests, `scripts/results_table.py`, `scripts/check_handshakes.py`. Uses a FAKE
+  `data_io.py` until the Data person delivers. See `Task3/README.md`.
+- 🧩 Each person builds in their own folder; at the end the team lead combines all folders into
+  the final project layout below (each folder's README says how).
 - ⏭️ Next: team kickoff (30 min) → everyone starts their hour 0.5–8 tasks in `docs/PLAN.md`.
 
 ## Git
