@@ -136,60 +136,26 @@ changed, never claim *why*. Demo cases are chosen from real results, not assumed
   GWETROOT 0–1, RH2M %; month "13" = annual mean, skip; -999 = missing). Saved as CSVs in `data/`.
 - Deploy: Streamlit Community Cloud. AI only for optional wording, never for numbers.
 
-### Data strategy (reliability first, live demo must not depend on NASA uptime)
-- Start with one variable and two pre-downloaded regional monthly series.
-- Preserve raw downloads, product/version metadata, geometry, units, quality filtering, and every
-  transformation.
-- Use NASA POWER for the first vertical slice when its current catalogue supports the chosen
-  variable. Use other services only after the exact demo series is frozen.
-- Live arbitrary-region access is stretch only. The judged demo always has an offline fallback.
+### Roles (details in `docs/PLAN.md`)
+P1 Data (`scripts/download.py`, `data/`) · P2 Stats + glue = user + Claude (`stats.py`, `tests/`,
+deploy) · P3 App (`app.py`) · P4 Guide & content (`data/variables.csv`, `pages/`). Pitch is a
+whole-team task from hour 36.
 
-### Initial variable catalogue
-| Variable | Source |
-|---|---|
-| 2 m air temperature, surface skin temperature | MERRA-2 |
-| Precipitation | GPM IMERG (monthly) |
-| Soil moisture, evapotranspiration, runoff, snow water equivalent | GLDAS Noah |
-| NDVI / EVI (vegetation greenness), land surface temperature | MODIS |
-| Aerosol optical depth | MODIS / MERRA-2 |
-| Tropospheric NO₂, total column ozone | OMI |
-| Surface air temperature / relative humidity profiles | AIRS |
-| Sea surface temperature | MERRA-2 |
-
-### Demo cases
-
-Choose the primary variable and two regions at the Hour 4 data gate. Do not promise a trend sign
-or causal story before the product, common period, geometry, quality filtering, and analysis have
-been verified.
-
-### Statistics pipeline
-1. Apply documented quality/fill-value rules and preserve missing observations.
-2. Use the common period for compared regions.
-3. Deseasonalize by subtracting each calendar month's climatological mean.
-4. Estimate a linear rate per decade and dependence-aware 95% interval using a documented block
-   bootstrap, autocorrelated-error model, or HAC method.
-5. Use seasonal/autocorrelation-aware Mann-Kendall only as a secondary check.
-6. Report clear evidence, uncertain direction, no clear direction, or insufficient data. A
-   non-significant result never means "no change exists."
-7. Detection horizon is late stretch work and must be labeled as a conditional planning estimate,
-   not a forecast.
-
-### Repo layout (planned)
+### Repo layout
 ```
-backend/    FastAPI app, stats module, data loaders, tests
-frontend/   React app
-data/       catalogue metadata (variables.yaml) + demo-case CSVs (large grids gitignored)
-scripts/    data download / preprocessing scripts
+app.py            Streamlit main app (P3)
+pages/            guided demo + how-it-works pages (P4)
+stats.py, tests/  trend + significance math (P2)
+scripts/          download.py (P1)
+data/             places.csv, variables.csv, <place>_<code>.csv, SOURCES.md
+docs/             PLAN.md (authoritative) + background plans
 ```
 
-### Build order
-1. Freeze the API contract and mock response.
-2. Approve one variable, two regions, provenance, and quality rules by Hour 4.
-3. Build and test the trend module on synthetic and reference data.
-4. Build the frontend journey against mock data.
-5. Connect the two real cases; add comparison and provenance/method details.
-6. Complete the guided investigation, user test, deployment, and pitch.
-7. Consider stretch features only after the stable MVP passes the Hour 30 gate.
+### Statistics (stats.py)
+Skip missing values (never zero). Deseasonalize (subtract each calendar month's mean). OLS slope
+per decade; 95% CI and t-test p-value corrected for lag-1 autocorrelation (effective n).
+Mann-Kendall as second check. Verdict: 🟢 p<0.05 · 🟡 p<0.10 or direction only · ⚪ otherwise.
+Non-significant ≠ "no change". Never state causes. "Years until significant" = labelled estimate.
 
 ## Git
 - Push all work directly to `main` (user's standing instruction). No PRs, no confirmation needed.

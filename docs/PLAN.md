@@ -32,15 +32,53 @@ down, by how much, and is that change significant?**
 
 ## Who does what
 
-| Person | Job | Delivers |
-|---|---|---|
-| **1. Data** | Download NASA POWER data for each demo place | `data/*.csv` + `data/places.csv` |
-| **2. Stats (lead, Claude Code)** | Trend math + glue everything together | `stats.py`, final `app.py`, deploy |
-| **3. App** | Build the Streamlit website | `app.py` (screens, chart, verdict card) |
-| **4. Story** | Definitions, demo stories, testing, pitch | `data/variables.csv`, slides, 3-min video |
+Four build roles, each with its own files so nobody blocks anyone. **The pitch is a team job**
+(see the end).
 
-Everyone uses AI. Each person has a **starter prompt** below: paste it into ChatGPT / Gemini /
-Claude, then follow its instructions.
+| Person | Role | Owns these files |
+|---|---|---|
+| **1** | Data | `scripts/download.py`, `data/*.csv`, `data/places.csv`, `data/SOURCES.md` |
+| **2 (lead, Claude Code)** | Stats + glue | `stats.py`, `tests/`, deployment |
+| **3** | App | `app.py` |
+| **4** | Guide & content | `data/variables.csv`, `pages/1_Guided_demo.py`, `pages/2_How_it_works.py` |
+
+### Person 1: Data
+1. Get the download script from AI (starter prompt below) and run it.
+2. Together with P4, fill `data/places.csv` (6–8 places).
+3. Download all variables for all places → `data/<place>_<variable>.csv`.
+4. Check every file: open it, plot it, count empty months. Note anything odd.
+5. Write `data/SOURCES.md`: where each file came from (the exact web address) and when.
+6. *Extra:* a function `fetch_point(lat, lon, code)` so the app can download any map click live.
+
+### Person 2: Stats + glue (team lead, with Claude Code)
+1. `stats.py`: remove seasons, trend per decade, 95% band (corrected for month-to-month
+   correlation), p-value (t-test) + Mann-Kendall, verdict 🟢🟡⚪ + plain sentence.
+2. Tests on fake data with a known answer.
+3. Run the stats on every place → table of results → team picks the 2 demo cases.
+4. Plug `stats.py` into P3's app; help everyone with Git; deploy to Streamlit Cloud.
+5. *Extra:* "years until significant" estimate.
+
+### Person 3: App
+1. `app.py` with the starter prompt below (fake stats at first).
+2. Sidebar: place + variable, with the variable's definition.
+3. Chart: monthly data, "remove seasons" toggle, trend line + shaded band.
+4. Verdict card: emoji, rate per decade, total change, p-value, plain sentence.
+5. Compare tab: two places side by side; small map showing where the places are.
+6. Make it look clean and work on a phone.
+7. *Extra:* click on map → live data (with P1's `fetch_point`).
+
+### Person 4: Guide & content
+1. Research 6–8 candidate places + 2 compare pairs (starter prompt below) → give to P1.
+2. `data/variables.csv`: a plain one-sentence definition for each variable.
+3. **Guided demo page** (`pages/1_Guided_demo.py`): a step-by-step walkthrough of the 2 demo
+   cases ("Step 1: here's the data… Step 2: remove the seasons… Step 3: the verdict…"), using
+   P3's chart.
+4. **How it works page** (`pages/2_How_it_works.py`): what a trend, a p-value and "significant"
+   mean, explained for a 15-year-old, with a simple picture.
+5. **User testing:** at hour ~28, watch 2–3 people outside the team use the app; write down
+   where they got confused → list of fixes for P3.
+6. *Extra:* "What should I look at?" helper: pick a place type (desert, city, forest, coast…) →
+   suggested variables.
 
 ## Shared formats (don't change without telling the team)
 
@@ -90,25 +128,40 @@ RH2M,Humidity,%,How much water vapour is in the air compared to the maximum it c
 > emoji (🟢🟡⚪). Add a "Compare" tab showing two places side by side. Explain how to install and
 > run it step by step.
 
-**Person 4 (Story):**
-> We're building a student tool that tests if NASA climate data (temperature, rainfall, soil
-> wetness, humidity from NASA POWER, 2001–2024) shows a trend in a place. Suggest 6 places where
+**Person 4 (Guide & content):**
+> We're building a student tool that tests whether NASA climate data (temperature, rainfall, soil
+> wetness, humidity from NASA POWER, 2001–2024) shows a trend at a place. Suggest 8 places where
 > one of these variables is likely to show a clear trend, with lat/lon and one sentence on why,
 > plus 2 pairs of places that are interesting to compare. Then write a plain one-sentence
-> definition of each variable for a 15-year-old.
+> definition of each variable for a 15-year-old. Then explain, for a 15-year-old, what a trend,
+> a p-value and "statistically significant" mean.
+
+Later, for the pages:
+> I'm a beginner. In my Streamlit app I want a page `pages/1_Guided_demo.py` that walks a student
+> step by step through one example (buttons "Next"/"Back", text + chart on each step). Explain
+> how to build and run it.
 
 ## Timeline (48 h)
 
 | When | Goal | Check |
 |---|---|---|
 | **Hour 0–2** | Everyone reads this file, installs Python + Streamlit, runs "hello world" | All 4 laptops run `streamlit hello` |
-| **Hour 2–8** | P4 picks places → P1 downloads data → P3 builds app on fake stats → P2 builds stats | First CSV in repo; app shows a chart |
-| **Hour 8–20** | Connect real stats to the app | **Full app works on 1 place** |
-| **Hour 20–30** | All places, compare tab, definitions, 2 demo stories | **Everything works.** Deploy online |
-| **Hour 30–40** | Test with 2–3 people who aren't on the team; fix confusing parts | Feature freeze at hour 40 |
-| **Hour 40–48** | Slides, 3-min video, submit early | Submitted 2+ hours before deadline |
+| **Hour 2–8** | P4 picks places → P1 downloads data · P3 app on fake stats · P2 stats | First CSV in repo; app shows a chart |
+| **Hour 8–20** | Connect real stats to the app; P4 builds guide pages | **Full app works on 1 place** |
+| **Hour 20–30** | All places, compare tab, demo cases chosen, guided demo works | **Everything works.** Deploy online |
+| **Hour 28–36** | User testing (P4) → fixes (everyone) | Feature freeze at hour 36 |
+| **Hour 36–48** | 🎤 **Team pitch** (below) + bug fixes only | Submitted 2+ hours before deadline |
 
 Check-in every 6 hours (10 min): *done / next / stuck*.
+
+## 🎤 Pitch (whole team, from hour 36)
+- **Story (all together, 1 h):** problem → our tool → live demo of 1 case → compare → why it
+  matters for students.
+- **Slides:** max 7. Each person makes the slide about their own part.
+- **3-minute video:** screen recording of the guided demo + voice-over. Record a backup of the
+  live demo in case the internet fails.
+- **Rehearse 3 times**, timed. Each person presents ~30–45 s about their part.
+- **Submit early**, then check every link works from a phone.
 
 ## Pick demo places with real data, not guesses
 After P1 downloads the data, P2 runs the stats on every place. **Keep the 2 most interesting
