@@ -70,3 +70,22 @@ def test_compare_tab_has_two_cards():
     at = run_app()
     cards = [m for m in at.markdown if "hy-card" in m.value]
     assert len(cards) >= 3  # 1 investigate + 2 compare
+
+
+def test_search_exploration_shows_trend_interval_and_opens_dataset(monkeypatch):
+    at = run_app()
+    import search
+
+    monkeypatch.setattr(search, "explore", lambda _: [{
+        "place_id": "niamey", "code": "RAIN", "match_label": "Related dataset",
+        "reason": "How much rain and snow fall each day on average.",
+    }])
+    at.text_input[0].set_value("Is Lake Mead shrinking?").run()
+    assert not at.exception
+    assert any("couldn't confirm a match" in item.value for item in at.caption)
+    assert any("95% confidence interval" in item.value and "mm/day per decade" in item.value
+               for item in at.caption)
+    at.button(key="sugg0").click().run()
+    assert not at.exception
+    assert at.session_state["place"] == "niamey"
+    assert at.session_state["code"] == "RAIN"

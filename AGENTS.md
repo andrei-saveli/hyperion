@@ -223,6 +223,7 @@ Non-significant ≠ "no change". Never state causes.
   Run: `streamlit run FrontEnd_claude/app.py`. Combine with `--frontend FrontEnd_claude`.
 - 🔎 **Search (P3)** uses Searchlight and the H0 catalogs in `Task3/data/` (three regions
   with available series). Build and calibrate the local assets using `Task3/README.md`.
+  The Streamlit search box can offer a labeled related dataset and previews each card's trend interval.
 - 🔎 **Search benchmark (P3):** `Task3/PRETRAINED_BENCHMARK.md` reports a 144-question draft.
   Calibrated embeddings led the reranker on held-out recall and unsupported rejection.
   `Task3/COVERAGE_BENCHMARK.md` compares coverage checks on 48 fresh draft questions.
