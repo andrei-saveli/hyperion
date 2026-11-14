@@ -153,6 +153,12 @@ The public site uses **NASA POWER** monthly point data (MERRA-2 + CERES, 1981 on
 Earth, no login) instead of the three pre-downloaded Giovanni regions, so a visitor can pick any
 place. Giovanni needs a login and manual downloads, which made "any place" impossible. The trend
 math is unchanged; the website runs a tested JavaScript copy of it.
+Since then the challenge's own datasets were added as **prepared 1° grids** (Earthdata token,
+`Website/build_nasa_grids.py`): GPM IMERG rain, GLDAS soil moisture / evaporation / runoff, MODIS
+NDVI and land surface temperature, OMI NO₂ (daily averaged by month), AIRS air temperature. Where a
+measurement exists twice (e.g. MERRA-2 vs GPM rain) the site tests both over shared years and says
+whether they agree ("second source"). Tiles live in `Website/data/nasa/` (~200 MB): rebuild and
+commit them rarely, each rebuild adds that much to git history.
 
 ### Stack (simplified for a beginner team)
 - **Everything in Python.** Website: **Streamlit** (`app.py`), charts: Plotly.
@@ -228,6 +234,9 @@ Non-significant ≠ "no change". Never state causes.
   `Website/build_world.py` (Python, real `stats.py`) builds the world overview squares
   (`data/world.json`). Run: `python3 -m http.server 8000 --directory Website`. Details:
   `Website/README.md`. The 3 Giovanni regions (Task2) stay as the Python reference data set.
+- 🛰️ **NASA satellite/model grids** (GPM, GLDAS, MODIS, OMI, AIRS) on the website: 8 more
+  measurements + second-source checks. Build: `python3 Website/build_nasa_grids.py download` then
+  `build` (token needed); check: `node Website/tests/test_nasa.js`. Details: `Website/README.md`.
 - 🔎 **Website search** (rules, no AI, in `Website/app.js` + `data/variables.json`): measurement from
   phrases/keywords, plain "we don't have that" notes with the closest measurement (`not_available`),
   place from famous regions, capitalised names, then leftover words (Photon + Open-Meteo geocoders).

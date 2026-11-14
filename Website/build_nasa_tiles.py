@@ -91,13 +91,16 @@ def map_layer(code, months, cube, percent, pool):
             "slope": [r[0] for r in results], "verdict": [r[1] for r in results]}
 
 
-def build():
+def build(only=None):
+    """only: optional list of dataset names (e.g. ['GPM', 'AIRS']) to build just those."""
     catalogue = json.loads((HERE / "data" / "variables.json").read_text())
     percent = {v["code"]: v["percent"] for v in catalogue["variables"]}
     OUT.mkdir(parents=True, exist_ok=True)
     index = {"tile": TILE, "missing": MISSING, "variables": {}}
     with Pool() as pool:
         for code, dataset in SOURCES.items():
+            if only and dataset not in only:
+                continue
             if not (CACHE / dataset).exists():
                 print(f"{code}: nothing downloaded yet, skipped")
                 continue
@@ -129,4 +132,4 @@ def write_test_reference(index, places=((44.4, 26.1), (28.6, 77.2), (-3.1, -60.0
 
 
 if __name__ == "__main__":
-    build()
+    build(sys.argv[1:])
