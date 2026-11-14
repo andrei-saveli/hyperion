@@ -344,3 +344,10 @@ footer { background: linear-gradient(180deg, #17302f, #102221); color: #e4efec; 
   .scan .rate { font-size: 15px; }
 }
 @media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }
+
+/* second source note: same measurement from an independent NASA satellite or model */
+.note.second { background: #f4f8f6; flex-direction: column; gap: 6px; }
+.note.second ul { margin: 4px 0; padding-left: 18px; }
+.note.second li { font-size: 14px; }
+.note.second.agree { background: linear-gradient(90deg, var(--mint), var(--aqua)); }
+.note.second.disagree { background: #fff4e5; }

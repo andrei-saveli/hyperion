@@ -28,7 +28,7 @@ const CASES = [
 ];
 window.BYTEME_CASES = CASES;
 
-let VARS = [], NOT_AVAILABLE = [], WORLD = null, LAND = null, map = null, marker = null;
+let VARS = [], POWER_VARS = [], NASA = null, NOT_AVAILABLE = [], WORLD = null, LAND = null, map = null, marker = null;
 const state = { lat: null, lon: null, name: "", code: "T2M", raw: false, loading: false, error: null, place: null, layer: true };
 const compare = { code: "AOD_55", a: { name: "Beijing (China)", lat: 40.0, lon: 116.25 }, b: { name: "Delhi (India)", lat: 28.5, lon: 77.5 } };
 const $ = (id) => document.getElementById(id);
@@ -76,16 +76,18 @@ function snap(lat, lon) {
 
 const placeCache = new Map();   // "lat,lon" -> promise of { series, results }
 
-// Download every measurement for one grid square and run the trend analysis on each
+// Download every measurement for one grid square and run the trend analysis on each.
+// Two sources: NASA POWER (asked live) and the NASA satellite/model grids we prepared (data/nasa/).
 function loadPlace(lat, lon) {
   const key = `${lat},${lon}`;
   if (!placeCache.has(key)) {
-    const job = downloadPower(lat, lon, END_YEAR)
-      .catch(() => downloadPower(lat, lon, END_YEAR - 1))   // early in a year, last year may not be ready yet
-      .then((raw) => {
+    const power = downloadPower(lat, lon, END_YEAR)
+      .catch(() => downloadPower(lat, lon, END_YEAR - 1));   // early in a year, last year may not be ready yet
+    const grids = loadNasaCell(lat, lon).catch(() => ({}));   // optional: the site works without them
+    const job = Promise.all([power, grids]).then(([raw, nasa]) => {
         const series = {}, results = {};
         VARS.forEach((v) => {
-          series[v.code] = toSeries(raw[v.code], v.scale || 1);
+          series[v.code] = v.dataset === "nasa" ? nasa[v.code] || null : toSeries(raw[v.code], v.scale || 1);
           results[v.code] = series[v.code] ? ByteMeStats.analyze(series[v.code].dates, series[v.code].values, v.percent) : null;
         });
         return { series, results };
@@ -97,7 +99,7 @@ function loadPlace(lat, lon) {
 }
 
 async function downloadPower(lat, lon, endYear) {
-  const url = `${POWER}?parameters=${VARS.map((v) => v.code).join(",")}&community=AG` +
+  const url = `${POWER}?parameters=${POWER_VARS.map((v) => v.code).join(",")}&community=AG` +
     `&longitude=${lon}&latitude=${lat}&start=${START_YEAR}&end=${endYear}&format=JSON`;
   const reply = await fetch(url);
   if (!reply.ok) throw new Error(`NASA POWER answered ${reply.status}`);
@@ -119,13 +121,71 @@ function toSeries(monthly, scale) {
   return { dates, values };
 }
 
+// ------------------------------------------------------------------ NASA satellite and model grids
+// data/nasa/index.json says which measurements exist; each 10 x 10 degree tile file holds the
+// monthly series of its 100 one-degree squares as 16-bit whole numbers (see build_nasa_tiles.py).
+const tileCache = new Map();
+function nasaTile(code, name) {
+  const url = `data/nasa/${code}/${name}.bin`;
+  if (!tileCache.has(url)) tileCache.set(url, fetch(url).then((r) => (r.ok ? r.arrayBuffer() : null)).catch(() => null));
+  return tileCache.get(url);
+}
+async function loadNasaCell(lat, lon) {
+  if (!NASA) return {};
+  const { tile, square } = ByteMeNasa.locate(lat, lon, NASA.tile);
+  const out = {};
+  await Promise.all(Object.entries(NASA.variables).map(async ([code, info]) => {
+    if (!info.tiles.includes(tile)) return;     // no data anywhere in this tile (e.g. land data over the ocean)
+    const buffer = await nasaTile(code, tile);
+    const series = buffer && ByteMeNasa.decode(buffer, square, info, NASA.missing);
+    if (series) out[code] = series;
+  }));
+  return out;
+}
+
+// ------------------------------------------------------------------ second source
+// Several measurements exist twice: from NASA POWER (MERRA-2) and from an independent satellite
+// or model (GPM, AIRS, MODIS, GLDAS). We test both over the years they share, so they can be compared fairly.
+function partnerOf(v) {
+  return v.pair ? variable(v.pair) : VARS.find((x) => x.pair === v.code) || null;
+}
+function sharedYears(a, b) {
+  const key = (d) => d.year * 12 + d.month;
+  const start = Math.max(key(a.dates[0]), key(b.dates[0])), end = Math.min(key(a.dates.at(-1)), key(b.dates.at(-1)));
+  const cut = (s) => {
+    const keep = s.dates.map((d, i) => (key(d) >= start && key(d) <= end ? i : -1)).filter((i) => i >= 0);
+    return { dates: keep.map((i) => s.dates[i]), values: keep.map((i) => s.values[i]) };
+  };
+  return [cut(a), cut(b)];
+}
+function secondOpinion(place, v) {
+  const other = partnerOf(v);
+  if (!other || !place.series[v.code] || !place.series[other.code]) return null;
+  const [a, b] = sharedYears(place.series[v.code], place.series[other.code]);
+  if (a.dates.length < 24) return null;
+  const ra = ByteMeStats.analyze(a.dates, a.values, v.percent), rb = ByteMeStats.analyze(b.dates, b.values, other.percent);
+  if (ra.verdict === "insufficient" || rb.verdict === "insufficient") return null;
+  const sig = (r) => r.verdict === "significant";
+  let agreement;
+  if (sig(ra) && sig(rb)) agreement = ra.direction === rb.direction ? "agree" : "disagree";
+  else if (sig(ra) || sig(rb)) agreement = "partly";
+  else agreement = "neither";
+  return { other, ra, rb, agreement, years: `${a.dates[0].year}–${a.dates.at(-1).year}` };
+}
+const AGREEMENT_TEXT = {
+  agree: "Both sources agree: the change is confirmed by an independent measurement.",
+  disagree: "The two sources point in opposite directions, so treat this result with caution.",
+  partly: "Only one of the two sources finds a significant trend over these years, so treat it with some caution.",
+  neither: "Neither source finds a significant trend over these years.",
+};
+
 // ------------------------------------------------------------------ plain-language explanation
 // (same wording rules as Task3/explain.py: say what changed and how sure we are, never why)
 function explain(r, v, placeName) {
   const caveat = "A straight line simplifies a record that can rise and fall over time. " +
     "Identifying the cause requires a separate investigation.";
   const subject = `${v.name} in ${placeName}`;
-  if (!r) return { headline: `${subject} · No data here`, details: "NASA POWER has no values for this measurement at this place (some are measured over land only).", caveat };
+  if (!r) return { headline: `${subject} · No data here`, details: "NASA has no values for this measurement at this place (some are measured over land only).", caveat };
   if (r.verdict === "insufficient") return { headline: `${subject} · Not enough usable data`, details: "This record has too little usable data to estimate a trend.", caveat };
   const label = r.verdict === "none" ? "No clear trend" : `${r.verdict === "significant" ? "Significant" : "Possible"} ${r.direction}`;
   const rate = `${num(r.slope_per_decade)} ${v.units} per decade`;
@@ -146,7 +206,12 @@ Promise.all([
   fetch("data/land.geojson").then((r) => r.json()),
   fetch("data/world.json").then((r) => (r.ok ? r.json() : null)).catch(() => null),   // optional overview
   fetch(MAP_STYLE).then((r) => (r.ok ? r.json() : null)).catch(() => null),             // optional detailed map
-]).then(([catalogue, land, world, mapStyle]) => {
+  fetch("data/nasa/index.json").then((r) => (r.ok ? r.json() : null)).catch(() => null),  // optional satellite grids
+]).then(([catalogue, land, world, mapStyle, nasa]) => {
+  NASA = nasa;
+  // measurements from the satellite grids are only offered when those grids are present
+  catalogue.variables = catalogue.variables.filter((v) => v.dataset !== "nasa" || (nasa && nasa.variables[v.code]));
+  POWER_VARS = catalogue.variables.filter((v) => v.dataset !== "nasa");
   VARS = catalogue.variables; NOT_AVAILABLE = catalogue.not_available || []; LAND = land; WORLD = world;
   if (world) $("built").textContent = `World overview built ${world.built}`;
   buildVariableSelect(catalogue.groups);
@@ -261,7 +326,7 @@ function buildMap(detailedStyle) {
   map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "bottom-right");
   map.getCanvas().style.cursor = "crosshair";
   map.on("load", () => {
-    map.addSource("world", { type: "geojson", data: worldSquares() });
+    map.addSource("world", { type: "geojson", data: worldSquares(null) });
     map.addLayer({ id: "world-fill", type: "fill", source: "world",
       paint: { "fill-color": ["get", "colour"], "fill-opacity": ["get", "opacity"] } },
       (map.getStyle().layers.find((l) => l.type === "symbol") || {}).id);   // squares go under the place labels
@@ -279,15 +344,30 @@ function buildMap(detailedStyle) {
   });
 }
 
-// The world overview: one square per grid point, coloured by the trend of the chosen measurement.
+// The world overview for one measurement: { step (degrees), start, end, slope[], verdict[] }, squares
+// in order south to north, then west to east. NASA POWER measurements: data/world.json (5 degrees).
+// Satellite and model measurements: data/nasa/<CODE>_map.json (2 degrees), loaded when first chosen.
+const layerCache = new Map();
+function layerFor(code) {
+  const v = variable(code);
+  if (v.dataset !== "nasa") {
+    return Promise.resolve(WORLD && WORLD.slope[code]
+      ? { step: WORLD.step, start: String(WORLD.start), end: String(WORLD.end), slope: WORLD.slope[code], verdict: WORLD.verdict[code] } : null);
+  }
+  if (!layerCache.has(code)) layerCache.set(code, fetch(`data/nasa/${code}_map.json`).then((r) => (r.ok ? r.json() : null)).catch(() => null));
+  return layerCache.get(code);
+}
+
+// One square per grid point, coloured by the trend of the chosen measurement.
 // Stronger colour = faster change. Squares with no clear trend are left blank.
-function worldSquares() {
+function worldSquares(layer) {
   const features = [];
-  if (WORLD && state.layer && WORLD.slope[state.code]) {
-    const slopes = WORLD.slope[state.code], verdicts = WORLD.verdict[state.code], h = WORLD.step / 2;
+  if (layer && state.layer) {
+    const slopes = layer.slope, verdicts = layer.verdict, step = layer.step, h = step / 2, cols = Math.round(360 / step);
     const sizes = slopes.filter((s, i) => s !== null && verdicts[i] >= 2).map(Math.abs).sort((a, b) => a - b);
     const strong = sizes[Math.floor(sizes.length * 0.9)] || 1;   // a "fast" change for this measurement
-    WORLD.points.forEach(([lat, lon], i) => {
+    slopes.forEach((slope, i) => {
+      const lat = -90 + h + Math.floor(i / cols) * step, lon = -180 + h + (i % cols) * step;
       if (verdicts[i] < 2 || !slopes[i]) return;
       const strength = Math.min(1, Math.abs(slopes[i]) / strong);
       features.push({
@@ -300,20 +380,24 @@ function worldSquares() {
   }
   return { type: "FeatureCollection", features };
 }
-function refreshWorldLayer() {
-  const v = variable(state.code);
-  $("legend-title").textContent = WORLD ? `${v.name} · trend ${WORLD.start}–${WORLD.end}` : v.name;
-  if (map && map.getSource("world")) map.getSource("world").setData(worldSquares());
+async function refreshWorldLayer() {
+  const code = state.code, v = variable(code);
+  const layer = await layerFor(code);
+  if (code !== state.code) return;                       // the visitor already chose another measurement
+  state.layerData = layer;
+  $("legend-title").textContent = layer ? `${v.name} · trend ${layer.start.slice(0, 4)}–${layer.end.slice(0, 4)}` : v.name;
+  if (map && map.getSource("world")) map.getSource("world").setData(worldSquares(layer));
 }
 
 // Hovering the map shows the overview result for that square
 function showTip(e) {
   const tip = $("map-tip");
-  if (!WORLD || !state.layer) { tip.style.display = "none"; return; }
-  const { lat, lng } = e.lngLat.wrap(), step = WORLD.step;
+  const layer = state.layerData;
+  if (!layer || !state.layer) { tip.style.display = "none"; return; }
+  const { lat, lng } = e.lngLat.wrap(), step = layer.step;
   const row = Math.floor((lat + 90) / step), col = Math.floor((lng + 180) / step);
   const i = row * Math.round(360 / step) + col;
-  const slope = WORLD.slope[state.code][i], verdict = WORLD.verdict[state.code][i], v = variable(state.code);
+  const slope = layer.slope[i], verdict = layer.verdict[i], v = variable(state.code);
   if (row < 0 || row >= 180 / step || slope === undefined || slope === null) { tip.style.display = "none"; return; }
   const word = ["not enough data", "no clear trend", "possible, not significant yet", "significant"][verdict];
   tip.textContent = `${v.name}: ${num(slope)} ${v.units} per decade · ${word}`;
@@ -365,6 +449,11 @@ function renderScan() {
     return;
   }
   const results = state.place.results;
+  const confirmed = (v) => {               // short note for measurements an independent source backs up
+    if (!v.pair || !results[v.code] || results[v.code].verdict !== "significant") return "";
+    const s = secondOpinion(state.place, v);
+    return s && s.agreement === "agree" ? ` · confirmed by ${variable(v.pair).source.split(" ")[0]}` : "";
+  };
   const rows = VARS.map((v) => ({ v, r: results[v.code] })).sort((a, b) => {
     const rank = (x) => (x.r ? VERDICT_ORDER[x.r.verdict] : 4);
     return rank(a) - rank(b) || ((a.r && a.r.p_value) ?? 1) - ((b.r && b.r.p_value) ?? 1);
@@ -377,7 +466,7 @@ function renderScan() {
     <div class="scan">${rows.map(({ v, r }) => `
       <button class="row${v.code === state.code ? " on" : ""}" data-code="${v.code}" title="${escapeHTML(v.definition)}">
         ${dotHTML(r)}
-        <span class="what">${v.name}<small>${r ? (r.verdict === "none" ? "No clear trend yet" : r.verdict === "insufficient" ? "Not enough data" : verdictText(r)) : "No data here"}</small></span>
+        <span class="what">${v.name}<small>${r ? (r.verdict === "none" ? "No clear trend yet" : r.verdict === "insufficient" ? "Not enough data" : verdictText(r) + confirmed(v)) : "No data here"}</small></span>
         <span class="rate">${r && r.slope_per_decade !== null ? `${num(r.slope_per_decade)} <small>${v.units} / decade</small>` : "–"}</span>
       </button>`).join("")}</div>`;
   el.querySelectorAll(".row").forEach((b) => b.addEventListener("click", () => selectVariable(b.dataset.code)));
@@ -394,7 +483,8 @@ function renderDetail() {
   }
   const r = state.place.results[v.code], s = state.place.series[v.code];
   const text = explain(r, v, state.name);
-  const sourceLine = `${v.source} via NASA POWER · ${v.code} · monthly`;
+  const nasaGrid = v.dataset === "nasa";
+  const sourceLine = nasaGrid ? `${v.source} · ${v.product} · monthly · 1° square` : `${v.source} via NASA POWER · ${v.code} · monthly`;
   if (!r || r.verdict === "insufficient") {
     el.innerHTML = `<div class="detail-text"><span class="tag">${escapeHTML(state.name)} · ${v.name}</span>
       <p class="meta">${sourceLine}</p><h3>${escapeHTML(text.headline)}</h3>
@@ -406,6 +496,12 @@ function renderDetail() {
   if (r.reliability === "low") notes.push(`<div class="note warn"><b>Caution</b><span>${r.reliability_note}</span></div>`);
   if (r.tests_agree === false) notes.push(`<div class="note warn"><b>Caution</b><span>${r.tests_note}</span></div>`);
   if (r.years_to_significance !== null) notes.push(`<div class="note time"><b>Estimate</b><span>About <strong>${r.years_to_significance} more years</strong> of data would make this trend significant, if the trend and the noise stay the same. Not a forecast.</span></div>`);
+  const second = secondOpinion(state.place, v);
+  if (second) {
+    const line = (x, rx) => `<li><strong style="font-weight:500">${x.source}</strong>: ${verdictText(rx).toLowerCase()}, ${num(rx.slope_per_decade)} ${x.units} per decade</li>`;
+    notes.push(`<div class="note second ${second.agreement}"><b>Second source</b><span>Same place, same years (${second.years}):
+      <ul>${line(v, second.ra)}${line(second.other, second.rb)}</ul>${AGREEMENT_TEXT[second.agreement]}</span></div>`);
+  }
 
   el.innerHTML = `
     <div class="detail-text">
@@ -422,11 +518,15 @@ function renderDetail() {
       ${notes.join("")}
       <details><summary>What does this mean?</summary><p>${text.details}</p><p class="muted">${text.caveat}</p></details>
       <details><summary>Data and method</summary><ul>
-        <li>NASA POWER monthly values, parameter <code>${v.code}</code> (${v.units}), from ${v.source}, for the grid square centred on ${coordText(state.lat, state.lon)}.</li>
+        <li>${nasaGrid
+          ? `NASA ${v.source} monthly values (<code>${v.product}</code>, ${v.units}), averaged over the 1° square (about 110 km) that contains this place.`
+          : `NASA POWER monthly values, parameter <code>${v.code}</code> (${v.units}), from ${v.source}, for the grid square centred on ${coordText(state.lat, state.lon)}.`}</li>
         <li>${r.start} to ${r.end} · ${r.n_months} months · ${r.n_missing} missing.</li>
         <li>${r.method}</li>
         <li>Seasonal Mann-Kendall p-value: ${pText(r.mk_p_value)} · Sen's slope: ${num(r.sen_slope_per_decade)} ${v.units} per decade.</li>
-        <li><a href="${POWER}?parameters=${v.code}&community=AG&longitude=${state.lon}&latitude=${state.lat}&start=${START_YEAR}&end=${r.end.slice(0, 4)}&format=CSV">Download this record from NASA (CSV)</a></li>
+        <li>${nasaGrid
+          ? `<a href="${v.landing}">About this NASA dataset</a> (downloads need a free Earthdata login)`
+          : `<a href="${POWER}?parameters=${v.code}&community=AG&longitude=${state.lon}&latitude=${state.lat}&start=${START_YEAR}&end=${r.end.slice(0, 4)}&format=CSV">Download this record from NASA (CSV)</a>`}</li>
       </ul></details>
     </div>
     <div class="detail-chart">

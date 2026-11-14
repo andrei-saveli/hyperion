@@ -1,5 +1,5 @@
 {
- "note": "The measurements ByteMe offers. One shared list: the website (app.js) and the Python scripts (build_world.py, tests) both read it. 'code' is the NASA POWER parameter name. 'scale' multiplies the raw value (soil wetness 0-1 becomes percent). 'percent' says whether a percent change makes sense (zero means 'none of it'). Search: 'phrases' (several words, strong match) and 'keywords' (single words) link a question to a measurement. Avoid very general words such as water, air or ground: they appear in questions about many measurements. 'not_available' lists things people ask for that this data set does not have, with what to say and the closest measurement we do have.",
+ "note": "The measurements ByteMe offers. One shared list: the website (app.js) and the Python scripts (build_world.py, tests) both read it. 'code' is the NASA POWER parameter name. 'scale' multiplies the raw value (soil wetness 0-1 becomes percent). 'percent' says whether a percent change makes sense (zero means 'none of it'). Search: 'phrases' (several words, strong match) and 'keywords' (single words) link a question to a measurement. Avoid very general words such as water, air or ground: they appear in questions about many measurements. 'not_available' lists things people ask for that this data set does not have, with what to say and the closest measurement we do have. Measurements with \"dataset\": \"nasa\" come from data/nasa/ (built by build_nasa_grids.py); 'pair' names the NASA POWER measurement they double-check.",
  "groups": [
   "Temperature",
   "Water",
@@ -50,7 +50,37 @@
    "percent": false,
    "definition": "How warm the ground or the sea surface itself is (its 'skin').",
    "keywords": "sst ocean sea",
-   "phrases": "surface temperature, skin temperature, sea surface, sea-surface, ocean surface, at the surface, land surface temperature, ground temperature"
+   "phrases": "surface temperature, skin temperature, sea surface, sea-surface, ocean surface, at the surface, ground temperature"
+  },
+  {
+   "code": "AIRS_T2M",
+   "name": "Air temperature (AIRS satellite)",
+   "units": "°C",
+   "group": "Temperature",
+   "source": "AIRS (Aqua satellite)",
+   "percent": false,
+   "pair": "T2M",
+   "definition": "How warm the air is just above the ground, measured from space by the AIRS instrument (average of its day and night passes).",
+   "phrases": "airs satellite",
+   "keywords": "airs",
+   "dataset": "nasa",
+   "product": "AIRS3STM v7.0",
+   "landing": "https://disc.gsfc.nasa.gov/datasets/AIRS3STM_7.0/summary"
+  },
+  {
+   "code": "MODIS_LST",
+   "name": "Land surface temperature (MODIS)",
+   "units": "°C",
+   "group": "Temperature",
+   "source": "MODIS (Terra satellite)",
+   "percent": false,
+   "pair": "TS",
+   "definition": "How warm the land surface itself is, seen from space by MODIS (average of day and night). Land only.",
+   "phrases": "land surface temperature, ground temperature from space",
+   "keywords": "modis lst",
+   "dataset": "nasa",
+   "product": "MOD11C3 v061",
+   "landing": "https://lpdaac.usgs.gov/products/mod11c3v061/"
   },
   {
    "code": "PRECTOTCORR",
@@ -108,6 +138,50 @@
    "phrases": "precipitable water, whole air column, air column, column of air"
   },
   {
+   "code": "GPM_RAIN",
+   "name": "Rainfall (GPM satellites)",
+   "units": "mm/day",
+   "group": "Water",
+   "source": "GPM IMERG",
+   "percent": true,
+   "pair": "PRECTOTCORR",
+   "definition": "How much rain and snow fall each day on average, measured by the GPM satellite constellation.",
+   "phrases": "gpm imerg, satellite rainfall",
+   "keywords": "gpm imerg",
+   "dataset": "nasa",
+   "product": "GPM_3IMERGM v07",
+   "landing": "https://disc.gsfc.nasa.gov/datasets/GPM_3IMERGM_07/summary"
+  },
+  {
+   "code": "GLDAS_EVAP",
+   "name": "Evaporation (GLDAS)",
+   "units": "mm/day",
+   "group": "Water",
+   "source": "GLDAS Noah",
+   "percent": true,
+   "pair": "EVLAND",
+   "definition": "How much water moves from the ground and plants into the air each day, from NASA's GLDAS land model. Land only.",
+   "phrases": "",
+   "keywords": "gldas",
+   "dataset": "nasa",
+   "product": "GLDAS_NOAH025_M v2.1",
+   "landing": "https://disc.gsfc.nasa.gov/datasets/GLDAS_NOAH025_M_2.1/summary"
+  },
+  {
+   "code": "GLDAS_RUNOFF",
+   "name": "Runoff (GLDAS)",
+   "units": "mm/day",
+   "group": "Water",
+   "source": "GLDAS Noah",
+   "percent": true,
+   "definition": "Water that drains off the land into streams and rivers, over the surface and underground, from NASA's GLDAS land model. Land only.",
+   "phrases": "overland flow, runs downhill, runs off, water draining",
+   "keywords": "runoff run-off drainage streamflow",
+   "dataset": "nasa",
+   "product": "GLDAS_NOAH025_M v2.1",
+   "landing": "https://disc.gsfc.nasa.gov/datasets/GLDAS_NOAH025_M_2.1/summary"
+  },
+  {
    "code": "GWETTOP",
    "name": "Surface soil wetness",
    "units": "%",
@@ -141,6 +215,35 @@
    "definition": "How deep the snow lying on the ground is. Land only.",
    "keywords": "snow snowy snowpack ski skiing",
    "phrases": "snow depth, snow on the ground, layer of snow, snow cover, snowpack thickness"
+  },
+  {
+   "code": "GLDAS_SOILM",
+   "name": "Root-zone soil moisture (GLDAS)",
+   "units": "kg/m²",
+   "group": "Land",
+   "source": "GLDAS Noah",
+   "percent": true,
+   "pair": "GWETROOT",
+   "definition": "How much water the soil holds where plant roots grow, in kilograms per square metre (= millimetres of water), from NASA's GLDAS land model. Land only.",
+   "phrases": "",
+   "keywords": "gldas",
+   "dataset": "nasa",
+   "product": "GLDAS_NOAH025_M v2.1",
+   "landing": "https://disc.gsfc.nasa.gov/datasets/GLDAS_NOAH025_M_2.1/summary"
+  },
+  {
+   "code": "MODIS_NDVI",
+   "name": "Vegetation greenness (MODIS)",
+   "units": "NDVI",
+   "group": "Land",
+   "source": "MODIS (Terra satellite)",
+   "percent": false,
+   "definition": "How green and leafy the land looks from space (NDVI): near 0 is bare ground, above 0.6 is dense green vegetation. Land only.",
+   "phrases": "less green, more green, vegetation greenness, plant growth",
+   "keywords": "greenness green greener vegetation ndvi leafy forest forests deforestation crops",
+   "dataset": "nasa",
+   "product": "MOD13C2 v061",
+   "landing": "https://lpdaac.usgs.gov/products/mod13c2v061/"
   },
   {
    "code": "WS10M",
@@ -184,7 +287,21 @@
    "percent": true,
    "definition": "How much tiny particles (dust, smoke, pollution) dim the sunlight. 0 is perfectly clear air; above 0.4 is hazy.",
    "keywords": "aerosol aerosols haze hazy dust dusty smoke smoky smog pollution polluted particles particulate wildfire wildfires",
-   "phrases": "air quality, air pollution, dirty air"
+   "phrases": "air quality, dirty air, haze and dust"
+  },
+  {
+   "code": "OMI_NO2",
+   "name": "Nitrogen dioxide (OMI)",
+   "units": "10¹⁵ molec/cm²",
+   "group": "Air",
+   "source": "OMI (Aura satellite)",
+   "percent": true,
+   "definition": "How much nitrogen dioxide (NO₂, a gas mostly from traffic, power plants and fires) is in the lower air, measured from space by OMI. Higher means more polluted.",
+   "phrases": "nitrogen dioxide, air pollution, traffic pollution",
+   "keywords": "no2 nitrogen dioxide traffic exhaust emissions",
+   "dataset": "nasa",
+   "product": "OMNO2d v003 (daily, averaged by month)",
+   "landing": "https://disc.gsfc.nasa.gov/datasets/OMNO2d_003/summary"
   },
   {
    "code": "ALLSKY_SFC_SW_DWN",
@@ -211,12 +328,6 @@
  ],
  "not_available": [
   {
-   "words": "no2 nitrogen dioxide",
-   "say": "Nitrogen dioxide (NO₂) isn't in our NASA data set yet.",
-   "closest": "AOD_55",
-   "phrases": ""
-  },
-  {
    "words": "forecast forecasts predict prediction projected projection projections",
    "say": "ByteMe measures how things changed in the past; it doesn't forecast the future.",
    "closest": null,
@@ -231,19 +342,19 @@
   {
    "words": "groundwater aquifer aquifers wells pumping withdrawals",
    "say": "Groundwater use isn't in our data set.",
-   "closest": "GWETROOT",
+   "closest": "GLDAS_SOILM",
    "phrases": ""
   },
   {
-   "words": "river rivers streamflow discharge flood floods flooding runoff overland",
-   "say": "River flow, floods and runoff aren't in our data set.",
-   "closest": "PRECTOTCORR",
-   "phrases": "runs downhill, overland flow, flow in the"
+   "words": "river rivers discharge flood floods flooding",
+   "say": "River flow and floods aren't in our data set; 'Runoff (GLDAS)' shows the water draining off the land.",
+   "closest": "GLDAS_RUNOFF",
+   "phrases": "flow in the"
   },
   {
    "words": "yield yields harvest harvests millet wheat maize",
    "say": "Crop yields aren't in our data set.",
-   "closest": "GWETROOT",
+   "closest": "MODIS_NDVI",
    "phrases": ""
   },
   {
@@ -257,12 +368,6 @@
    "phrases": "sea ice, floating ice",
    "say": "Sea-ice extent isn't in our data set.",
    "closest": "TS"
-  },
-  {
-   "words": "greenness ndvi greener",
-   "phrases": "less green, more green",
-   "say": "Vegetation greenness isn't in our data set yet.",
-   "closest": "GWETROOT"
   },
   {
    "words": "volume",

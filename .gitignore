@@ -10,3 +10,5 @@ venv/
 final/
 # temporary progress file of Website/build_world.py (lets the build be stopped and restarted)
 Website/data/world_partial_*.json
+# downloaded NASA grids (Website/build_nasa_grids.py), large, rebuilt on demand
+Website/.nasa_cache/

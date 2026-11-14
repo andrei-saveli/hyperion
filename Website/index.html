@@ -119,15 +119,18 @@
     <div><span class="tag">About</span><p style="margin:0">ByteMe is a NASA Space Apps Challenge project by the Byte Me Analytics team:
       a tool that helps students become Earth system trend detectives.</p><span class="muted" style="color:#bdbdb6">© 2026 Byte Me Analytics</span></div>
     <div><span class="tag">Data</span><ul>
-      <li><a href="https://power.larc.nasa.gov/">NASA POWER</a> (monthly, any point on Earth)</li>
-      <li><a href="https://gmao.gsfc.nasa.gov/reanalysis/MERRA-2/">MERRA-2</a> · temperature, water, land, air</li>
-      <li><a href="https://ceres.larc.nasa.gov/">CERES</a> · sunlight, clouds</li>
+      <li><a href="https://power.larc.nasa.gov/">NASA POWER</a>: MERRA-2 and CERES, any point, live</li>
+      <li><a href="https://gpm.nasa.gov/data/imerg">GPM IMERG</a> · rainfall</li>
+      <li><a href="https://ldas.gsfc.nasa.gov/gldas">GLDAS</a> · soil moisture, evaporation, runoff</li>
+      <li><a href="https://modis.gsfc.nasa.gov/">MODIS</a> · greenness, land surface temperature</li>
+      <li><a href="https://aura.gsfc.nasa.gov/omi.html">OMI</a> · NO₂ · <a href="https://airs.jpl.nasa.gov/">AIRS</a> · air temperature</li>
       <li>Place names: <a href="https://photon.komoot.io/">Photon</a> (OpenStreetMap), <a href="https://open-meteo.com/en/docs/geocoding-api">Open-Meteo</a> (GeoNames), BigDataCloud</li></ul></div>
     <div><span class="tag">Explore</span><ul>
       <li><a href="#explore">Map and results</a></li><li><a href="#compare">Compare places</a></li>
       <li><a href="#method">Method</a></li><li><a href="https://github.com/andrei-saveli/hyperion">Source code</a></li></ul></div>
-    <div><span class="tag">Note</span><p style="margin:0;font-size:14px">Monthly data from 1981 for most measurements
-      (sunlight and clouds from 1984, haze from 2001). MERRA-2 blends satellite and ground observations with a
+    <div><span class="tag">Note</span><p style="margin:0;font-size:14px">Monthly data from 1981 for NASA POWER measurements
+      (sunlight and clouds from 1984, haze from 2001) and from 1998–2004 for the satellite and land-model records
+      (GPM, GLDAS, MODIS, OMI, AIRS), averaged over 1° squares. MERRA-2 blends satellite and ground observations with a
       weather model, so values describe a grid square, not a single weather station. Trends are straight-line
       summaries. They show what changed, not why. Map: OpenFreeMap, © OpenMapTiles, © OpenStreetMap contributors; outline Natural Earth.</p>
       <span class="muted" style="color:#bdbdb6" id="built"></span></div>
@@ -137,6 +140,7 @@
 <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.35.2/plotly.min.js"></script>
 <script src="stats.js"></script>
+<script src="nasa.js"></script>
 <script src="app.js"></script>
 <script src="globe.js"></script>
 </body>

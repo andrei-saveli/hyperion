@@ -48,6 +48,46 @@ build_world.py (run once, Python, Task4/stats.py) ─► data/world.json ─► 
 - **World overview:** the coloured squares on the map show where the chosen measurement is rising
   or falling (every 5 degrees). They come from `data/world.json`.
 
+## NASA satellite and model data (GPM, GLDAS, MODIS, OMI, AIRS)
+Eight more measurements come from the NASA datasets the challenge names. They need an Earthdata
+login, so they are **prepared once** and saved with the site (`data/nasa/`), instead of being
+asked for live like NASA POWER.
+
+| Measurement | Dataset | Since | Pairs with (second source) |
+|---|---|---|---|
+| Rainfall (GPM satellites) | GPM IMERG monthly `GPM_3IMERGM` v07 | 1998 | Rain and snowfall (MERRA-2) |
+| Air temperature (AIRS satellite) | AIRS monthly `AIRS3STM` v7.0, day/night average | 2002 | Air temperature (MERRA-2) |
+| Land surface temperature (MODIS) | MODIS `MOD11C3` v061, day/night average | 2000 | Surface temperature (MERRA-2) |
+| Vegetation greenness (MODIS) | MODIS NDVI `MOD13C2` v061 | 2000 | – |
+| Root-zone soil moisture (GLDAS) | GLDAS Noah `GLDAS_NOAH025_M` 2.1 | 2000 | Root-zone soil wetness (MERRA-2) |
+| Evaporation (GLDAS) | same | 2000 | Evaporation from land (MERRA-2) |
+| Runoff (GLDAS) | same (surface + underground runoff) | 2000 | – |
+| Nitrogen dioxide (OMI) | OMI `OMNO2d` v003, daily maps averaged by month (at least 5 days) | 2004 | – |
+
+- **Grid:** every dataset is averaged into 1 x 1 degree squares (about 110 km). A square needs data
+  in at least half of its small cells, so coasts and gaps don't give misleading averages.
+- **Second source:** where a measurement exists twice, the evidence panel tests both over the
+  years they share and says whether they agree. A significant trend that an independent
+  satellite or model confirms gets "confirmed by ..." in the list.
+- **Map:** the coloured squares for these measurements are 2 x 2 degrees (`data/nasa/<CODE>_map.json`).
+
+### Rebuild (needs an Earthdata token)
+```bash
+python3 Website/build_nasa_grids.py download
+```
+```bash
+python3 Website/build_nasa_grids.py build
+```
+```bash
+node Website/tests/test_nasa.js
+```
+`download` asks NASA's public catalogue (CMR) for the file list and NASA's subsetting service
+(OPeNDAP) for one variable per file, so whole files are never downloaded. Finished months are
+kept in `Website/.nasa_cache/` (not in git): the command can be stopped and started again.
+Set `EARTHDATA_TOKEN` to your token (Earthdata profile → Generate Token) when running it on your
+own computer. `build` runs `Task4/stats.py` for the map and writes the tiles; `test_nasa.js` checks
+that the website reads them back correctly. Needs `numpy`, `h5py`, `pandas`, `scipy`.
+
 ## Files
 | File | What it is |
 |---|---|
@@ -55,11 +95,13 @@ build_world.py (run once, Python, Task4/stats.py) ─► data/world.json ─► 
 | `style.css` | The look: colours, fonts, outlines, phone layout |
 | `app.js` | Live data download, search, map (MapLibre), charts (Plotly), compare |
 | `stats.js` | Trend and significance math (copy of `Task4/stats.py`) |
+| `nasa.js` | Reads one square's monthly series from a NASA tile file |
+| `build_nasa_grids.py`, `build_nasa_tiles.py` | Download the NASA datasets to 1° grids; then trends, tiles and map layers (`data/nasa/`) |
 | `globe.js` | Hero art: rotating globe of teal "satellite pixels", demo cases in coral (decoration only) |
-| `data/variables.json` | The 18 measurements: NASA code, name, units, definition, search keywords |
+| `data/variables.json` | The 26 measurements (18 NASA POWER + 8 satellite/model): code, name, units, definition, search words, second-source pairs |
 | `data/world.json` | World overview: trend of every measurement on a 5 degree grid (made by `build_world.py`) |
 | `build_world.py` | Rebuilds `data/world.json` with the Python trend code (about 25 minutes, can be stopped and restarted) |
-| `tests/` | `make_reference.py` (answers from the Python code) and `test_stats.js` (checks `stats.js` against them) |
+| `tests/` | `make_reference.py` + `test_stats.js` (website math = Python math); `test_nasa.js` + `nasa_reference.json` (tiles read back correctly) |
 | `data/land.geojson` | World land outline (Natural Earth, public domain): the fallback map |
 | `vendor/maplibre-gl.css` | The map library's stylesheet (kept locally) |
 | `build_data.py`, `data/results.json` | The earlier version (3 Giovanni regions). No longer read by the page; kept for reference |
