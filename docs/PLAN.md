@@ -1,7 +1,7 @@
 # Hyperion: The Simple Plan
 
-**This is the plan we follow.** The other docs (`TEAM_PLAN*.md`, `DATA_GUIDE*.md`) are background
-reading only.
+**This is the plan we follow.** Interfaces between roles: [HANDSHAKES.md](HANDSHAKES.md).
+Rules for AI coding agents: [AGENTS.md](../AGENTS.md).
 
 ## What we build (one sentence)
 A website where a student picks a **place** and a **variable** (temperature, rain, soil wetness,
@@ -50,7 +50,7 @@ down, by how much, and is that change significant?**
 | **3** | 🔎 **Search + explainability** | Help users find what to look at, and explain every result in plain words |
 | **4** | 📈 **Trend & significance + integration** | The math (seasons removed → linear trend → significance test) and connecting all parts |
 
-The team lead uses Claude Code to help anyone who's stuck and to handle Git.
+The team lead uses an AI coding agent to help anyone who's stuck and to handle Git.
 
 ## How we work in parallel
 
@@ -154,7 +154,7 @@ prompt below). You need nothing from anyone.
 - [ ] Integration: connect everyone's parts at each sync, deploy to Streamlit Cloud
 - [ ] *(extra)* "Years until significant", labelled as an estimate, not a forecast
 
-## Starter prompts (paste into ChatGPT / Gemini / Claude)
+## Starter prompts (paste into any chat AI: ChatGPT, Gemini, Claude…)
 
 **Person 1 (Frontend):**
 > I'm a beginner. Build a Streamlit app `app.py` plus `charts.py`. Data comes from `data_io.py`
@@ -197,7 +197,7 @@ Later:
 > (place_id, variable_code, reason) suggestions by matching words. Then build a Streamlit page
 > `pages/1_Guided_demo.py` that walks a student through one example with "Next"/"Back" buttons.
 
-**Person 4 (Trend & significance):** works with Claude Code, or with this prompt:
+**Person 4 (Trend & significance):** use the lead's AI coding agent, or paste this prompt:
 > Write `stats.py` with `analyze(df)` for a monthly series (columns date, value; empty = missing).
 > Steps: remove seasons by subtracting each calendar month's mean; fit a linear trend; report
 > slope per decade, 95% interval and t-test p-value, corrected for lag-1 autocorrelation using
