@@ -213,6 +213,11 @@ Non-significant ≠ "no change". Never state causes.
   `svalbard_SOILM` in the demo (glacier; unreliable).
 - 🧩 Each person builds in their own folder; at the end the team lead combines all folders into
   the final project layout below (each folder's README says how).
+- 🌐 **Static website** in `Website/` (current design, replaces the Streamlit look): light
+  Isomorphic-inspired style (Geist + Geist Mono), MapLibre map with regions coloured by trend and
+  focus brackets, result panel, compare, method, keyword search. `build_data.py` runs the real
+  Task2/3/4 code once → `data/results.json`; the site only displays it. Run:
+  `python -m http.server 8000 --directory Website`. Deploy = upload the folder to static hosting.
 - 🖥️ **Website first version** in `FrontEnd_claude/` (built for P1 on the real Task2/3/4 parts):
   `app.py`, `charts.py` (H5), theme, 6 passing app tests, mock-ups + screenshots in `design/`.
   Run: `streamlit run FrontEnd_claude/app.py`. Combine with `--frontend FrontEnd_claude`.
