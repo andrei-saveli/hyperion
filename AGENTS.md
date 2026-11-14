@@ -151,12 +151,16 @@ trend line and 95% band → verdict card (🟢 significant / 🟡 possible, not 
 ### Stack (simplified for a beginner team)
 - **Everything in Python.** Website: **Streamlit** (`app.py`), charts: Plotly.
 - Stats: `stats.py` (numpy/scipy/statsmodels, pymannkendall).
-- Data: **NASA POWER** monthly point API, no login (verified: T2M °C, PRECTOTCORR mm/day,
-  GWETROOT 0–1, RH2M %; month "13" = annual mean, skip; -999 = missing). Saved as CSVs in `data/`.
+- Data: **NASA Giovanni** area-averaged monthly time series over a box per place (harmony-py +
+  earthaccess, free Earthdata account). Variables: `TEMP` (MERRA-2 `M2IMNXASM_5_12_4_T2M`, °C),
+  `RAIN` (GPM `GPM_3IMERGM_07_precipitation`, mm/day), `SOILM` (GLDAS RootMoist, kg/m²), `EVAP`
+  (GLDAS Evap, mm/day), `NO2` (OMI OMNO2d, 10¹⁵ molecules/cm², from 2004-10). Raw files kept in
+  `data/raw/giovanni/`, cleaned to `data/<place>_<CODE>.csv`. Fallback: NASA POWER (no login).
 - Deploy: Streamlit Community Cloud. AI only for optional wording, never for numbers.
 
 ### Roles (details in `docs/PLAN.md`)
-P1 Frontend (`app.py`, `charts.py`) · P2 Data (`scripts/download.py`, `data_io.py`, `data/<place>_<code>.csv`, `data/SOURCES.md`) ·
+P1 Frontend (`app.py`, `charts.py`) · P2 Data (`scripts/download_giovanni.py`, `scripts/convert_giovanni.py`, `data_io.py`, `data/raw/`,
+`data/<place>_<CODE>.csv`, `data/SOURCES.md`) ·
 
 P3 Search + explainability (`search.py`, `explain.py`, `data/places.csv`, `data/variables.csv`,
 `pages/`) ·
@@ -170,7 +174,7 @@ README.md                      project overview for visitors and judges
 docs/PLAN.md                   the plan: roles, tasks, timeline, starter prompts
 docs/HANDSHAKES.md             frozen interfaces between roles (H0–H6) with fakes
 app.py, charts.py              Streamlit app + shared chart (P1)
-scripts/download.py, data_io.py  download + loading (P2)
+scripts/*_giovanni.py, data_io.py  download, cleaning, loading (P2)
 search.py, explain.py, pages/  search, plain-language text, guided demo (P3)
 stats.py, tests/, requirements.txt  trend + significance math, integration (P4)
 data/                          places.csv, variables.csv, <place>_<code>.csv, SOURCES.md
@@ -184,7 +188,9 @@ Non-significant ≠ "no change". Never state causes. "Years until significant" =
 
 ## Current status / handover (update this when you finish something)
 - ✅ Planning done: `docs/PLAN.md`, `docs/HANDSHAKES.md`.
-- ✅ NASA POWER API verified working for T2M, PRECTOTCORR, GWETROOT, RH2M (no login).
+- ✅ Handshake change applied: places are **boxes** (`west,south,east,north`), variables use **short
+  codes** (`TEMP`, `RAIN`, `SOILM`, `EVAP`, `NO2`) with a `source` column (Giovanni name).
+- ✅ Giovanni bulk-download variables verified in Giovanni's configured-variables list.
 - 🖥️ The frontend (P1) is built in a separate repo, `andrei-saveli/frontend-nasa`, against the
   fakes in `docs/HANDSHAKES.md`; its brief is that repo's `AGENTS.md`. Keep its copies of
   `PLAN.md`/`HANDSHAKES.md` in sync when these change.

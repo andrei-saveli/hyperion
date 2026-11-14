@@ -4,8 +4,8 @@
 Rules for AI coding agents: [AGENTS.md](../AGENTS.md).
 
 ## What we build (one sentence)
-A website where a student picks a **place** and a **variable** (temperature, rain, soil wetness,
-humidity), sees the monthly NASA data since 2001, and gets a plain answer: **is it going up or
+A website where a student picks a **place** and a **variable** (temperature, rainfall, soil
+moisture, evaporation, air pollution), sees the monthly NASA data since 2001, and gets a plain answer: **is it going up or
 down, by how much, and is that change significant?**
 
 > ⚠️ **Scope rule (from the challenge brief, keep in mind always):** Trend analysis with Earth
@@ -21,10 +21,11 @@ down, by how much, and is that change significant?**
 - **One language: Python.** No JavaScript. AI writes Python very well.
 - **One tool for the website: [Streamlit](https://streamlit.io).** A full web app in one Python
   file. Free hosting on Streamlit Community Cloud.
-- **One data source: [NASA POWER](https://power.larc.nasa.gov).** NASA data (from the MERRA-2
-  model and satellites), **no login**, simple web address returns monthly numbers.
-  ✅ Tested: temperature `T2M` (°C), rain `PRECTOTCORR` (mm/day), soil wetness `GWETROOT`
-  (0–1), humidity `RH2M` (%) all work.
+- **One data source: [NASA Giovanni](https://giovanni.gsfc.nasa.gov).** Monthly averages over a
+  box around each place, from the instruments the challenge names: MERRA-2 (temperature), GPM
+  (rainfall), GLDAS (soil moisture, evaporation), OMI (NO₂ pollution). Bulk download by script
+  with a free Earthdata account. Fallback if Giovanni fails: [NASA POWER](https://power.larc.nasa.gov)
+  (no login).
 - **Data saved as CSV files** in the repo, so the demo works even if NASA's site is down.
 
 ## The finished app (4 screens in one page)
@@ -67,11 +68,16 @@ Each person owns **different files**, so Git conflicts are rare.
 
 ### Starting places (fixed now, Person 3 adds more later; full format in HANDSHAKES.md H0)
 ```csv
-id,name,lat,lon,type,story
-lake_mead,Lake Mead (USA),36.1,-114.7,desert,Is the desert around Lake Mead drying out?
-niamey,"Niamey, Sahel (Niger)",13.5,2.1,savanna,Is the Sahel getting more or less rain?
-svalbard,Svalbard (Arctic),78.2,15.6,polar,Is the Arctic warming?
+id,name,lat,lon,west,south,east,north,type,story
+lake_mead,Lake Mead (USA),36.25,-114.5,-116,35,-113,37.5,desert,Is the desert around Lake Mead drying out?
+niamey,"Niamey, Sahel (Niger)",13.5,2.0,1.0,12.5,3.0,14.5,savanna,Is the Sahel getting more or less rain?
+svalbard,Svalbard (Arctic),78.25,15.5,14.0,77.5,17.0,79.0,polar,Is the Arctic warming?
 ```
+`west,south,east,north` is the box Giovanni averages over; `lat,lon` is its centre (for the map).
+
+### Starting variables (full format in HANDSHAKES.md H0)
+`TEMP` air temperature (°C, MERRA-2) · `RAIN` rainfall (mm/day, GPM) · `SOILM` soil moisture
+(kg/m², GLDAS) · `EVAP` evaporation (mm/day, GLDAS) · `NO2` air pollution (10¹⁵ molecules/cm², OMI)
 
 ### Shared building blocks: see [HANDSHAKES.md](HANDSHAKES.md)
 The exact shapes of everything passed between people, with **copy-paste fakes** so you can start
@@ -117,14 +123,15 @@ prompt below). You need nothing from anyone.
 ### 🛰️ Person 2: Data (retrieval + cleaning)
 📄 **Full guide (Giovanni bulk download + cleaning): [PERSON_2_DATA_GIOVANNI_HANDOVER.md](PERSON_2_DATA_GIOVANNI_HANDOVER.md).**
 **Start with:** the starter prompt below. You need nothing from anyone.
-- [ ] `scripts/download.py`: NASA POWER monthly data for every place in `data/places.csv`
-- [ ] Cleaning: skip month "13" (yearly average), turn -999 into empty (missing), one row per
-      month, oldest first, never fill gaps with 0
+- [ ] `scripts/download_giovanni.py`: Giovanni area-averaged monthly data for every place box ×
+      variable in `data/places.csv` / `data/variables.csv` (raw files in `data/raw/giovanni/`)
+- [ ] `scripts/convert_giovanni.py`: skip header lines, fill values → empty, daily → monthly,
+      convert units, one row per month 2001-01…2024-12, never fill gaps with 0
 - [ ] Data for the 3 starting places → push by hour 4
 - [ ] `data_io.py` with the 3 load functions → push by hour 6
 - [ ] Download P3's extra places as soon as they're in `places.csv`
 - [ ] Check every file (plot it, count empty months); `data/SOURCES.md` with exact web addresses
-- [ ] *(extra)* `fetch_point(lat, lon, code)` for live downloads
+- [ ] *(extra)* NASA POWER fallback script, in case Giovanni fails
 
 ### 🔎 Person 3: Search + explainability
 **Start with:** the starter prompt below. You need nothing from anyone.
@@ -170,22 +177,16 @@ prompt below). You need nothing from anyone.
 > chart, a "Remove seasons" toggle, and a verdict card with a big emoji and the explanation.
 > Add a "Compare" tab with two places side by side. Explain step by step how to install and run it.
 
-**Person 2 (Data):**
-> I'm a beginner. Write a Python script `scripts/download.py` that reads `data/places.csv`
-> (columns id,name,lat,lon,type,story) and, for each place, downloads monthly data from the NASA
-> POWER API (`https://power.larc.nasa.gov/api/temporal/monthly/point`, community=AG, start=2001,
-> end=2024, parameters T2M,PRECTOTCORR,GWETROOT,RH2M, format=JSON). Skip month "13" (annual
-> average). Treat -999 as missing (empty). Save one CSV per place and variable as
-> `data/<id>_<code>.csv` with columns `date,value` and dates like 2001-01-01. Also write
-> `data_io.py` with `load_places()`, `load_variables()` and `load_series(place_id, code)` that
-> return pandas DataFrames (`date` parsed as dates). Explain step by step how to run it.
+**Person 2 (Data):** follow [PERSON_2_DATA_GIOVANNI_HANDOVER.md](PERSON_2_DATA_GIOVANNI_HANDOVER.md);
+it contains both scripts and ready-made prompts.
 
 **Person 3 (Search + explainability):**
-> We're building a student tool that tests whether NASA climate data (temperature, rainfall, soil
-> wetness, humidity from NASA POWER, 2001–2024) shows a linear trend at a place. We have Lake Mead
-> (USA, desert), Niamey (Sahel) and Svalbard (Arctic). Suggest 5 more places of different types
-> (city, forest, coast, mountain…) where one of these variables may show a trend, with lat/lon
-> and one sentence on why, plus 2 interesting pairs to compare. For each variable write a plain
+> We're building a student tool that tests whether NASA data (air temperature, rainfall, soil
+> moisture, evaporation, NO₂ air pollution; monthly 2001–2024 from NASA Giovanni) shows a linear
+> trend in a region. We have Lake Mead (USA, desert), Niamey (Sahel) and Svalbard (Arctic).
+> Suggest 5 more regions of different types (city, forest, coast, mountain…) where one of these
+> variables may show a trend, each as a box (west, south, east, north, about 2° wide, on land)
+> with one sentence on why, plus 2 interesting pairs to compare. For each variable write a plain
 > one-sentence definition for a 15-year-old and 8 search keywords. Then write a Python function
 > `explain(result, variable, place)` that turns a dict (slope_per_decade, ci_low, ci_high,
 > p_value, verdict = significant/possible/none) into a plain headline plus a short "what does
@@ -222,9 +223,9 @@ teaches what "significant" means).
 
 ## If we have extra time (in this order)
 1. "Years until significant": for weak trends, estimate how many more years of data are needed.
-2. Click anywhere on a map → download that point live from NASA POWER.
+2. Click anywhere on a map → download that point live (NASA POWER, no login).
 3. Smarter search (e.g. AI that understands free-text questions, still only suggesting from our list).
-4. More variables (NASA POWER has many more: wind, sunshine, frost days…).
+4. More variables (Giovanni has hundreds: runoff, snow, ozone, AIRS humidity…).
 
 ## Golden rules
 1. **Push small, push often** (`git pull` → work → `git push`). Ask the lead if Git breaks.

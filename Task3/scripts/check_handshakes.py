@@ -16,8 +16,9 @@ import pandas as pd
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 
-PLACE_COLS = {"id", "name", "lat", "lon", "type", "story"}
-VARIABLE_COLS = {"code", "name", "units", "definition", "keywords"}
+PLACE_COLS = {"id", "name", "lat", "lon", "west", "south", "east", "north", "type", "story"}
+VARIABLE_COLS = {"code", "name", "units", "definition", "keywords", "source"}
+PLACE_TYPES = {"desert", "polar", "savanna", "city", "forest", "coast", "mountain", "farmland"}
 H2_KEYS = {"slope_per_decade", "ci_low", "ci_high", "p_value", "mk_p_value", "total_change",
            "start", "end", "n_months", "n_missing", "direction", "verdict", "emoji",
            "anomaly", "trend", "band_low", "band_high", "years_to_significance", "method"}
@@ -51,6 +52,17 @@ if data_io:
     check(PLACE_COLS <= set(places.columns), f"H0 places columns {sorted(PLACE_COLS - set(places.columns)) or 'ok'}")
     check(VARIABLE_COLS <= set(variables.columns), f"H0 variables columns {sorted(VARIABLE_COLS - set(variables.columns)) or 'ok'}")
     check(places["id"].is_unique, "H0 place ids are unique")
+    check(variables["code"].is_unique, "H0 variable codes are unique")
+    if PLACE_COLS <= set(places.columns):
+        for _, p in places.iterrows():
+            box_ok = (p["west"] < p["east"] and p["south"] < p["north"]
+                      and -180 <= p["west"] and p["east"] <= 180 and -90 <= p["south"] and p["north"] <= 90
+                      and p["west"] <= p["lon"] <= p["east"] and p["south"] <= p["lat"] <= p["north"])
+            check(box_ok, f"H0 {p['id']}: box W{p['west']} S{p['south']} E{p['east']} N{p['north']} valid, centre inside")
+            check(p["type"] in PLACE_TYPES and str(p["story"]).endswith("?"), f"H0 {p['id']}: type and story ok")
+    if VARIABLE_COLS <= set(variables.columns):
+        for _, v in variables.iterrows():
+            check(str(v["code"]).isupper() and bool(str(v["source"]).strip()), f"H0 {v['code']}: short code + Giovanni source")
     for _, p in places.iterrows():
         for _, v in variables.iterrows():
             name = f"{p['id']}_{v['code']}"

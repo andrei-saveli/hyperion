@@ -81,9 +81,9 @@ Giovanni averages over a **box**: `west, south, east, north` in degrees. Keep bo
 | `niamey` | 1.0, 12.5, 3.0, 14.5 |
 | `svalbard` | 14.0, 77.5, 17.0, 79.0 |
 
-> ⚠️ **Handshake change to agree with the team first:** `places.csv` gets 4 new columns
-> `west,south,east,north`, and `variables.csv` gets a `source` column holding the Giovanni variable
-> name. `code` becomes our short code (`TEMP`, `RAIN`…). Ask the team lead to update H0/H1.
+> ✅ **Agreed and applied** in [HANDSHAKES.md](HANDSHAKES.md) H0: `places.csv` has the box columns
+> `west,south,east,north` (and `lat,lon` = box centre); `variables.csv` uses these short codes and
+> has a `source` column with the Giovanni variable name.
 
 ---
 
@@ -292,7 +292,9 @@ Then `git pull`, add the raw files + cleaned files + `SOURCES.md`, and `git push
 
 ### Fallback: NASA POWER (no login, no quota)
 If Giovanni doesn't work in time, NASA POWER gives monthly temperature, rain, soil wetness and
-humidity for a point with a single web address (see the Data starter prompt in [PLAN.md](PLAN.md)).
+humidity for a point with a single web address:
+`https://power.larc.nasa.gov/api/temporal/monthly/point?parameters=T2M,PRECTOTCORR,GWETROOT&community=AG&latitude=<lat>&longitude=<lon>&start=2001&end=2024&format=JSON`
+(skip month "13" = yearly average; -999 = missing).
 It's a different source, so note it in `SOURCES.md` and tell the team.
 
 ---
