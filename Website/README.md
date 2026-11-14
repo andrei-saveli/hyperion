@@ -98,7 +98,8 @@ GitHub Pages, Netlify, etc.
 ## Notes
 - Needs internet: NASA POWER (the data), Open-Meteo and BigDataCloud (place names), OpenFreeMap
   (the detailed map), Google Fonts and jsDelivr (fonts and libraries), and Hugging Face (the
-  Searchlight model). If the detailed map can't load, the built-in land outline is used instead.
+  Searchlight model). The map can use the built-in land outline if the detailed style is
+  unavailable. Search, demos, and trend statistics also work in browsers without WebGL.
 - Demo cases (chosen from real results): Svalbard air temperature (+0.69 °C per decade),
   Beijing haze (falling) against Delhi haze (rising), Manaus rainfall (falling), Lake Mead surface
   soil wetness (possible, not significant yet).

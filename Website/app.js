@@ -157,31 +157,35 @@ function explain(r, v, placeName) {
 }
 
 // ------------------------------------------------------------------ start
-Promise.all([
-  fetch("data/variables.json").then((r) => r.json()),
-  fetch("data/land.geojson").then((r) => r.json()),
-  fetch("data/world.json").then((r) => (r.ok ? r.json() : null)).catch(() => null),   // optional overview
-  fetch(MAP_STYLE).then((r) => (r.ok ? r.json() : null)).catch(() => null),             // optional detailed map
-]).then(([catalogue, land, world, mapStyle]) => {
-  VARS = catalogue.variables; LAND = land; WORLD = world;
+async function initialize() {
+  const response = await fetch("data/variables.json");
+  if (!response.ok) throw new Error(`Catalog request failed (${response.status})`);
+  const catalogue = await response.json();
+  VARS = catalogue.variables;
   searchlight = createSearchlight(VARS);
-  if (world) $("built").textContent = `World overview built ${world.built}`;
   buildVariableSelect(catalogue.groups);
   buildCases();
-  buildMap(mapStyle);
   buildSearch();
-  buildCompare(catalogue.groups);
-  const fromLink = readHash();
-  const first = fromLink || CASES[0];
-  if (fromLink) state.code = fromLink.code;
+  const first = readHash() || CASES[0];
   selectPlace(first.lat, first.lon, first.name, first.code, true);
+  buildCompare(catalogue.groups);
+  initializeMap();
+}
+
+initialize().catch((error) => {
+  console.error("ByteMe could not start", error);
+  $("scan").innerHTML = '<p role="alert">The measurement catalog could not load. Reload the page to try again.</p>';
 });
 
 // Shareable links look like  #44.5,26.25,T2M,Bucharest
 function readHash() {
-  const [lat, lon, code, ...name] = decodeURIComponent(location.hash.slice(1)).split(",");
-  if (!Number.isFinite(parseFloat(lat)) || !Number.isFinite(parseFloat(lon)) || !variable(code)) return null;
-  return { lat: +lat, lon: +lon, code, name: name.join(",") };
+  try {
+    const [lat, lon, code, ...name] = decodeURIComponent(location.hash.slice(1)).split(",");
+    if (!lat || !lon || !Number.isFinite(+lat) || !Number.isFinite(+lon) || !variable(code)) return null;
+    return { lat: +lat, lon: +lon, code, name: name.join(",") };
+  } catch {
+    return null;
+  }
 }
 function writeHash() {
   try { history.replaceState(null, "", `#${state.lat},${state.lon},${state.code},${encodeURIComponent(state.name)}`); } catch (e) { /* fine without */ }
@@ -251,8 +255,47 @@ async function nameOf(lat, lon) {
 }
 
 // ------------------------------------------------------------------ map
+async function loadMapAsset(url) {
+  try {
+    const response = await fetch(url, { signal: AbortSignal.timeout(5000) });
+    return response.ok ? await response.json() : null;
+  } catch {
+    return null;
+  }
+}
+
+async function initializeMap() {
+  const status = $("map-status");
+  try {
+    if (!globalThis.maplibregl) throw new Error("Map library unavailable");
+    const [land, world, detailed] = await Promise.all([
+      loadMapAsset("data/land.geojson"),
+      loadMapAsset("data/world.json"),
+      loadMapAsset(MAP_STYLE),
+    ]);
+    LAND = land;
+    WORLD = world;
+    const style = Array.isArray(detailed?.layers) ? detailed : null;
+    if (!LAND && !style) throw new Error("Map assets unavailable");
+    buildMap(style);
+    status.hidden = true;
+    $("map-wrap").classList.remove("map-pending");
+    if (WORLD) {
+      $("layer").hidden = false;
+      $("map-legend").hidden = false;
+      $("built").textContent = `World overview built ${WORLD.built}`;
+      refreshWorldLayer();
+    }
+  } catch (error) {
+    console.warn("ByteMe map unavailable", error);
+    map = null;
+    $("map-wrap").classList.replace("map-pending", "map-unavailable");
+    status.textContent = "The map is unavailable in this browser. Search for a place or choose a demo to explore trends.";
+  }
+}
+
 // Our own minimal base map: a land outline shipped with the site (data/land.geojson). Used when
-// the detailed map can't be loaded, so the map always works in a live demo.
+// the detailed map style can't be loaded.
 function outlineStyle() {
   return {
     version: 8,
@@ -272,7 +315,7 @@ function buildMap(detailedStyle) {
   map = new maplibregl.Map({
     container: "map",
     style: detailedStyle || outlineStyle(),
-    center: [10, 25], zoom: 1.1, minZoom: 0.5, maxZoom: 9,
+    center: [state.lon, state.lat], zoom: 2.6, minZoom: 0.5, maxZoom: 9,
     attributionControl: { compact: true }, dragRotate: false, pitchWithRotate: false,
   });
   map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "bottom-right");
@@ -464,6 +507,10 @@ function renderDetail() {
 
 // ------------------------------------------------------------------ charts
 function drawChart(el, r, s, v, raw, yRange) {
+  if (!globalThis.Plotly) {
+    $(el).textContent = "The chart could not load. See the trend statistics for this measurement.";
+    return;
+  }
   const x = s.dates.map((d) => `${d.year}-${String(d.month).padStart(2, "0")}-01`);
   const neutral = !hasTrend(r);
   const colour = neutral ? COLOURS.deep : colourOf(r);

@@ -138,6 +138,12 @@ h3 { font-size: 26px; line-height: 1.2; }
 
 .map-wrap { position: relative; min-height: 640px; overflow: hidden; }
 #map { position: absolute; inset: 0; }
+.map-status { position: relative; z-index: 2; max-width: 36ch; margin: 0; padding: 24px; color: var(--muted); }
+.map-pending .map-tools, .map-unavailable .map-tools, .map-unavailable #map,
+.map-legend[hidden], .map-tools [hidden] { display: none; }
+.map-wrap.map-unavailable {
+  min-height: 0; display: grid; align-items: center; background: var(--paper);
+}
 .map-legend {
   position: absolute; left: 14px; bottom: 14px; z-index: 2; background: rgba(255, 255, 255, 0.94);
   border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; display: grid; gap: 6px;

@@ -44,8 +44,7 @@
   <div class="section-head">
     <div><span class="tag">Explore</span><h2>Choose any place, see what is changing</h2></div>
     <p class="muted" style="max-width:460px;margin:0">Search for a place or click the map. We read the NASA record
-      for that spot and test every measurement for a trend. The coloured squares show where the chosen
-      measurement is rising or falling around the world.</p>
+      for that spot and test every measurement for a trend.</p>
   </div>
   <div class="controls">
     <div class="search">
@@ -55,15 +54,16 @@
     <label class="var-pick"><span>Measurement</span><select id="var-select" aria-label="Measurement"></select></label>
   </div>
   <div class="explore">
-    <div class="box map-wrap">
+    <div class="box map-wrap map-pending" id="map-wrap">
       <div id="map"></div>
+      <p id="map-status" class="map-status" role="status">Loading map…</p>
       <div class="brackets" id="brackets"><i></i><i></i><i></i><i></i></div>
       <div class="map-tools">
-        <button class="pill on" id="layer" title="Show or hide the world trend squares">World trends</button>
+        <button class="pill on" id="layer" title="Show or hide the world trend squares" hidden>World trends</button>
         <button class="pill" id="world">World view</button>
       </div>
       <div class="map-tip" id="map-tip"></div>
-      <div class="map-legend">
+      <div class="map-legend" id="map-legend" hidden>
         <div class="legend-title" id="legend-title"></div>
         <div><span class="swatch" style="background:var(--up)"></span>Significant increase</div>
         <div><span class="swatch" style="background:var(--down)"></span>Significant decrease</div>
