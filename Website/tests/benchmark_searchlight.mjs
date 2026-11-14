@@ -2,10 +2,12 @@ import { execFileSync } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
 import vm from "node:vm";
-import {
+import Searchlight from "../searchlight.js";
+
+const {
   MODEL, REVISION, SEARCH_POLICY, acceptMeasurement, catalogText, createSearchlight,
   namedMeasurements, rankMeasurements, scopeMessage,
-} from "../searchlight.mjs";
+} = Searchlight;
 
 const { pipeline, env } = await import(process.env.SEARCHLIGHT_RUNTIME_FILE
   ? pathToFileURL(process.env.SEARCHLIGHT_RUNTIME_FILE).href

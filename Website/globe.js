@@ -99,23 +99,19 @@
     requestAnimationFrame(loop);
   }
 
-  Promise.all([fetch("data/land.geojson").then((r) => r.json()), fetch("data/results.json").then((r) => r.json())])
-    .then(([geo, data]) => {
-      const rings = ringsOf(geo);
-      for (let lat = -84 + STEP / 2; lat < 84; lat += STEP) {
-        for (let lon = -180 + STEP / 2; lon < 180; lon += STEP) {
-          (inside(lon, lat, rings) ? land : ocean).push([lon, lat]);
-        }
-      }
-      ocean = ocean.filter((_, i) => i % 3 === 0);   // fewer, fainter ocean pixels
-      // light up the demo cases (set by app.js); fall back to the three original study regions
-      if (window.BYTEME_CASES) window.BYTEME_CASES.forEach((c) => regions.push([c.lon, c.lat]));
-      else data.places.forEach((p) => regions.push([p.lon, p.lat]));
-      resize();
-      window.addEventListener("resize", () => { resize(); draw(); });
-      if (still) { draw(); return; }
-      new IntersectionObserver(([e]) => { visible = e.isIntersecting; }).observe(canvas);
-      loop();
-    })
-    .catch(() => { canvas.style.display = "none"; });   // decoration only: hide if data can't load
+  const geo = globalThis.ByteMeData?.land;
+  if (!ctx || !geo) return;
+  const rings = ringsOf(geo);
+  for (let lat = -84 + STEP / 2; lat < 84; lat += STEP) {
+    for (let lon = -180 + STEP / 2; lon < 180; lon += STEP) {
+      (inside(lon, lat, rings) ? land : ocean).push([lon, lat]);
+    }
+  }
+  ocean = ocean.filter((_, i) => i % 3 === 0);   // fewer, fainter ocean pixels
+  (window.BYTEME_CASES || []).forEach((c) => regions.push([c.lon, c.lat]));
+  resize();
+  window.addEventListener("resize", () => { resize(); draw(); });
+  if (still) { draw(); return; }
+  new IntersectionObserver(([e]) => { visible = e.isIntersecting; }).observe(canvas);
+  loop();
 })();

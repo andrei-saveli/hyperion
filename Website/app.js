@@ -8,13 +8,12 @@
 // - World overview squares: data/world.json, built once by build_world.py with the Python code.
 // - Place names: Open-Meteo geocoding (search) and BigDataCloud (name of a clicked point).
 
-import { createSearchlight, namedMeasurements, scopeMessage } from "./searchlight.mjs";
+const { createSearchlight, namedMeasurements, scopeMessage } = Searchlight;
 
 const COLOURS = { up: "#ec7a6a", down: "#2d8bb5", neutral: "#b2bcb8", ink: "#141a19", deep: "#0e5e63" };
 const START_YEAR = 1981;
 const END_YEAR = new Date().getFullYear() - 1;          // last complete year
 const POWER = "https://power.larc.nasa.gov/api/temporal/monthly/point";
-const MAP_STYLE = "https://tiles.openfreemap.org/styles/positron";
 const GEOCODER = "https://geocoding-api.open-meteo.com/v1/search";
 const REVERSE = "https://api.bigdatacloud.net/data/reverse-geocode-client";
 const REVERSE_2 = "https://nominatim.openstreetmap.org/reverse";
@@ -44,7 +43,9 @@ const REGIONS = [
   ["mediterranean", "Mediterranean Sea", 35.0, 18.125], ["gobi", "Gobi Desert (Mongolia)", 43.0, 105.0],
   ["congo", "Congo rainforest", 0, 21.25], ["outback", "Australian outback", -25.0, 133.75],
 ];
-let VARS = [], WORLD = null, LAND = null, map = null, marker = null, searchlight;
+let VARS = [], WORLD = null, map = null, worldLayer = null, marker = null, searchlight;
+let displayedWorldMeasurement = null;
+let selectionTicket = 0;
 const state = { lat: null, lon: null, name: "", code: "T2M", raw: false, loading: false, error: null, place: null, layer: true };
 const compare = { code: "AOD_55", a: { name: "Beijing (China)", lat: 40.0, lon: 116.25 }, b: { name: "Delhi (India)", lat: 28.5, lon: 77.5 } };
 const $ = (id) => document.getElementById(id);
@@ -158,10 +159,9 @@ function explain(r, v, placeName) {
 
 // ------------------------------------------------------------------ start
 async function initialize() {
-  const response = await fetch("data/variables.json");
-  if (!response.ok) throw new Error(`Catalog request failed (${response.status})`);
-  const catalogue = await response.json();
+  const { catalogue, land, world } = globalThis.ByteMeData;
   VARS = catalogue.variables;
+  WORLD = world ?? null;
   searchlight = createSearchlight(VARS);
   buildVariableSelect(catalogue.groups);
   buildCases();
@@ -169,13 +169,8 @@ async function initialize() {
   const first = readHash() || CASES[0];
   selectPlace(first.lat, first.lon, first.name, first.code, true);
   buildCompare(catalogue.groups);
-  initializeMap();
+  initializeMap(land);
 }
-
-initialize().catch((error) => {
-  console.error("ByteMe could not start", error);
-  $("scan").innerHTML = '<p role="alert">The measurement catalog could not load. Reload the page to try again.</p>';
-});
 
 // Shareable links look like  #44.5,26.25,T2M,Bucharest
 function readHash() {
@@ -218,23 +213,25 @@ function buildCases() {
 
 // ------------------------------------------------------------------ choosing a place
 async function selectPlace(lat, lon, name, code, fly) {
+  const ticket = ++selectionTicket;
   const cell = snap(lat, lon);
   Object.assign(state, { lat: cell.lat, lon: cell.lon, name: name || coordText(cell.lat, cell.lon), loading: true, error: null, place: null });
   if (code) { state.code = code; $("var-select").value = code; }
   writeHash(); refreshWorldLayer(); placeMarker(); renderScan(); renderDetail();
-  if (fly && map) map.flyTo({ center: [cell.lon, cell.lat], zoom: Math.max(map.getZoom(), 2.6), duration: 1200 });
+  if (fly && map) map.setView([cell.lat, cell.lon], Math.max(map.getZoom(), 2.5));
   if (!name) nameOf(cell.lat, cell.lon).then((found) => {
-    if (found && state.lat === cell.lat && state.lon === cell.lon) { state.name = found; writeHash(); renderScan(); renderDetail(); }
+    if (found && ticket === selectionTicket) { state.name = found; writeHash(); placeMarker(); renderScan(); renderDetail(); }
   });
   try {
     const place = await loadPlace(cell.lat, cell.lon);
-    if (state.lat !== cell.lat || state.lon !== cell.lon) return;   // the visitor already moved on
+    if (ticket !== selectionTicket) return;
     state.place = place;
   } catch (e) {
-    if (state.lat !== cell.lat || state.lon !== cell.lon) return;
+    if (ticket !== selectionTicket) return;
     state.error = "We couldn't reach NASA's data service just now.";
   }
   state.loading = false;
+  placeMarker();
   renderScan(); renderDetail();
 }
 
@@ -255,29 +252,10 @@ async function nameOf(lat, lon) {
 }
 
 // ------------------------------------------------------------------ map
-async function loadMapAsset(url) {
-  try {
-    const response = await fetch(url, { signal: AbortSignal.timeout(5000) });
-    return response.ok ? await response.json() : null;
-  } catch {
-    return null;
-  }
-}
-
-async function initializeMap() {
+function initializeMap(land) {
   const status = $("map-status");
   try {
-    if (!globalThis.maplibregl) throw new Error("Map library unavailable");
-    const [land, world, detailed] = await Promise.all([
-      loadMapAsset("data/land.geojson"),
-      loadMapAsset("data/world.json"),
-      loadMapAsset(MAP_STYLE),
-    ]);
-    LAND = land;
-    WORLD = world;
-    const style = Array.isArray(detailed?.layers) ? detailed : null;
-    if (!LAND && !style) throw new Error("Map assets unavailable");
-    buildMap(style);
+    buildMap(land);
     status.hidden = true;
     $("map-wrap").classList.remove("map-pending");
     if (WORLD) {
@@ -294,49 +272,38 @@ async function initializeMap() {
   }
 }
 
-// Our own minimal base map: a land outline shipped with the site (data/land.geojson). Used when
-// the detailed map style can't be loaded.
-function outlineStyle() {
-  return {
-    version: 8,
-    sources: { land: { type: "geojson", data: LAND, attribution: "Natural Earth" } },
-    layers: [
-      { id: "ocean", type: "background", paint: { "background-color": "#d9f0ef" } },
-      { id: "land", type: "fill", source: "land", paint: { "fill-color": "#fbfdfb" } },
-      { id: "coast", type: "line", source: "land", paint: { "line-color": "#7fb9b1", "line-width": 0.7 } },
-    ],
-  };
-}
-
-function buildMap(detailedStyle) {
-  // The detailed map (countries, cities, rivers) is OpenFreeMap's free "positron" style, with the
-  // water recoloured to match the site.
-  if (detailedStyle) detailedStyle.layers.forEach((l) => { if (l.id === "water") l.paint["fill-color"] = "#d3ecec"; });
-  map = new maplibregl.Map({
-    container: "map",
-    style: detailedStyle || outlineStyle(),
-    center: [state.lon, state.lat], zoom: 2.6, minZoom: 0.5, maxZoom: 9,
-    attributionControl: { compact: true }, dragRotate: false, pitchWithRotate: false,
+function buildMap(land) {
+  const bounds = [[-90, -180], [90, 180]];
+  map = L.map("map", {
+    crs: L.CRS.EPSG4326, preferCanvas: true, minZoom: -1, maxZoom: 8, zoomSnap: 0.25,
+    maxBounds: bounds, maxBoundsViscosity: 1, scrollWheelZoom: false, zoomControl: false,
   });
-  map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "bottom-right");
-  map.getCanvas().style.cursor = "crosshair";
-  map.on("load", () => {
-    map.addSource("world", { type: "geojson", data: worldSquares() });
-    map.addLayer({ id: "world-fill", type: "fill", source: "world",
-      paint: { "fill-color": ["get", "colour"], "fill-opacity": ["get", "opacity"] } },
-      (map.getStyle().layers.find((l) => l.type === "symbol") || {}).id);   // squares go under the place labels
-    placeMarker();
+  map.attributionControl.setPrefix(false);
+  L.control.zoom({ position: "bottomright" }).addTo(map);
+  map.fitBounds(bounds, { padding: [12, 12], animate: false });
+  L.geoJSON(land, {
+    interactive: false, attribution: "Natural Earth",
+    style: { color: "#7fb9b1", weight: 1, fillColor: "#fbfdfb", fillOpacity: 1 },
+  }).addTo(map);
+  worldLayer = L.geoJSON(null, {
+    interactive: false,
+    style: ({ properties }) => ({ stroke: false, fillColor: properties.colour, fillOpacity: properties.opacity }),
+  }).addTo(map);
+  map.on("click", ({ latlng }) => {
+    if (Math.abs(latlng.lat) <= 90 && Math.abs(latlng.lng) <= 180) {
+      selectPlace(latlng.lat, latlng.lng, null, null, false);
+    }
   });
-  map.on("click", (e) => selectPlace(e.lngLat.lat, e.lngLat.wrap().lng, null, null, false));
-  map.on("move", placeBrackets);
+  map.on("move zoom resize", placeBrackets);
   map.on("mousemove", showTip);
   map.on("mouseout", () => ($("map-tip").style.display = "none"));
-  $("world").addEventListener("click", () => map.flyTo({ center: [10, 25], zoom: 1.1, duration: 1200 }));
+  $("world").addEventListener("click", () => map.fitBounds(bounds, { padding: [12, 12], animate: false }));
   $("layer").addEventListener("click", () => {
     state.layer = !state.layer;
     $("layer").classList.toggle("on", state.layer);
     refreshWorldLayer();
   });
+  placeMarker();
 }
 
 // The world overview: one square per grid point, coloured by the trend of the chosen measurement.
@@ -362,33 +329,35 @@ function worldSquares() {
 }
 function refreshWorldLayer() {
   const v = variable(state.code);
-  $("legend-title").textContent = WORLD ? `${v.name} · trend ${WORLD.start}–${WORLD.end}` : v.name;
-  if (map && map.getSource("world")) map.getSource("world").setData(worldSquares());
+  $("legend-title").textContent = WORLD ? `${v.name} · trend through ${WORLD.end}` : v.name;
+  const visibleMeasurement = WORLD && state.layer ? state.code : null;
+  if (!worldLayer || visibleMeasurement === displayedWorldMeasurement) return;
+  worldLayer.clearLayers().addData(worldSquares());
+  displayedWorldMeasurement = visibleMeasurement;
 }
 
 // Hovering the map shows the overview result for that square
 function showTip(e) {
   const tip = $("map-tip");
   if (!WORLD || !state.layer) { tip.style.display = "none"; return; }
-  const { lat, lng } = e.lngLat.wrap(), step = WORLD.step;
+  const { lat, lng } = e.latlng, step = WORLD.step;
   const row = Math.floor((lat + 90) / step), col = Math.floor((lng + 180) / step);
   const i = row * Math.round(360 / step) + col;
-  const slope = WORLD.slope[state.code][i], verdict = WORLD.verdict[state.code][i], v = variable(state.code);
-  if (row < 0 || row >= 180 / step || slope === undefined || slope === null) { tip.style.display = "none"; return; }
+  const slope = WORLD.slope[state.code]?.[i], verdict = WORLD.verdict[state.code]?.[i], v = variable(state.code);
+  if (row < 0 || row >= 180 / step || col < 0 || col >= 360 / step || slope == null) { tip.style.display = "none"; return; }
   const word = ["not enough data", "no clear trend", "possible, not significant yet", "significant"][verdict];
   tip.textContent = `${v.name}: ${num(slope)} ${v.units} per decade · ${word}`;
-  Object.assign(tip.style, { display: "block", left: `${e.point.x + 14}px`, top: `${e.point.y + 14}px` });
+  Object.assign(tip.style, { display: "block", left: `${e.containerPoint.x + 14}px`, top: `${e.containerPoint.y + 14}px` });
 }
 
 function placeMarker() {
   if (!map || state.lat === null) return;
   if (!marker) {
-    const el = document.createElement("div");
-    el.className = "marker selected";
-    el.innerHTML = `<span class="dot"></span><span class="name"></span>`;
-    marker = new maplibregl.Marker({ element: el, anchor: "left", offset: [-8, 0] });
+    const icon = L.divIcon({ className: "marker selected", iconAnchor: [8, 8], iconSize: null,
+      html: '<span class="dot"></span><span class="name"></span>' });
+    marker = L.marker([state.lat, state.lon], { icon, interactive: false, keyboard: false }).addTo(map);
   }
-  marker.setLngLat([state.lon, state.lat]).addTo(map);
+  marker.setLatLng([state.lat, state.lon]);
   const r = state.place && state.place.results[state.code];
   const el = marker.getElement();
   el.querySelector(".name").textContent = state.name;
@@ -400,8 +369,14 @@ function placeMarker() {
 function placeBrackets() {
   const b = $("brackets");
   if (!map || state.lat === null) return;
-  const nw = map.project([state.lon - CELL.lon / 2, state.lat + CELL.lat / 2]);
-  const se = map.project([state.lon + CELL.lon / 2, state.lat - CELL.lat / 2]);
+  const icon = marker?.getElement();
+  if (icon) {
+    const { x } = map.latLngToContainerPoint([state.lat, state.lon]);
+    const labelWidth = icon.querySelector(".name").offsetWidth;
+    icon.classList.toggle("label-left", x + labelWidth + 20 > map.getSize().x);
+  }
+  const nw = map.latLngToContainerPoint([state.lat + CELL.lat / 2, state.lon - CELL.lon / 2]);
+  const se = map.latLngToContainerPoint([state.lat - CELL.lat / 2, state.lon + CELL.lon / 2]);
   const pad = 6, minSize = 40;
   let x = nw.x - pad, y = nw.y - pad, w = se.x - nw.x + 2 * pad, h = se.y - nw.y + 2 * pad;
   if (w < minSize) { x -= (minSize - w) / 2; w = minSize; }
@@ -689,3 +664,8 @@ async function renderCompare() {
     drawChart(`${p.id}-chart`, r, places[i].series[v.code], v, false, yRange);
   });
 }
+
+initialize().catch((error) => {
+  console.error("ByteMe could not start", error);
+  $("scan").innerHTML = '<p role="alert">The measurement catalog could not load. Reload the page to try again.</p>';
+});

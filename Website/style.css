@@ -137,7 +137,9 @@ h3 { font-size: 26px; line-height: 1.2; }
 .explore > .box:last-child { border-radius: 0 var(--radius) var(--radius) 0; margin-left: -1px; }
 
 .map-wrap { position: relative; min-height: 640px; overflow: hidden; }
-#map { position: absolute; inset: 0; }
+#map { position: absolute; inset: 0; z-index: 0; background: #d9f0ef; }
+#map.leaflet-grab { cursor: crosshair; }
+.leaflet-dragging #map.leaflet-grab { cursor: grabbing; }
 .map-status { position: relative; z-index: 2; max-width: 36ch; margin: 0; padding: 24px; color: var(--muted); }
 .map-pending .map-tools, .map-unavailable .map-tools, .map-unavailable #map,
 .map-legend[hidden], .map-tools [hidden] { display: none; }
@@ -162,14 +164,16 @@ h3 { font-size: 26px; line-height: 1.2; }
 .brackets i:nth-child(4) { right: 0; bottom: 0; border-left: 0; border-top: 0; }
 
 /* labels on the map */
-.marker { display: flex; align-items: center; gap: 8px; cursor: pointer; }
-.marker .dot { width: 16px; height: 16px; border-radius: 3px; border: 1.5px solid var(--ink); }
+.marker { display: flex; align-items: center; gap: 8px; width: max-content; }
+.marker .dot { flex: none; width: 16px; height: 16px; border-radius: 3px; border: 1.5px solid var(--ink); }
 .marker .dot.weak { opacity: 0.55; }
 .marker .dot.none { background: repeating-linear-gradient(45deg, var(--neutral) 0 2px, #fff 2px 5px); }
 .marker .name {
   background: rgba(255, 255, 255, 0.92); border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px;
   font: 400 11px/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; white-space: nowrap;
+  max-width: 25ch; overflow: hidden; text-overflow: ellipsis;
 }
+.marker.label-left .name { position: absolute; right: calc(100% + 8px); }
 .marker.selected .name { background: var(--deep); border-color: var(--deep); color: #fff; }
 
 /* result panel */

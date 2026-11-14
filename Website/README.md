@@ -12,7 +12,7 @@ and it can be uploaded to any web hosting (e.g. the free Space Apps domain hosti
 visitor picks a place ─► NASA POWER (live, no login) ─► stats.js ─► list of trends + chart + verdict
                          monthly data since 1981        (same math as Task4/stats.py, tested)
 
-build_world.py (run once, Python, Task4/stats.py) ─► data/world.json ─► coloured squares on the map
+build_world.py (Python, Task4/stats.py) ─► data/world.json ─► data/browser-data.js ─► world trends
 ```
 - **Data:** [NASA POWER](https://power.larc.nasa.gov/) monthly values (MERRA-2 and CERES) for the
   grid square, about 50 km wide, around the chosen point. 18 measurements, listed with
@@ -25,33 +25,40 @@ build_world.py (run once, Python, Task4/stats.py) ─► data/world.json ─► 
   descriptions when you ask a question such as "Has the air become warmer in Bucharest?"
   A place name ("Bucharest"), known region ("Sahel"), or coordinates ("44.4, 26.1") opens the
   place directly. For an exact measurement try "WS10M in Bucharest".
-- **World overview:** the coloured squares on the map show where the chosen measurement is rising
-  or falling (every 5 degrees). They come from `data/world.json`.
+- **Map:** a local Leaflet map draws Natural Earth coastlines and lets you pan, zoom or click any
+  coordinate. The world trend layer shows estimates at 2,592 NASA POWER sample points on a 5°
+  grid. Click a location to retrieve its own monthly series.
 
 ## Files
 | File | What it is |
 |---|---|
 | `index.html` | Page structure: hero + demo cases, explore (search, map, list of trends, evidence), compare, method, footer |
 | `style.css` | The look: colours, fonts, outlines, phone layout |
-| `app.js` | Live data download, place lookup, map (MapLibre), charts (Plotly), compare |
-| `searchlight.mjs` | POWER measurement ranking in the browser, exact catalog matches, and scope checks |
+| `app.js` | Live data download, place lookup, map (Leaflet), charts (Plotly), compare |
+| `searchlight.js` | POWER measurement ranking in the browser, exact catalog matches, and scope checks |
 | `stats.js` | Trend and significance math (copy of `Task4/stats.py`) |
 | `globe.js` | Hero art: rotating globe of teal "satellite pixels", demo cases in coral (decoration only) |
 | `data/variables.json` | The 18 measurements: NASA code, name, units, definition, search keywords |
-| `data/world.json` | World overview: trend of every measurement on a 5 degree grid (made by `build_world.py`) |
-| `build_world.py` | Rebuilds `data/world.json` with the Python trend code (about 25 minutes, can be stopped and restarted) |
+| `data/world.json` | Coarse world overview, built from NASA POWER monthly data |
+| `data/browser-data.js` | Generated copy of the catalog and map data for opening the HTML file directly |
+| `build_world.py` | Rebuilds the world overview and updates the browser data |
 | `tests/` | Python reference results, trend parity tests, and the Searchlight comparison |
-| `data/land.geojson` | World land outline (Natural Earth, public domain): the fallback map |
-| `vendor/maplibre-gl.css` | The map library's stylesheet (kept locally) |
+| `data/land.geojson` | World land outline from Natural Earth (public domain) |
+| `vendor/` | Local copies of Leaflet 1.9.4 and Plotly Basic 2.35.2 with licenses |
 | `build_data.py`, `data/results.json` | The earlier version (3 Giovanni regions). No longer read by the page; kept for reference |
 | `design/` | Screenshots |
 
-## Run it locally (from the repository root)
+## Run it locally
+
+Open `Website/index.html` directly in a browser, or serve the folder from the repository root.
+
 ```bash
-python3 -m http.server 8000 --directory Website
+python -m http.server 8000 --directory Website
 ```
-Then open http://localhost:8000 (opening `index.html` directly doesn't work: browsers block
-reading the data files from a file). Nothing to build first.
+
+For the server option, open [localhost:8000](http://localhost:8000). After editing the catalog or
+coastlines, run `python Website/build_browser_data.py` to refresh the packaged data. To regenerate
+the shipped overview, run `python Website/build_world.py` with the stats dependencies.
 
 ## Check the math
 ```bash
@@ -96,10 +103,8 @@ Upload the whole `Website/` folder to any static hosting: the free Space Apps do
 GitHub Pages, Netlify, etc.
 
 ## Notes
-- Needs internet: NASA POWER (the data), Open-Meteo and BigDataCloud (place names), OpenFreeMap
-  (the detailed map), Google Fonts and jsDelivr (fonts and libraries), and Hugging Face (the
-  Searchlight model). The map can use the built-in land outline if the detailed style is
-  unavailable. Search, demos, and trend statistics also work in browsers without WebGL.
+- The map and shipped world trend layer work locally without WebGL. An internet connection is
+  required for live NASA observations, place lookup and the first Searchlight model download.
 - Demo cases (chosen from real results): Svalbard air temperature (+0.69 °C per decade),
   Beijing haze (falling) against Delhi haze (rising), Manaus rainfall (falling), Lake Mead surface
   soil wetness (possible, not significant yet).

@@ -21,6 +21,7 @@ from datetime import date
 from pathlib import Path
 
 import pandas as pd
+from build_browser_data import build_browser_data
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parent / "Task4"))
@@ -108,6 +109,7 @@ def main():
         "verdict": {v["code"]: [done[f"{a},{b}"][v["code"]][1] for a, b in points] for v in variables},
     }
     (HERE / "data" / "world.json").write_text(json.dumps(world, separators=(",", ":")))
+    build_browser_data()
     partial_file.unlink()
     print("Wrote data/world.json")
 
