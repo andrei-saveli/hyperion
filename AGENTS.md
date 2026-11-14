@@ -203,6 +203,8 @@ Non-significant ≠ "no change". Never state causes. "Years until significant" =
   `svalbard_SOILM` in the demo (glacier; unreliable).
 - 🧩 Each person builds in their own folder; at the end the team lead combines all folders into
   the final project layout below (each folder's README says how).
+- 🔎 **Searchlight (P3)** implements local semantic retrieval behind H4. See
+  `models/search/MODEL_CARD.md` for provisioning, question review, calibration, and release checks.
 - ⏭️ Next: team kickoff (30 min) → everyone starts their hour 0.5–8 tasks in `docs/PLAN.md`.
 
 ## Git
