@@ -10,7 +10,8 @@ from urllib.request import urlopen
 import numpy as np
 
 from search_model import (
-    DATA, MODEL_DIR, catalog, encode, load_model, model_path, read_json, sha256, write_json,
+    DATA, MODEL_DIR, catalog, encode, load_model, model_path, read_json, series_directory, sha256,
+    write_json,
 )
 
 MONTHS = [f"{year}-{month:02d}-01" for year in range(2001, 2025) for month in range(1, 13)]
@@ -71,21 +72,27 @@ def series_coverage(path):
 def candidate_documents(data_dir=DATA):
     """Combine H0 metadata with availability from real H1 files."""
     places, variables = catalog(data_dir)
+    series_dir = series_directory(data_dir)
     documents = []
     for place_id, place in sorted(places.items()):
         for code, variable in sorted(variables.items()):
-            path = data_dir / f"{place_id}_{code}.csv"
+            path = series_dir / f"{place_id}_{code}.csv"
             if not path.is_file():
                 continue
             coverage = series_coverage(path)
             if coverage is None:
                 continue
             name = f"{variable['name']} in {place['name']}"
+            keywords = variable.get("keywords") or ""
+            story = place.get("story") or ""
+            story_words = set(story.casefold().rstrip("?").split())
+            example = story if story_words.intersection(keywords.split()) else ""
             sections = [
-                f"Monthly observations of {name}.",
+                f"Monthly observations of {name}. {example}".strip(),
                 variable["definition"],
                 f"Region type: {place['type']}.",
                 f"Giovanni product {variable['source']}, measured in {variable['units']}.",
+                f"Related search terms: {keywords}.",
             ]
             documents.append({
                 "place_id": place_id,

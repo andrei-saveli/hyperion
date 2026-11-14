@@ -4,10 +4,11 @@
 - [Searchlight model card and setup](models/search/MODEL_CARD.md)
 - [Shared plan](../docs/PLAN.md) and [frozen interfaces](../docs/HANDSHAKES.md)
 
-`search.py` provides H4 using the place and variable catalogs in `data/`. It ranks keywords and
-only suggests combinations with a local monthly series. The catalog covers the three regions
-already downloaded by Task2. Searchlight is an optional experiment for queries that keyword
-search cannot answer. See its model card for setup and the remaining review steps.
+`search.py` provides H4 using Searchlight. It indexes the place and variable catalogs in `data/`
+against the twelve local monthly series in `Task2/cleaned/`. Set up the required local model
+artifacts before starting the app or running the handshake checker. See the model card for
+the build commands and the difference between a provisional build and release evaluation.
+For a fresh combined app, install `requirements-search.txt` as well as `requirements.txt`.
 
 `explain.py` provides H3. Pass the H2 analysis and the selected H0 variable and place. The returned `headline` is the card verdict, `details` goes under **What does this mean?**, and `caveat` goes under **Data and method**. The frontend reads the numeric fields from H2 and checks series provenance against [the data handover](../Task2/SOURCES.md).
 

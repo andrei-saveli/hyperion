@@ -16,6 +16,19 @@ MODEL_DIR = ROOT / "models" / "search"
 LOG = logging.getLogger(__name__)
 
 
+def series_directory(data_dir):
+    """Use the data team's cleaned series from Task3, or the assembled app's data."""
+    staged = ROOT.parent / "Task2" / "cleaned"
+    if ROOT.name == "Task3" and data_dir == DATA and staged.is_dir():
+        return staged
+    return data_dir
+
+
+def model_config(model_dir=MODEL_DIR):
+    calibrated = model_dir / "calibrated_config.json"
+    return read_json(calibrated if calibrated.is_file() else model_dir / "config.json")
+
+
 def sha256(path):
     with path.open("rb") as file:
         return hashlib.file_digest(file, "sha256").hexdigest()
@@ -101,7 +114,7 @@ class SearchEngine:
 
     @classmethod
     def load(cls, model_dir=MODEL_DIR, data_dir=DATA, *, uncalibrated=False, dense_only=False):
-        config = read_json(model_dir / "config.json")
+        config = model_config(model_dir)
         policy = None if uncalibrated else config["calibration"]
         if not uncalibrated and policy is None:
             raise ValueError("Searchlight requires a validation calibration")
@@ -119,7 +132,7 @@ class SearchEngine:
                 raise ValueError("H0 catalog changed. Rebuild and recalibrate Searchlight.")
         documents = manifest["documents"]
         for doc in documents:
-            path = data_dir / f"{doc['place_id']}_{doc['code']}.csv"
+            path = series_directory(data_dir) / f"{doc['place_id']}_{doc['code']}.csv"
             if sha256(path) != doc["series_sha256"]:
                 raise ValueError(f"H1 series changed: {path.name}")
         with embeddings_path.open("rb") as file:

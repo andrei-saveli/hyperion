@@ -59,7 +59,10 @@ def test_offline_artifact_roundtrip(setup_index, monkeypatch):
     write_json(model / "config.json", config)
     engine = SearchEngine.load(model, data)
     bi.encode.reset_mock()
-    results = engine.suggest("Soil and rain?")
+    monkeypatch.setattr(search, "_engine", engine)
+    monkeypatch.setattr(search, "_load_attempted", True)
+    assert search.search(" ") == []
+    results = search.search(" Soil and rain? ")
     assert [row["code"] for row in results] == ["SOILM", "RAIN"]
     assert set(results[0]) == {"place_id", "code", "score", "reason"}
     assert "Soil moisture in Lake Mead" in results[0]["reason"]
@@ -68,39 +71,28 @@ def test_offline_artifact_roundtrip(setup_index, monkeypatch):
     )
     cross.predict.assert_called_once()
     cross.predict.return_value = np.array([0.2, 0.4])
-    assert engine.suggest("Lake Mead tree cover?") == []
+    assert search.search("Lake Mead tree cover?") == []
     cross.predict.side_effect = RuntimeError("reranker unavailable")
-    assert [row["code"] for row in engine.suggest("Lake Mead rain?")] == ["RAIN"]
+    assert [row["code"] for row in search.search("Lake Mead rain?")] == ["RAIN"]
     (data / "lake_mead_RAIN.csv").unlink()
     with pytest.raises(FileNotFoundError):
         SearchEngine.load(model, data)
 
 
-def test_keyword_search_and_optional_fallback(setup_index, monkeypatch):
-    data, _, _ = setup_index
-    (data / "places.csv").write_text(
-        "id,name,type,story\nlake_mead,Lake Mead,desert,Is the desert drying?\n", encoding="utf-8"
-    )
-    (data / "variables.csv").write_text(
-        "code,name,keywords\nSOILM,Soil moisture,dry drying\nRAIN,Rainfall,rain\nTEMP,Air temperature,hot\n",
-        encoding="utf-8",
-    )
-    monkeypatch.setattr(search, "_DATA", data)
-    model = Mock(return_value=[
-        {"place_id": "lake_mead", "code": "TEMP", "reason": "Unavailable", "score": 2},
-        {"place_id": "lake_mead", "code": "SOILM", "reason": "Available", "score": 1},
-    ])
-    monkeypatch.setattr(search, "_model_search", model)
-    monkeypatch.delenv("HYPERION_USE_SEARCH_MODEL", raising=False)
-    assert search.search("Is the desert drying?")[0]["code"] == "SOILM"
-    assert search.search("Lake Mead tree cover") == []
-    assert search.search("hot") == []  # No temperature series yet.
-    model.assert_not_called()
-
-    monkeypatch.setenv("HYPERION_USE_SEARCH_MODEL", "1")
-    assert [row["code"] for row in search.search("unmatched")] == ["SOILM"]
-    assert search.search("Lake Mead rain")[0]["code"] == "RAIN"
-    model.assert_called_once_with("unmatched")
+def test_missing_calibration_can_be_built_after_start(tmp_path, monkeypatch):
+    calibration = tmp_path / "calibrated_config.json"
+    monkeypatch.setattr(search, "_calibration", calibration)
+    monkeypatch.setattr(search, "_load_attempted", False)
+    monkeypatch.setattr(search, "_engine", None)
+    engine = Mock()
+    engine.suggest.return_value = [{"place_id": "lake_mead", "code": "SOILM"}]
+    load = Mock(return_value=engine)
+    monkeypatch.setattr(SearchEngine, "load", load)
+    assert search.search("desert drying") == []
+    load.assert_not_called()
+    calibration.touch()
+    assert search.search("desert drying") == engine.suggest.return_value
+    load.assert_called_once_with()
 
 
 def test_h1_validation_and_coverage(setup_index):
