@@ -122,6 +122,7 @@ prompt below). You need nothing from anyone.
 
 ### 🛰️ Person 2: Data (retrieval + cleaning)
 📄 **Full guide (Giovanni bulk download + cleaning): [PERSON_2_DATA_GIOVANNI_HANDOVER.md](PERSON_2_DATA_GIOVANNI_HANDOVER.md).**
+🌐 **Every website and what to take from it: [WEBSITES_AND_DATA.md](WEBSITES_AND_DATA.md).**
 **Start with:** the starter prompt below. You need nothing from anyone.
 - [ ] `scripts/download_giovanni.py`: Giovanni area-averaged monthly data for every place box ×
       variable in `data/places.csv` / `data/variables.csv` (raw files in `data/raw/giovanni/`)
