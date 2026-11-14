@@ -31,6 +31,7 @@ def build_table():
                 "per_decade": r["slope_per_decade"], "ci_low": r["ci_low"], "ci_high": r["ci_high"],
                 "p_value": r["p_value"], "mk_p_value": r["mk_p_value"],
                 "period": f"{r['start']}..{r['end']}", "missing": r["n_missing"],
+                "years_more": r["years_to_significance"],
             })
     return pd.DataFrame(rows).sort_values("p_value", na_position="last")
 
