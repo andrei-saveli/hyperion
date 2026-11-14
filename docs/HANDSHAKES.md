@@ -144,6 +144,9 @@ Never crashes on a normal series. With fewer than **24** non-missing months it r
 | `trend`, `band_low`, `band_high` | list | trend line and 95% band, one value per row, same scale as `anomaly` |
 | `years_to_significance` | float or None | extra; None until implemented |
 | `method` | str | one plain sentence describing the method (shown in the app) |
+| `sen_slope_per_decade` | float or None | *extra:* Sen's robust slope per decade |
+| `lag1_autocorrelation` | float or None | *extra:* month-to-month memory (0–1) |
+| `effective_n` | float or None | *extra:* independent months the record is worth |
 
 **Fake (for P1 and P3 until H2 is ready):**
 ```python
