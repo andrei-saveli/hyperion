@@ -118,7 +118,8 @@ variables makes it hard to pick ones that could indicate change and then analyze
 - 4-person team: P1 Frontend · P2 Data · P3 Search + explainability · P4 Trend & significance +
   integration. The user is the team lead and uses Claude Code; the others do **not**. Roles, contracts (CSV / YAML / API JSON)
   and timeline live in `docs/PLAN.md` (**authoritative**, simple plan; team has minimal
-  coding skills and everyone uses AI). `TEAM_PLAN*.md` / `DATA_GUIDE*.md` are background only. Respect those contracts; Claude helps any
+  coding skills and everyone uses AI). `TEAM_PLAN*.md` / `DATA_GUIDE*.md` are background only. Interfaces between roles are frozen in
+  `docs/HANDSHAKES.md` (H0–H6); respect them. Claude helps any
   role via the lead (code, reviews, fixes, Git).
 
 ## Project decisions
