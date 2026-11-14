@@ -123,6 +123,16 @@ variables makes it hard to pick ones that could indicate change and then analyze
 
 ## Project decisions
 
+> ⚠️ **Scope rule (from the challenge brief, keep in mind always):** Trend analysis with Earth
+> science data can be complex. Trends can be non-linear, and some are not evident unless regular
+> cycles, such as the seasonal cycle, are removed. More complex trend analyses are beyond the scope
+> envisioned for this challenge; detecting and analyzing linear trends would be a great start.
+>
+> **So we:** always remove the seasonal cycle first, then fit a **linear** trend and test its
+> significance. No forecasting models, no non-linear/complex methods in the core. We tell users
+> plainly that a straight line is a simplification.
+
+
 ### Concept: "Trend Detective" (see `docs/PLAN.md`)
 Pick a place + variable → monthly NASA data since 2001 → chart (seasons-removable) with trend
 line and 95% band → verdict card (🟢 significant / 🟡 not significant yet / ⚪ no clear trend,
