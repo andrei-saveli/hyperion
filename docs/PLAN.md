@@ -30,129 +30,134 @@ down, by how much, and is that change significant?**
 
 **Rule:** we say *what* changed, never claim *why* it changed (a trend line can't prove a cause).
 
-## Who does what
+## How we work in parallel
 
-Four build roles, each with its own files so nobody blocks anyone. **The pitch is a team job**
-(see the end).
+All 4 people start at **hour 0** and never wait for each other. Three tricks make that possible:
 
-| Person | Role | Owns these files |
-|---|---|---|
-| **1** | Data | `scripts/download.py`, `data/*.csv`, `data/places.csv`, `data/SOURCES.md` |
-| **2 (lead, Claude Code)** | Stats + glue | `stats.py`, `tests/`, deployment |
-| **3** | App | `app.py` |
-| **4** | Guide & content | `data/variables.csv`, `pages/1_Guided_demo.py`, `pages/2_How_it_works.py` |
+1. **Agree on everything shared in the 30-minute kickoff**: file formats and function names
+   (below). After that, nobody needs anyone else's work to start.
+2. **The first 3 places are already chosen** (below). Person 1 can download immediately; more
+   places get added later without blocking anyone.
+3. **Use fake stand-ins until the real thing arrives.** E.g. Person 3 builds the app with a fake
+   stats function; when Person 2's real one is ready, it's a one-line swap.
 
-### Person 1: Data
-1. Get the download script from AI (starter prompt below) and run it.
-2. Together with P4, fill `data/places.csv` (6–8 places).
-3. Download all variables for all places → `data/<place>_<variable>.csv`.
-4. Check every file: open it, plot it, count empty months. Note anything odd.
-5. Write `data/SOURCES.md`: where each file came from (the exact web address) and when.
-6. *Extra:* a function `fetch_point(lat, lon, code)` so the app can download any map click live.
+Each person owns **different files**, so Git conflicts are rare.
 
-### Person 2: Stats + glue (team lead, with Claude Code)
-1. `stats.py`: remove seasons, trend per decade, 95% band (corrected for month-to-month
-   correlation), p-value (t-test) + Mann-Kendall, verdict 🟢🟡⚪ + plain sentence.
-2. Tests on fake data with a known answer.
-3. Run the stats on every place → table of results → team picks the 2 demo cases.
-4. Plug `stats.py` into P3's app; help everyone with Git; deploy to Streamlit Cloud.
-5. *Extra:* "years until significant" estimate.
-
-### Person 3: App
-1. `app.py` with the starter prompt below (fake stats at first).
-2. Sidebar: place + variable, with the variable's definition.
-3. Chart: monthly data, "remove seasons" toggle, trend line + shaded band.
-4. Verdict card: emoji, rate per decade, total change, p-value, plain sentence.
-5. Compare tab: two places side by side; small map showing where the places are.
-6. Make it look clean and work on a phone.
-7. *Extra:* click on map → live data (with P1's `fetch_point`).
-
-### Person 4: Guide & content
-1. Research 6–8 candidate places + 2 compare pairs (starter prompt below) → give to P1.
-2. `data/variables.csv`: a plain one-sentence definition for each variable.
-3. **Guided demo page** (`pages/1_Guided_demo.py`): a step-by-step walkthrough of the 2 demo
-   cases ("Step 1: here's the data… Step 2: remove the seasons… Step 3: the verdict…"), using
-   P3's chart.
-4. **How it works page** (`pages/2_How_it_works.py`): what a trend, a p-value and "significant"
-   mean, explained for a 15-year-old, with a simple picture.
-5. **User testing:** at hour ~28, watch 2–3 people outside the team use the app; write down
-   where they got confused → list of fixes for P3.
-6. *Extra:* "What should I look at?" helper: pick a place type (desert, city, forest, coast…) →
-   suggested variables.
-
-## Shared formats (don't change without telling the team)
-
-`data/<place>_<variable>.csv`, e.g. `data/lake_mead_T2M.csv`:
-```csv
-date,value
-2001-01-01,6.49
-2001-02-01,8.27
-```
-
-`data/places.csv`:
+### Starting places (fixed now, Person 4 adds more later)
 ```csv
 id,name,lat,lon,story
 lake_mead,Lake Mead (USA),36.1,-114.7,Is the desert around Lake Mead drying out?
+niamey,"Niamey, Sahel (Niger)",13.5,2.1,Is the Sahel getting more or less rain?
+svalbard,Svalbard (Arctic),78.2,15.6,Is the Arctic warming?
 ```
 
-`data/variables.csv`:
-```csv
-code,name,units,definition
-T2M,Air temperature,°C,How warm the air is 2 m above the ground.
-PRECTOTCORR,Rainfall,mm/day,Average amount of rain and snow per day.
-GWETROOT,Soil wetness,0-1,How wet the soil is where plant roots grow (0 = dry, 1 = soaked).
-RH2M,Humidity,%,How much water vapour is in the air compared to the maximum it can hold.
-```
+### Shared building blocks (agree at kickoff, then don't change)
 
-## Starter prompts
+| File | Owner | Function | Gives back |
+|---|---|---|---|
+| `data_io.py` | P1 | `load_places()` · `load_variables()` · `load_series(place_id, code)` | tables (`load_series` → columns `date`, `value`) |
+| `stats.py` | P2 | `analyze(df, units, name)` | dict: `slope_per_decade`, `ci_low`, `ci_high`, `p_value`, `total_change`, `verdict`, `emoji`, `sentence`, `trend`, `band_low`, `band_high` |
+| `charts.py` | P3 | `trend_chart(df, result, remove_seasons)` | a Plotly chart |
+| `pages/` | P4 | Streamlit pages that use the 3 above | — |
 
-**Person 1 (Data):**
-> Write a Python script `scripts/download.py` that reads `data/places.csv` (columns id,name,lat,lon,story)
-> and, for each place, downloads monthly data from the NASA POWER API
-> (`https://power.larc.nasa.gov/api/temporal/monthly/point`, community=AG, start=2001, end=2024,
-> parameters T2M,PRECTOTCORR,GWETROOT,RH2M, format=JSON). Skip month "13" (annual average).
-> Treat -999 as missing (empty). Save one CSV per place and variable as `data/<id>_<code>.csv`
-> with columns `date,value` and dates like 2001-01-01. Explain how to run it step by step for a
-> beginner.
+### Data files
+- `data/<place>_<variable>.csv` with columns `date,value` (e.g. `2001-01-01,6.49`; empty = missing)
+- `data/places.csv`: `id,name,lat,lon,story`
+- `data/variables.csv`: `code,name,units,definition` for `T2M`, `PRECTOTCORR`, `GWETROOT`, `RH2M`
 
-**Person 2 (Stats):** Claude Code builds `stats.py` with tests: remove seasons, trend per decade,
-95% band corrected for month-to-month correlation, Mann-Kendall p-value, verdict + plain sentence.
+## Tasks per person
 
-**Person 3 (App):**
-> I'm a beginner. Build a Streamlit app `app.py`. It reads `data/places.csv`, `data/variables.csv`
-> and `data/<place>_<variable>.csv` (columns date,value). Sidebar: choose place and variable;
-> show the variable's definition. Main area: a Plotly line chart of the monthly data with a
-> checkbox "Remove seasons" (subtract each calendar month's average). For now, fake the trend
-> result with a function `analyze(df)` that returns a dict with keys slope_per_decade, ci_low,
-> ci_high, p_value, verdict, sentence (we'll replace it later). Show a verdict card with a big
-> emoji (🟢🟡⚪). Add a "Compare" tab showing two places side by side. Explain how to install and
-> run it step by step.
+| Block | 👤 P1 Data | 👤 P2 Stats + glue (lead) | 👤 P3 App | 👤 P4 Guide & content |
+|---|---|---|---|---|
+| **0–0.5 h** | 🤝 Kickoff together: read this plan, agree on the building blocks, install Python + Streamlit | ← | ← | ← |
+| **0.5–8 h** | Download script, data for the 3 starting places, `data_io.py` | `stats.py` v1 (trend, p-value, verdict), tests | `app.py` + `charts.py` with a **fake** `analyze()`: place/variable pickers, chart, verdict card | `variables.csv` definitions; research 5 more places + 2 compare pairs |
+| **🔗 Hour 8** | **Sync 1:** push everything; P2 swaps the real stats + data into the app | | | |
+| **8–20 h** | Download P4's new places; check every file; `SOURCES.md` | Correct the 95% band for month-to-month correlation, add Mann-Kendall; results table of all places | Compare tab, map of places, nicer layout, phone-friendly | Guided demo page, "How it works" page |
+| **🔗 Hour 20** | **Sync 2:** full app works with all places; deploy online; team picks 2 demo cases from the results table | | | |
+| **20–30 h** | `fetch_point()` for live data at any map click (extra) | "Years until significant" (extra); fix bugs; Git help | Live map click (with P1); polish | Write the 2 demo stories into the guided page; start user testing |
+| **🔗 Hour 30** | **Sync 3:** everything works; P4 shares user-test findings | | | |
+| **30–36 h** | Fix data issues from testing | Fix bugs, final deploy | Fix UI issues from testing | "What should I look at?" helper (extra); re-test |
+| **36–48 h** | 🎤 **Pitch together** + bug fixes only | ← | ← | ← |
 
-**Person 4 (Guide & content):**
+Extras are marked *(extra)*. Skip them if the block's main work isn't done.
+
+### 👤 Person 1: Data
+**Start with:** the starter prompt below. You need nothing from anyone.
+- [ ] `scripts/download.py`: downloads NASA POWER monthly data for every place in `data/places.csv`
+- [ ] Data for the 3 starting places → push by hour 4
+- [ ] `data_io.py` with the 3 load functions → push by hour 6
+- [ ] Download P4's extra places as soon as they're in `places.csv`
+- [ ] Check every file (plot it, count empty months); `data/SOURCES.md` with exact web addresses
+- [ ] *(extra)* `fetch_point(lat, lon, code)` for live downloads
+
+### 👤 Person 2: Stats + glue (team lead, with Claude Code)
+**Start with:** fake data with a known trend (made by code). You need nothing from anyone.
+- [ ] `stats.py` `analyze()` v1: remove seasons, trend per decade, 95% interval, p-value, verdict + sentence → push by hour 6
+- [ ] Tests on fake data with a known answer
+- [ ] Hour 8: connect real data + stats into P3's app
+- [ ] Correct for month-to-month correlation; Mann-Kendall
+- [ ] Results table of every place × variable (used to pick demo cases)
+- [ ] Deploy to Streamlit Cloud; Git help for everyone
+- [ ] *(extra)* "Years until significant"
+
+### 👤 Person 3: App
+**Start with:** a fake `analyze()` and a fake CSV you make yourself (starter prompt below).
+- [ ] `app.py`: sidebar place + variable with definition; chart; "remove seasons" toggle; verdict card
+- [ ] `charts.py` `trend_chart()` (P4's pages reuse it) → push by hour 8
+- [ ] Compare tab: two places side by side
+- [ ] Map showing the places
+- [ ] Clean look, works on a phone
+- [ ] *(extra)* click on the map → live data (uses P1's `fetch_point`)
+
+### 👤 Person 4: Guide & content
+**Start with:** the starter prompt below. You need nothing from anyone until hour 8.
+- [ ] `data/variables.csv`: plain definitions → push by hour 4
+- [ ] 5 more places + 2 compare pairs added to `data/places.csv` → push by hour 6
+- [ ] `pages/2_How_it_works.py`: trend, p-value, "significant", explained for a 15-year-old
+- [ ] `pages/1_Guided_demo.py`: step-by-step walkthrough (Next/Back buttons); fill in the 2 demo cases after hour 20
+- [ ] User testing with 2–3 people outside the team (hour ~28) → fix list for everyone
+- [ ] *(extra)* "What should I look at?" helper: place type → suggested variables
+
+## Starter prompts (paste into ChatGPT / Gemini / Claude)
+
+**Person 1:**
+> I'm a beginner. Write a Python script `scripts/download.py` that reads `data/places.csv`
+> (columns id,name,lat,lon,story) and, for each place, downloads monthly data from the NASA POWER
+> API (`https://power.larc.nasa.gov/api/temporal/monthly/point`, community=AG, start=2001,
+> end=2024, parameters T2M,PRECTOTCORR,GWETROOT,RH2M, format=JSON). Skip month "13" (annual
+> average). Treat -999 as missing (empty). Save one CSV per place and variable as
+> `data/<id>_<code>.csv` with columns `date,value` and dates like 2001-01-01. Also write
+> `data_io.py` with `load_places()`, `load_variables()` and `load_series(place_id, code)` that
+> return pandas DataFrames (`date` parsed as dates). Explain step by step how to run it.
+
+**Person 2:** works with Claude Code.
+
+**Person 3:**
+> I'm a beginner. Build a Streamlit app `app.py` plus `charts.py`. Data comes from
+> `data_io.py` functions `load_places()`, `load_variables()`, `load_series(place_id, code)`
+> (columns date, value). Until those exist, make a fake CSV and fake versions of them. Also fake
+> `analyze(df, units, name)` that returns a dict with keys slope_per_decade, ci_low, ci_high,
+> p_value, total_change, verdict, emoji, sentence, trend, band_low, band_high (trend and bands are
+> lists, one value per month). In `charts.py` write `trend_chart(df, result, remove_seasons)`
+> returning a Plotly figure: monthly data line, and if remove_seasons is true subtract each
+> calendar month's average and draw the trend line with a shaded band. App: sidebar to choose
+> place and variable (show its definition), the chart, a "Remove seasons" toggle, and a verdict
+> card with a big emoji. Add a "Compare" tab with two places side by side. Explain step by step
+> how to install and run it.
+
+**Person 4:**
 > We're building a student tool that tests whether NASA climate data (temperature, rainfall, soil
-> wetness, humidity from NASA POWER, 2001–2024) shows a trend at a place. Suggest 8 places where
-> one of these variables is likely to show a clear trend, with lat/lon and one sentence on why,
-> plus 2 pairs of places that are interesting to compare. Then write a plain one-sentence
-> definition of each variable for a 15-year-old. Then explain, for a 15-year-old, what a trend,
-> a p-value and "statistically significant" mean.
+> wetness, humidity from NASA POWER, 2001–2024) shows a trend at a place. We already have Lake
+> Mead (USA), Niamey (Sahel) and Svalbard (Arctic). Suggest 5 more places where one of these
+> variables is likely to show a clear trend, with lat/lon and one sentence on why, plus 2 pairs
+> of places that are interesting to compare. Write a plain one-sentence definition of each
+> variable for a 15-year-old. Then explain what a trend, a p-value and "statistically
+> significant" mean for a 15-year-old.
 
-Later, for the pages:
-> I'm a beginner. In my Streamlit app I want a page `pages/1_Guided_demo.py` that walks a student
-> step by step through one example (buttons "Next"/"Back", text + chart on each step). Explain
-> how to build and run it.
-
-## Timeline (48 h)
-
-| When | Goal | Check |
-|---|---|---|
-| **Hour 0–2** | Everyone reads this file, installs Python + Streamlit, runs "hello world" | All 4 laptops run `streamlit hello` |
-| **Hour 2–8** | P4 picks places → P1 downloads data · P3 app on fake stats · P2 stats | First CSV in repo; app shows a chart |
-| **Hour 8–20** | Connect real stats to the app; P4 builds guide pages | **Full app works on 1 place** |
-| **Hour 20–30** | All places, compare tab, demo cases chosen, guided demo works | **Everything works.** Deploy online |
-| **Hour 28–36** | User testing (P4) → fixes (everyone) | Feature freeze at hour 36 |
-| **Hour 36–48** | 🎤 **Team pitch** (below) + bug fixes only | Submitted 2+ hours before deadline |
-
-Check-in every 6 hours (10 min): *done / next / stuck*.
+Later:
+> I'm a beginner. In my Streamlit app, build a page `pages/1_Guided_demo.py` that walks a student
+> step by step through one example with "Next"/"Back" buttons, text and a chart on each step.
+> Explain how to build and run it.
 
 ## 🎤 Pitch (whole team, from hour 36)
 - **Story (all together, 1 h):** problem → our tool → live demo of 1 case → compare → why it
@@ -164,7 +169,7 @@ Check-in every 6 hours (10 min): *done / next / stuck*.
 - **Submit early**, then check every link works from a phone.
 
 ## Pick demo places with real data, not guesses
-After P1 downloads the data, P2 runs the stats on every place. **Keep the 2 most interesting
+At sync 2 (hour 20), P2's results table shows the stats for every place. **Keep the 2 most interesting
 results for the demo stories** (one significant, one not yet significant is a great pair: it
 teaches what "significant" means).
 
