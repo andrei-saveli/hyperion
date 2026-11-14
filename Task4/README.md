@@ -12,6 +12,7 @@ folder moves into the final project (see "Combining into the final project").
 | `tests/test_stats.py` | 34 tests on fake data with known answers (all pass) |
 | `scripts/results_table.py` | Runs `analyze()` for every place × variable → `results.csv` |
 | `scripts/check_handshakes.py` | Automatic sync checklist: checks H0–H4 across everyone's parts |
+| `scripts/combine.py` | Builds the final project from all Task folders and checks it |
 | `RESULTS.md` | **Results on the real Giovanni data + suggested demo cases** |
 | `requirements.txt` | numpy, pandas, scipy, pytest |
 
@@ -95,8 +96,37 @@ All keys from `docs/HANDSHAKES.md` H2, plus extra keys (adding is allowed, renam
 `years_to_significance` = additional years beyond the current record (float or None).
 
 ## Combining into the final project
-1. Copy `stats.py`, `tests/`, `scripts/results_table.py`, `scripts/check_handshakes.py` to the
-   project root (same relative paths).
-2. Take `data_io.py` and the data from `Task2/` (cleaned files go into `data/`).
-3. Merge `requirements.txt` with the other parts (add streamlit, plotly).
-4. Run `python -m pytest -q` and `python scripts/check_handshakes.py`; both must pass.
+
+One command builds the complete project from all Task folders and checks it:
+```bash
+python Task4/scripts/combine.py
+```
+```bash
+python Task4/scripts/combine.py --frontend ../frontend-nasa
+```
+The second form also adds the website (`app.py`, `charts.py`, `.streamlit/`) once it exists.
+What it does:
+- builds `final/` from scratch (Git ignores it; nothing in the Task folders changes):
+  Task2 → `data_io.py`, `data/`, `data/raw/giovanni/`, `data/SOURCES.md`, `scripts/convert_giovanni.py`;
+  Task3 → `search.py`, `search_model.py`, `explain.py`, `pages/`, `models/`, search scripts;
+  Task4 → `stats.py`, `tests/`, `scripts/results_table.py`, `scripts/check_handshakes.py`;
+  frontend → `app.py`, `charts.py`, `.streamlit/` (its fake data/stats/explain/search files are **not** copied)
+- writes the merged `requirements.txt` (streamlit, plotly, pandas, numpy, scipy, pytest) and a separate
+  `requirements-search.txt` for the optional ~1 GB AI-search libraries
+- runs the tests and the handshake checker inside `final/` and ends with **READY** or
+  **NOT READY** (listing every ❌)
+
+Current status: tests pass; **NOT READY** only because `search()` returns nothing for the 4 demo
+questions (Task3), and the website isn't built yet.
+
+## Deploying (Streamlit Community Cloud, free)
+When `combine.py` says **READY** with `--frontend`:
+1. Build into a folder Git keeps: `python Task4/scripts/combine.py --frontend ../frontend-nasa --out app`
+2. Commit and push the `app/` folder.
+3. On https://share.streamlit.io sign in with GitHub → **Create app** → repository
+   `andrei-saveli/hyperion`, branch `main`, main file path **`app/app.py`**.
+4. Under **Advanced settings** choose **Python 3.11 or newer** (the search code needs it).
+5. **Deploy.** Streamlit installs `app/requirements.txt` automatically. Don't add
+   `requirements-search.txt` unless the AI search model has been built and calibrated: it's ~1 GB.
+6. Open the public link on a phone and click through the demo cases before the pitch. Keep a
+   local copy running (`streamlit run app/app.py`) as an offline backup.
