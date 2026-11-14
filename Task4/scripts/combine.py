@@ -18,11 +18,18 @@ What goes where (see AGENTS.md "Repo layout"):
 
 The output folder is rebuilt from scratch every time. Nothing in the Task folders is changed.
 """
+import sys
+
+# Friendly check first: the project needs Python 3.11+ (macOS ships 3.9, which fails with a
+# confusing "unsupported operand type(s) for |" error).
+if sys.version_info < (3, 11):
+    sys.exit(f"This project needs Python 3.11 or newer; you have {sys.version.split()[0]}.\n"
+             "Install it from https://www.python.org/downloads/ and open a new Terminal window.")
+
 import argparse
 import importlib.util
 import shutil
 import subprocess
-import sys
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
