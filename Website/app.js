@@ -2,7 +2,7 @@
 // All numbers come from data/results.json, which build_data.py makes with the project's real
 // Python code (stats.py, explain.py). This file only displays them; it computes no statistics.
 
-const COLOURS = { up: "#e0796b", down: "#5b8db8", neutral: "#b4b5ad", ink: "#161616" };
+const COLOURS = { up: "#ec7a6a", down: "#2d8bb5", neutral: "#b2bcb8", ink: "#141a19", deep: "#0e5e63" };
 const VERDICT_TEXT = {
   significant: (dir) => `Significant ${dir}`,
   possible: (dir) => `Possible ${dir} · not significant yet`,
@@ -12,7 +12,7 @@ const VERDICT_TEXT = {
 const SOURCE_NAME = { TEMP: "MERRA-2", RAIN: "GPM IMERG", SOILM: "GLDAS", EVAP: "GLDAS" };
 const STOP = new Set("is are the a an of in on at to and or does do did it its getting get more less than there any how what which where has have been".split(" "));
 
-let DATA, map, state = { place: "lake_mead", code: "TEMP", raw: false };
+let DATA, LAND, map, state = { place: "lake_mead", code: "TEMP", raw: false };
 const $ = (id) => document.getElementById(id);
 
 // ------------------------------------------------------------------ small helpers
@@ -43,10 +43,13 @@ function dotHTML(r) {
 }
 
 // ------------------------------------------------------------------ start
-fetch("data/results.json").then((r) => r.json()).then((data) => {
+Promise.all([fetch("data/results.json").then((r) => r.json()), fetch("data/land.geojson").then((r) => r.json())])
+  .then(([data, landShape]) => {
   DATA = data;
+  LAND = landShape;
   $("built").textContent = `Results built ${data.built}`;
-  const [id, code] = decodeURIComponent(location.hash.slice(1)).split("/");
+  const [slug, code] = location.hash.slice(1).split("--");
+  const id = (slug || "").replace(/-/g, "_");
   if (place(id) && variable(code)) Object.assign(state, { place: id, code });
   buildVariablePills();
   buildMap();
@@ -92,7 +95,18 @@ const markers = {};
 function buildMap() {
   map = new maplibregl.Map({
     container: "map",
-    style: "https://basemaps.cartocdn.com/gl/positron-nolabels-gl-style/style.json",
+    // Our own minimal base map: a land outline shipped with the site (data/land.geojson, Natural
+    // Earth, public domain). No outside tile server, so the map always works in a live demo.
+    style: {
+      version: 8,
+      sources: { land: { type: "geojson", data: LAND, attribution: "Natural Earth" } },
+      layers: [
+        { id: "ocean", type: "background", paint: { "background-color": "#d9f0ef" } },
+        { id: "land", type: "fill", source: "land", paint: { "fill-color": "#fbfdfb" } },
+        { id: "coast", type: "line", source: "land", paint: { "line-color": "#7fb9b1", "line-width": 0.7 } },
+      ],
+    },
+    renderWorldCopies: false,
     center: [0, 30], zoom: 0.9, minZoom: 0.5, maxZoom: 9,
     attributionControl: { compact: true },
     dragRotate: false, pitchWithRotate: false,
@@ -161,7 +175,7 @@ function placeBrackets() {
 // ------------------------------------------------------------------ selection
 function select(id, code, fly) {
   state.place = id; state.code = code;
-  history.replaceState(null, "", `#${id}/${code}`);
+  try { history.replaceState(null, "", `#${id.replace(/_/g, "-")}--${code}`); } catch (e) { /* links still work without it */ }
   markPills(); refreshMap(); renderPanel();
   if (fly && map) flyTo(id);
 }
@@ -223,11 +237,11 @@ function renderPanel() {
 function drawChart(el, r, v, raw, yRange) {
   const x = DATA.dates.map((d) => d + "-01");
   const neutral = colourOf(r) === COLOURS.neutral;
-  const colour = neutral ? COLOURS.ink : colourOf(r);
+  const colour = neutral ? COLOURS.deep : colourOf(r);
   const traces = raw
     ? [{ x, y: r.value, type: "scatter", mode: "lines", line: { color: "#7c7f86", width: 1.2 }, name: v.name, hovertemplate: "%{y:.3g} " + v.units + "<extra></extra>" }]
     : [
-        { x, y: r.anomaly, type: "scatter", mode: "lines", line: { color: "#a3a59d", width: 1 }, name: "Monthly", hovertemplate: "%{y:.2g}<extra>monthly</extra>" },
+        { x, y: r.anomaly, type: "scatter", mode: "lines", line: { color: "#8fb3ae", width: 1 }, name: "Monthly", hovertemplate: "%{y:.2g}<extra>monthly</extra>" },
         ...(r.trend[0] === null ? [] : [
           { x, y: r.band_high, type: "scatter", mode: "lines", line: { width: 0 }, hoverinfo: "skip", showlegend: false },
           { x, y: r.band_low, type: "scatter", mode: "lines", line: { width: 0 }, fill: "tonexty", fillcolor: hexA(colour, neutral ? 0.08 : 0.22), hoverinfo: "skip", showlegend: false },

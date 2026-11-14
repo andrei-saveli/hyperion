@@ -21,8 +21,11 @@ statistics.
 | `index.html` | Page structure: hero + demo cases, explore (map + result), compare, method, footer |
 | `style.css` | The look: colours, fonts, outlines, phone layout |
 | `app.js` | Map (MapLibre), charts (Plotly), keyword search, compare, region selection |
+| `globe.js` | Hero art: rotating globe of teal "satellite pixels", study regions in coral (decoration only) |
 | `build_data.py` | Runs the real analysis for every region × measurement → `data/results.json` |
 | `data/results.json` | The pre-computed results the site reads (rebuild after any data/stats change) |
+| `data/land.geojson` | World land outline for the map (Natural Earth, public domain) |
+| `vendor/maplibre-gl.css` | The map library's stylesheet (kept locally) |
 | `design/` | Screenshots |
 
 ## Run it locally (from the repository root)
@@ -40,6 +43,7 @@ Upload the whole `Website/` folder (index.html, style.css, app.js, data/) to any
 the free Space Apps domain hosting, GitHub Pages, Netlify, etc. Rebuild `results.json` first.
 
 ## Notes
-- Needs internet for the fonts (Google Fonts), map tiles (CARTO) and libraries (jsDelivr).
-- Shareable links: `#niamey/EVAP` opens that region and measurement directly.
+- Needs internet only for the fonts (Google Fonts) and the two libraries (jsDelivr). The map outline
+  (`data/land.geojson`, Natural Earth) and the map stylesheet (`vendor/`) ship with the site.
+- Shareable links: `#niamey--EVAP` (or `#lake-mead--TEMP`) opens that region and measurement directly.
 - The tool name ("Hyperion") appears in `index.html` only (title, logo, footer): one place to rename.

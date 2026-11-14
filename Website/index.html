@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
+  <link href="vendor/maplibre-gl.css" rel="stylesheet">
   <link href="style.css" rel="stylesheet">
 </head>
 <body>
@@ -20,7 +20,7 @@
   </nav>
 </header>
 
-<!-- 1. Hero: the question + demo cases -->
+<!-- 1. Hero: the question, a globe of satellite pixels, demo cases -->
 <section class="hero">
   <div>
     <span class="tag">Earth system trend detective</span>
@@ -29,12 +29,15 @@
       trend through 24 years of monthly data, and test whether the change is real, or just noise.</p>
     <a class="btn" href="#explore"><span>Start exploring</span><span class="arrow">↓</span></a>
   </div>
-  <div class="demos">
-    <span class="tag">Try a case</span>
-    <button class="btn" data-place="lake_mead" data-code="TEMP"><span>Is the desert getting hotter?</span><span class="arrow">→</span></button>
-    <button class="btn" data-place="svalbard" data-code="TEMP"><span>Is the Arctic warming?</span><span class="arrow">→</span></button>
-    <button class="btn" data-place="niamey" data-code="SOILM"><span>Is the Sahel's soil drying?</span><span class="arrow">→</span></button>
-    <button class="btn" data-place="niamey" data-code="EVAP"><span>Not significant… yet?</span><span class="arrow">→</span></button>
+  <div class="globe-wrap">
+    <canvas id="globe" aria-label="Rotating globe made of satellite pixels; our three study regions are highlighted"></canvas>
+    <div class="cases">
+      <span class="tag">Try a case</span>
+      <button class="case" data-place="lake_mead" data-code="TEMP"><span>Is the desert getting hotter?<small>Lake Mead · air temperature</small></span><span class="arrow">→</span></button>
+      <button class="case" data-place="svalbard" data-code="TEMP"><span>Is the Arctic warming?<small>Svalbard · air temperature</small></span><span class="arrow">→</span></button>
+      <button class="case" data-place="niamey" data-code="SOILM"><span>Is the Sahel's soil drying?<small>Niamey · soil moisture</small></span><span class="arrow">→</span></button>
+      <button class="case" data-place="niamey" data-code="EVAP"><span>Not significant… yet?<small>Niamey · evaporation</small></span><span class="arrow">→</span></button>
+    </div>
   </div>
 </section>
 
@@ -117,7 +120,7 @@
       <li><a href="#explore">Map and results</a></li><li><a href="#compare">Compare regions</a></li>
       <li><a href="#method">Method</a></li><li><a href="https://github.com/andrei-saveli/hyperion">Source code</a></li></ul></div>
     <div><span class="tag">Note</span><p style="margin:0;font-size:14px">Monthly data 2001–2024, averaged over each region's box.
-      Trends are straight-line summaries. They show what changed, not why. Map tiles © CARTO, © OpenStreetMap contributors.</p>
+      Trends are straight-line summaries. They show what changed, not why. Map outline: Natural Earth (public domain).</p>
       <span class="muted" style="color:#bdbdb6" id="built"></span></div>
   </div>
 </footer>
@@ -125,5 +128,6 @@
 <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.35.2/plotly.min.js"></script>
 <script src="app.js"></script>
+<script src="globe.js"></script>
 </body>
 </html>
