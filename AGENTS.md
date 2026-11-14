@@ -194,9 +194,9 @@ Non-significant ≠ "no change". Never state causes. "Years until significant" =
 - 🖥️ The frontend (P1) is built in a separate repo, `andrei-saveli/frontend-nasa`, against the
   fakes in `docs/HANDSHAKES.md`; its brief is that repo's `AGENTS.md`. Keep its copies of
   `PLAN.md`/`HANDSHAKES.md` in sync when these change.
-- ✅ **Person 4 (Trend & significance + integration)** built in `Task3/`: `stats.py` (`analyze`,
+- ✅ **Person 4 (Trend & significance + integration)** built in `Task4/`: `stats.py` (`analyze`,
   H2, incl. "years until significant"), 19 passing tests, `scripts/results_table.py`, `scripts/check_handshakes.py`. Uses a FAKE
-  `data_io.py` until the Data person delivers. See `Task3/README.md`.
+  `data_io.py` until the Data person delivers. See `Task4/README.md`.
 - ✅ **Data (Task2/)**: `cleaned/` holds 12 validated Giovanni CSVs (3 places × TEMP/RAIN/SOILM/EVAP,
   288 months); `raw/` is for the original downloads (⏳ to upload); `data_io.py` (H1, reads
   `data/` in the final project, `cleaned/` now); `SOURCES.md`. NO₂ dropped. Don't use

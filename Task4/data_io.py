@@ -1,5 +1,5 @@
 # FAKE: will be replaced by the real data_io.py from the Data person (handshake H1).
-# Copied from docs/HANDSHAKES.md so Task3 runs on its own. Don't edit; replace it.
+# Copied from docs/HANDSHAKES.md so Task4 runs on its own. Don't edit; replace it.
 import numpy as np, pandas as pd
 
 def load_places():

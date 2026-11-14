@@ -1,4 +1,4 @@
-# Task3: Trend & significance + integration (Person 4)
+# Task4: Trend & significance + integration (Person 4)
 
 The math at the heart of the challenge: **seasons removed → straight-line trend → significance
 test**, plus the tools that check everyone's parts fit together. At the end, everything in this
