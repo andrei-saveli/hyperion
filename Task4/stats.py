@@ -7,8 +7,8 @@ What it does, in plain words
 3. Fit a straight line through the anomalies -> change per decade and total change.
 4. Measure how sure we are: a 95% interval and a t-test p-value, corrected for the fact that
    neighbouring months are similar (otherwise trends look more certain than they are).
-5. Double-check with the Mann-Kendall test (does the series keep going up or down?) and
-   Sen's slope (a robust rate that ignores outliers).
+5. Double-check with the seasonal Mann-Kendall test (does each month keep going up or down
+   from year to year?) and seasonal Sen's slope (a robust rate that ignores outliers).
 6. Give a verdict: 🟢 significant · 🟡 possible · ⚪ no clear trend · ⚫ not enough data (fewer
    than 10 years or 24 months of observations), plus a
    reliability flag ("low" when the record holds too little independent information).
@@ -49,7 +49,7 @@ EMOJI = {"significant": "🟢", "possible": "🟡", "none": "⚪", "insufficient
 
 METHOD = ("Seasons removed (each month minus its calendar-month average), then a straight-line "
           "trend; the 95% interval and t-test p-value are corrected for month-to-month "
-          "correlation. Checked with a Mann-Kendall test and Sen's slope. 'Years until "
+          "correlation. Checked with a seasonal Mann-Kendall test and seasonal Sen's slope. 'Years until "
           "significant' is a planning estimate that assumes the trend and the noise stay the same; "
           "it is not a forecast.")
 
@@ -71,15 +71,8 @@ def decimal_years(dates: pd.Series) -> np.ndarray:
 
 
 def lag1_autocorrelation(residuals: np.ndarray) -> float:
-    """How similar each month is to the next one (0 = independent, 1 = identical).
-
-    Only uses pairs of consecutive months where both are present.
-    """
-    a, b = residuals[:-1], residuals[1:]
-    ok = ~np.isnan(a) & ~np.isnan(b)
-    if ok.sum() < 3 or np.std(a[ok]) == 0 or np.std(b[ok]) == 0:
-        return 0.0
-    return float(np.corrcoef(a[ok], b[ok])[0, 1])
+    """How similar each month is to the next one (0 = independent, 1 = identical)."""
+    return lag_autocorrelation(residuals, 1)
 
 
 def effective_sample_size(n: int, r1: float) -> float:
@@ -92,27 +85,75 @@ def effective_sample_size(n: int, r1: float) -> float:
     return max(n * (1 - r) / (1 + r), 3.0)
 
 
-def mann_kendall(y: np.ndarray, n_ratio: float = 1.0) -> float:
-    """Two-sided Mann-Kendall p-value for a steady rise or fall.
-
-    n_ratio = n / effective_n inflates the variance to account for month-to-month correlation
-    (effective-sample-size correction). n_ratio = 1 gives the classic test.
-    """
+def _mk_s_and_variance(y: np.ndarray):
+    """Mann-Kendall S statistic (sum of signs of all later-minus-earlier pairs) and its variance."""
     y = y[~np.isnan(y)]
     n = len(y)
-    if n < 3:
-        return float("nan")
     s = 0.0
     for i in range(n - 1):
         s += np.sign(y[i + 1:] - y[i]).sum()
     _, counts = np.unique(y, return_counts=True)
     ties = counts[counts > 1]
     var_s = (n * (n - 1) * (2 * n + 5) - np.sum(ties * (ties - 1) * (2 * ties + 5))) / 18.0
-    var_s *= n_ratio
+    return s, var_s, n
+
+
+def _p_from_s(s: float, var_s: float) -> float:
     if var_s <= 0:
         return 1.0
     z = (s - np.sign(s)) / math.sqrt(var_s)  # continuity correction
     return float(2 * sps.norm.sf(abs(z)))
+
+
+def mann_kendall(y: np.ndarray, n_ratio: float = 1.0) -> float:
+    """Classic two-sided Mann-Kendall p-value for a steady rise or fall (whole series).
+
+    n_ratio > 1 inflates the variance to account for correlation between neighbours.
+    """
+    s, var_s, n = _mk_s_and_variance(np.asarray(y, dtype=float))
+    if n < 3:
+        return float("nan")
+    return _p_from_s(s, var_s * n_ratio)
+
+
+def seasonal_mann_kendall(values: np.ndarray, months: np.ndarray, n_ratio: float = 1.0) -> float:
+    """Seasonal Mann-Kendall p-value (Hirsch et al., 1982), the version named in the challenge.
+
+    Compares only Januaries with Januaries, Februaries with Februaries, and so on, then adds the
+    12 results up. So the seasonal cycle can't fake a trend, and no deseasonalizing is needed.
+    n_ratio > 1 inflates the variance to account for year-to-year memory within a month.
+    """
+    s_total, var_total = 0.0, 0.0
+    for m in range(1, 13):
+        y = values[months == m]
+        s, var_s, n = _mk_s_and_variance(y)
+        if n >= 3:
+            s_total += s
+            var_total += var_s
+    if var_total == 0:
+        return float("nan")
+    return _p_from_s(s_total, var_total * n_ratio)
+
+
+def seasonal_sen_slope(values: np.ndarray, months: np.ndarray, years: np.ndarray) -> float:
+    """Seasonal Sen's slope: median of the yearly slopes between same-month pairs (units/year)."""
+    slopes = []
+    for m in range(1, 13):
+        keep = (months == m) & ~np.isnan(values)
+        y, t = values[keep], years[keep]
+        for i in range(len(y) - 1):
+            dt = t[i + 1:] - t[i]
+            slopes.extend((y[i + 1:] - y[i])[dt > 0] / dt[dt > 0])
+    return float(np.median(slopes)) if slopes else float("nan")
+
+
+def lag_autocorrelation(residuals: np.ndarray, lag: int) -> float:
+    """Correlation between each value and the one `lag` steps later (pairs with both present)."""
+    a, b = residuals[:-lag], residuals[lag:]
+    ok = ~np.isnan(a) & ~np.isnan(b)
+    if ok.sum() < 3 or np.std(a[ok]) == 0 or np.std(b[ok]) == 0:
+        return 0.0
+    return float(np.corrcoef(a[ok], b[ok])[0, 1])
 
 
 def years_to_significance(t_value: float, record_years: float, verdict: str):
@@ -152,14 +193,6 @@ def reliability(n_eff: float):
         return "good", None
     return "low", (f"Each month is very similar to the next, so this record is worth only about "
                    f"{n_eff:.0f} independent months. Treat this result with caution.")
-
-
-def sen_slope(x: np.ndarray, y: np.ndarray) -> float:
-    """Median of the slopes between every pair of points (robust to outliers)."""
-    ok = ~np.isnan(y)
-    if ok.sum() < 3:
-        return float("nan")
-    return float(sps.theilslopes(y[ok], x[ok]).slope)
 
 
 # ---------------------------------------------------------------- helpers
@@ -246,9 +279,12 @@ def analyze(df: pd.DataFrame, code: str | None = None) -> dict:
     trend = intercept + slope * x_all
     half_width = t_crit * s_e * np.sqrt(1 / n_eff + (x_all - x_mean) ** 2 / sxx)
 
-    # 5) second opinions
-    mk_p = mann_kendall(anomaly.to_numpy(), n_ratio=n / n_eff)
-    sen = sen_slope(x_all, anomaly.to_numpy())
+    # 5) second opinions: seasonal Mann-Kendall + seasonal Sen's slope on the raw values.
+    #    Same-month values are 12 months apart, so correct with the 12-month (year-to-year) memory.
+    months = df["date"].dt.month.to_numpy()
+    r12 = min(max(lag_autocorrelation(residuals_all, 12), 0.0), MAX_LAG1)
+    mk_p = seasonal_mann_kendall(df["value"].to_numpy(), months, n_ratio=(1 + r12) / (1 - r12))
+    sen = seasonal_sen_slope(df["value"].to_numpy(), months, x_all)
 
     # 6) verdict
     if p_value < SIGNIFICANT_P:

@@ -12,7 +12,8 @@ import pytest
 from scipy import stats as sps
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from stats import RESULT_KEYS, analyze, deseasonalize, mann_kendall, years_to_significance  # noqa: E402
+from stats import (RESULT_KEYS, analyze, deseasonalize, mann_kendall,  # noqa: E402
+                   seasonal_mann_kendall, seasonal_sen_slope, years_to_significance)
 
 H2_KEYS = {  # the keys promised in docs/HANDSHAKES.md (H2)
     "slope_per_decade", "ci_low", "ci_high", "p_value", "mk_p_value", "total_change",
@@ -252,3 +253,26 @@ def test_no_percent_change_when_values_go_below_zero():
     df["value"] = df["value"] - 15.1  # small average, some negative months
     assert df["value"].min() < 0
     assert analyze(df, code="EVAP")["percent_change"] is None
+
+
+# ------------------------------------------------------------------ seasonal Mann-Kendall
+
+def test_seasonal_mk_ignores_the_seasonal_cycle():
+    df = make_series(0.0, season=10, noise=1.0, seed=11)
+    p = seasonal_mann_kendall(df["value"].to_numpy(), df["date"].dt.month.to_numpy())
+    assert p > 0.05
+
+
+def test_seasonal_mk_finds_a_real_trend():
+    df = make_series(0.8, season=10, noise=0.5, seed=12)
+    months = df["date"].dt.month.to_numpy()
+    assert seasonal_mann_kendall(df["value"].to_numpy(), months) < 0.001
+    years = np.arange(len(df)) / 12
+    assert seasonal_sen_slope(df["value"].to_numpy(), months, years) * 10 == pytest.approx(0.8, abs=0.15)
+
+
+def test_seasonal_mk_on_a_hand_checked_example():
+    # 3 Januaries going up (S=+3) and 3 Februaries going down (S=-3): they cancel -> p = 1
+    values = np.array([1, 9, 2, 8, 3, 7], dtype=float)
+    months = np.array([1, 2, 1, 2, 1, 2])
+    assert seasonal_mann_kendall(values, months) == pytest.approx(1.0)
