@@ -61,12 +61,11 @@ Time Series** service for each place and variable (the same thing as the website
 | `RAIN` | Rainfall | `GPM_3IMERGM_07_precipitation` | GPM IMERG `GPM_3IMERGM`, `07` | mm/hr → mm/day |
 | `SOILM` | Soil moisture (root zone) | `GLDAS_NOAH025_M_2_1_RootMoist_inst` | GLDAS `GLDAS_NOAH025_M`, `2.1` | kg/m² (= mm of water) |
 | `EVAP` | Evaporation | `GLDAS_NOAH025_M_2_1_Evap_tavg` | GLDAS `GLDAS_NOAH025_M`, `2.1` | kg/m²/s → mm/day |
-| `NO2` | Air pollution (NO₂) | `OMNO2d_003_ColumnAmountNO2TropCloudScreened` | OMI `OMNO2d`, `003` | molecules/cm² → 10¹⁵ molecules/cm² |
 
 - **Always check the units** written in the header of each raw CSV. If they differ from the table,
   tell the team before converting.
-- NO₂ starts in **late 2004**, so earlier months stay empty (that's fine).
-- NO₂ is **daily** data: the converter averages it into months automatically.
+- **NO₂ (air pollution) was dropped**: it isn't available in Giovanni's web interface for our area-averaged time series. The project uses 4 variables.
+- If a dataset is **daily**, the converter averages it into months automatically.
 - Not available in bulk: MODIS vegetation (NDVI) and land temperature. Skip them, or use
   [AppEEARS](https://appeears.earthdatacloud.nasa.gov/) later as an extra.
 - More variables: full list at https://api.giovanni.earthdata.nasa.gov/configured-variables/
@@ -134,7 +133,6 @@ VARIABLES = {  # our code: (dataset short name, version, Giovanni variable)
     "RAIN": ("GPM_3IMERGM", "07", "GPM_3IMERGM_07_precipitation"),
     "SOILM": ("GLDAS_NOAH025_M", "2.1", "GLDAS_NOAH025_M_2_1_RootMoist_inst"),
     "EVAP": ("GLDAS_NOAH025_M", "2.1", "GLDAS_NOAH025_M_2_1_Evap_tavg"),
-    "NO2": ("OMNO2d", "003", "OMNO2d_003_ColumnAmountNO2TropCloudScreened"),
 }
 START, STOP = dt.datetime(2001, 1, 1), dt.datetime(2024, 12, 31)
 
@@ -199,7 +197,6 @@ CONVERT = {
     "RAIN":  (24, 0),        # mm/hr -> mm/day
     "SOILM": (1, 0),         # kg/m² (= mm of water) stays
     "EVAP":  (86400, 0),     # kg/m²/s -> mm/day
-    "NO2":   (1e-15, 0),     # molecules/cm² -> 10^15 molecules/cm²
 }
 
 
@@ -266,8 +263,8 @@ It prints how many months and missing months each file has.
 For each cleaned file:
 - [ ] 288 rows, dates in order, no duplicates
 - [ ] Values look sensible for that place (e.g. Svalbard temperature mostly below 10 °C;
-      desert soil moisture low; NO₂ around 0.5–20 in our units)
-- [ ] Missing months: few, and not all in one season (NO₂ before 2005 is expected)
+      desert soil moisture low)
+- [ ] Missing months: few, and not all in one season
 - [ ] Quick plot: `python -c "import pandas as pd; pd.read_csv('data/lake_mead_TEMP.csv').plot(x='date'); import matplotlib.pyplot as p; p.show()"`
 - [ ] Line added to `data/SOURCES.md`, for example:
   ```

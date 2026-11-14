@@ -26,7 +26,7 @@ instructions and the scripts are in
 - **Region:** the place's box (`west, south, east, north`) from `data/places.csv`
 - **Output:** CSV (monthly values, averaged over the box)
 
-### The 5 variables to take
+### The 4 variables to take
 
 | Our code | What it is | Giovanni variable (copy exactly) | Dataset page (read: units, dates, description) | Units in the raw file → what we save |
 |---|---|---|---|---|
@@ -34,7 +34,6 @@ instructions and the scripts are in
 | `RAIN` | Rainfall | `GPM_3IMERGM_07_precipitation` | GPM IMERG monthly: https://disc.gsfc.nasa.gov/datasets/GPM_3IMERGM_07/summary | mm/hr → **mm/day** (×24) |
 | `SOILM` | Soil moisture (root zone) | `GLDAS_NOAH025_M_2_1_RootMoist_inst` | GLDAS monthly: https://disc.gsfc.nasa.gov/datasets/GLDAS_NOAH025_M_2.1/summary | kg/m² → **kg/m²** (no change) |
 | `EVAP` | Evaporation | `GLDAS_NOAH025_M_2_1_Evap_tavg` | same GLDAS page as above | kg/m²/s → **mm/day** (×86400) |
-| `NO2` | Air pollution (NO₂) | `OMNO2d_003_ColumnAmountNO2TropCloudScreened` | OMI daily: https://disc.gsfc.nasa.gov/datasets/OMNO2d_003/summary | molecules/cm² → **10¹⁵ molecules/cm²** (×10⁻¹⁵). Daily → monthly average. Starts late 2004 |
 
 **Always compare** the units written at the top of each downloaded CSV with this table. If they
 differ, tell the team before converting.
@@ -47,7 +46,9 @@ differ, tell the team before converting.
 | `niamey` | 1.0, 12.5, 3.0, 14.5 |
 | `svalbard` | 14.0, 77.5, 17.0, 79.0 |
 
-**Total:** 3 places × 5 variables = **15 files** to start. Each new place adds 5 more.
+**Total:** 3 places × 4 variables = **12 files** to start. Each new place adds 4 more.
+
+**NO₂ (air pollution) was dropped**: it isn't available in Giovanni's web interface for our area-averaged time series. The project uses 4 variables.
 
 ### Helpful Giovanni pages
 
@@ -88,7 +89,7 @@ You can get **the same data on the Giovanni website** (slower, but no coding):
 | **NASA POWER Data Access Viewer**: https://power.larc.nasa.gov/data-access-viewer/ | Monthly data for a **point** (the box centre `lat, lon`), no login. Parameters: `T2M` (temperature, °C), `PRECTOTCORR` (rain, mm/day), `GWETROOT` (soil wetness, 0–1). Years 2001–2024 |
 | **NASA POWER API** (same data by web address): `https://power.larc.nasa.gov/api/temporal/monthly/point?parameters=T2M,PRECTOTCORR,GWETROOT&community=AG&latitude=<lat>&longitude=<lon>&start=2001&end=2024&format=JSON` | Ignore month "13" (yearly average); `-999` = missing |
 
-POWER has **no NO₂ and no evaporation**, and gives points, not boxes. If you use it, write that in
+POWER has **no evaporation**, and gives points, not boxes. If you use it, write that in
 `data/SOURCES.md` and tell the team.
 
 ---

@@ -63,7 +63,6 @@ TEMP,Air temperature,°C,How warm the air is 2 metres above the ground.,temperat
 RAIN,Rainfall,mm/day,Average amount of rain and snow that falls per day.,rain rainfall precipitation wet dry drought storm snow,GPM_3IMERGM_07_precipitation
 SOILM,Soil moisture,kg/m²,How much water the soil holds where plant roots grow (1 kg/m² = 1 mm of water).,soil moisture drought dry drying wet farming plants roots desert,GLDAS_NOAH025_M_2_1_RootMoist_inst
 EVAP,Evaporation,mm/day,How much water goes from the ground and plants into the air each day.,evaporation evapotranspiration water loss dry drying plants heat,GLDAS_NOAH025_M_2_1_Evap_tavg
-NO2,Air pollution (NO₂),10¹⁵ molecules/cm²,How much nitrogen dioxide gas is in the air above the ground; it comes mostly from burning fuel.,pollution air quality smog no2 nitrogen dioxide traffic city,OMNO2d_003_ColumnAmountNO2TropCloudScreened
 ```
 | Column | Rule |
 |---|---|
@@ -76,7 +75,7 @@ NO2,Air pollution (NO₂),10¹⁵ molecules/cm²,How much nitrogen dioxide gas i
 
 Data source: **NASA Giovanni** area-averaged monthly time series (see
 [PERSON_2_DATA_GIOVANNI_HANDOVER.md](PERSON_2_DATA_GIOVANNI_HANDOVER.md)); NASA POWER is only a
-fallback. NO₂ (OMI) starts in late 2004, so its earlier months are empty.
+fallback. **NO₂ (air pollution) was dropped**: it isn't available in Giovanni's web interface for our area-averaged time series. The project uses 4 variables.
 
 ---
 

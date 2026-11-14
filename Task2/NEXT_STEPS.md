@@ -1,143 +1,55 @@
-# Task 2: next steps (NO₂ data, raw files, SOURCES date)
+# Task 2: next steps (raw files + download date)
 
-Three things are left. Follow the steps in order; it takes about 30–45 minutes.
-You need your **Earthdata login** and the folder on your computer where you made the 12 cleaned files.
+Task 2 is now organised like this:
+```
+Task2/
+├── cleaned/      the 12 cleaned files (date,value): done ✅
+├── raw/          the original Giovanni downloads: ⏳ upload them here
+├── data_io.py    loads the data (reads cleaned/)
+├── SOURCES.md    where every file comes from
+└── NEXT_STEPS.md this file
+```
+NO₂ was dropped (not available in Giovanni's web interface), so there are **12 files**, not 15.
 
----
-
-## Part 1: download the 3 NO₂ files from Giovanni
-
-Do this **3 times**, once per place.
-
-| Place | Save the download as | Box: West, South, East, North |
-|---|---|---|
-| Lake Mead | `lake_mead_NO2.csv` | −116, 35, −113, 37.5 |
-| Niamey | `niamey_NO2.csv` | 1.0, 12.5, 3.0, 14.5 |
-| Svalbard | `svalbard_NO2.csv` | 14.0, 77.5, 17.0, 79.0 |
-
-1. Open https://giovanni.gsfc.nasa.gov/giovanni/ and **log in** (top right) with Earthdata.
-2. **Select Plot:** choose **"Time Series, Area-Averaged"** (same as for the other files).
-3. **Select Date Range:**
-   - Begin: **2004-10-01** (the OMI satellite instrument starts in October 2004)
-   - End: **2024-12-31**
-4. **Select Region:** type the box from the table, e.g. for Lake Mead: `-116, 35, -113, 37.5`
-   (order: West, South, East, North).
-5. **Select Variables:** in the search box type **`OMNO2d`**. Tick the variable called
-   **"NO2 Tropospheric Column (30% Cloud Screened)"**, product **OMNO2d v003**.
-   ⚠️ *Tropospheric*, not *Total*: we want the pollution near the ground.
-6. Click **Plot Data**. It's daily data for 20 years, so it can take a few minutes. Wait.
-7. When the chart appears: **Downloads** → **CSV**.
-8. Rename the downloaded file exactly as in the table (e.g. `lake_mead_NO2.csv`).
-   Don't open and save it in Excel: that can change the file.
-
-✅ After Part 1 you have 3 new raw files.
+Two things are left. It takes about 10 minutes.
 
 ---
 
-## Part 2: put all 15 raw files in one folder
+## Part 1: upload the 12 raw Giovanni files to `Task2/raw/`
 
-1. On your computer, inside your Task 2 folder, make a folder called **`raw`**.
-2. Put in it **all 15 original Giovanni downloads**, untouched, named `<place>_<CODE>.csv`:
+1. On your computer, find the **original files exactly as downloaded from Giovanni**: they start
+   with lines like `User Start Date:` and `User Bounding Box:` (not `date,value`).
+2. Make sure they're named exactly like the cleaned files:
    ```
-   raw/lake_mead_TEMP.csv   raw/lake_mead_RAIN.csv   raw/lake_mead_SOILM.csv   raw/lake_mead_EVAP.csv   raw/lake_mead_NO2.csv
-   raw/niamey_TEMP.csv      raw/niamey_RAIN.csv      raw/niamey_SOILM.csv      raw/niamey_EVAP.csv      raw/niamey_NO2.csv
-   raw/svalbard_TEMP.csv    raw/svalbard_RAIN.csv    raw/svalbard_SOILM.csv    raw/svalbard_EVAP.csv    raw/svalbard_NO2.csv
+   lake_mead_TEMP.csv  lake_mead_RAIN.csv  lake_mead_SOILM.csv  lake_mead_EVAP.csv
+   niamey_TEMP.csv     niamey_RAIN.csv     niamey_SOILM.csv     niamey_EVAP.csv
+   svalbard_TEMP.csv   svalbard_RAIN.csv   svalbard_SOILM.csv   svalbard_EVAP.csv
    ```
-   These are the files straight from Giovanni (they start with lines like `User Start Date:`),
-   **not** the cleaned ones (which start with `date,value`).
-   Lost an original? Download it again from Giovanni the same way (dates 2001-01-01 to 2024-12-31).
+   Lost one? Download it again on https://giovanni.gsfc.nasa.gov/giovanni/ the same way as before
+   (Time Series, Area-Averaged; 2001-01-01 to 2024-12-31; same box). Don't open/save them in Excel.
+3. Go to https://github.com/andrei-saveli/hyperion → open **`Task2`** → open **`raw`**.
+4. Click **Add file** → **Upload files**, drag in the 12 files.
+5. Commit message: `Add raw Giovanni downloads` → **Commit changes**.
+
+Check: `Task2/raw/` now shows the 12 CSV files plus `README.md`.
 
 ---
 
-## Part 3: clean the NO₂ files with the same converter
+## Part 2: fix the download date in `SOURCES.md`
 
-1. Open `convert_giovanni.py` (the one you used before, from
-   `docs/PERSON_2_DATA_GIOVANNI_HANDOVER.md`).
-2. Change **two lines** near the top so it reads your `raw` folder and writes into a new
-   `cleaned` folder (so your existing files aren't overwritten):
-   ```python
-   RAW = Path("raw")
-   OUT = Path("cleaned")
+1. In `Task2`, click **`SOURCES.md`** → pencil icon ✏️ (Edit).
+2. Find the line starting with `Download date:` and put the real date you downloaded the files, e.g.:
    ```
-   and add this line right below them:
-   ```python
-   OUT.mkdir(exist_ok=True)
+   Download date: 2026-11-14.
    ```
-3. Open a terminal **in your Task 2 folder** (the one that contains `raw`) and run:
-   ```bash
-   python convert_giovanni.py
-   ```
-4. It prints one line per file. For the NO₂ files expect something like:
-   ```
-   lake_mead_NO2: 288 months, 45 missing
-   niamey_NO2: 288 months, 45 missing
-   svalbard_NO2: 288 months, 70 missing
-   ```
-   - **45 missing is correct**: 2001-01 to 2004-09 is before the instrument existed.
-   - **Svalbard can have more missing**: in winter it's dark (polar night) and the satellite can't
-     measure. That's expected.
-5. Quick look inside `cleaned/lake_mead_NO2.csv`:
-   - the first rows have an **empty** value (`2001-01-01,`)
-   - from `2004-10-01` there are numbers, roughly **0.3 to 10** (that's ×10¹⁵ molecules/cm²)
-   - if you see huge numbers like `3000000000000000`, the unit conversion didn't run: tell the team lead.
-
-✅ After Part 3 you have `cleaned/lake_mead_NO2.csv`, `cleaned/niamey_NO2.csv`,
-`cleaned/svalbard_NO2.csv`. (The other 12 in `cleaned/` you don't need to upload; the team lead
-will use them to double-check.)
+3. In "How the data was made", step 4, change `(⏳ to be uploaded)` to `(✅ uploaded)`.
+4. Commit message: `Update SOURCES download date` → **Commit changes**.
 
 ---
 
-## Part 4: upload to GitHub (website)
+## Part 3: tell the team
 
-### 4a. The 15 raw files → `Task2/raw/`
-1. Go to https://github.com/andrei-saveli/hyperion and click the **`Task2`** folder.
-2. Click **Add file** → **Upload files**.
-3. **Drag the whole `raw` folder** from your computer into the page. GitHub keeps the folder, so
-   the files land in `Task2/raw/`. (Check the list shows `raw/lake_mead_TEMP.csv` etc.)
-4. At the bottom, commit message: `Add raw Giovanni downloads` → **Commit changes**.
+> *"The 12 raw Giovanni files are in Task2/raw. SOURCES.md updated."*
 
-### 4b. The 3 cleaned NO₂ files → `Task2/`
-1. Back in the **`Task2`** folder: **Add file** → **Upload files**.
-2. Drag in **only** `lake_mead_NO2.csv`, `niamey_NO2.csv`, `svalbard_NO2.csv` from `cleaned/`.
-3. Commit message: `Add cleaned NO2 files` → **Commit changes**.
-
----
-
-## Part 5: update `SOURCES.md` (on the GitHub website)
-
-1. In the `Task2` folder, click **`SOURCES.md`**, then the **pencil icon ✏️** (Edit).
-2. Find the line:
-   ```
-   Download date: 2026-11-14 (files uploaded to the repository). Update this if re-downloaded.
-   ```
-   Replace it with the real date(s), for example:
-   ```
-   Download date: TEMP, RAIN, SOILM, EVAP on 2026-11-14; NO2 on 2026-11-15.
-   ```
-3. In the **Files** table, for the 3 NO₂ rows change `⏳ to download` to `✅`.
-4. In "How the data was made", step 4, delete the words `(*to be uploaded*)`.
-5. Commit message: `Update SOURCES: download dates and NO2` → **Commit changes**.
-
----
-
-## Part 6: tell the team
-
-Send in the team chat:
-> *"NO₂ files and all 15 raw Giovanni files are in Task2. SOURCES.md updated."*
-
-The team lead will then:
-- re-run the converter on your raw files and compare value by value with the cleaned files
-- run the automatic checker (all 15 files should pass)
-- run the trend analysis on NO₂
-
----
-
-## If something goes wrong
-
-| Problem | Fix |
-|---|---|
-| Can't find the NO₂ variable in Giovanni | Search `NO2` and pick the one with **OMNO2d** and **Tropospheric** and **Cloud Screened** in its name |
-| Giovanni says the date range is invalid | Begin date must be **2004-10-01** or later for NO₂ |
-| Plot takes very long or fails | Try again; or split into two downloads (2004–2014 and 2015–2024) and tell the team lead |
-| Converter error | Copy the full error and paste it to your AI chat together with this file; or send it to the team lead |
-| Converter says `No files in raw` | You're not running it from the folder that contains `raw`; `cd` into it first |
+The team lead will then re-run the converter on the raw files and compare them value by value with
+`cleaned/`. That proves the cleaned data matches NASA's originals exactly.

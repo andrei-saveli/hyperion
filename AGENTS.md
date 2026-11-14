@@ -154,7 +154,7 @@ trend line and 95% band → verdict card (🟢 significant / 🟡 possible, not 
 - Data: **NASA Giovanni** area-averaged monthly time series over a box per place (harmony-py +
   earthaccess, free Earthdata account). Variables: `TEMP` (MERRA-2 `M2IMNXASM_5_12_4_T2M`, °C),
   `RAIN` (GPM `GPM_3IMERGM_07_precipitation`, mm/day), `SOILM` (GLDAS RootMoist, kg/m²), `EVAP`
-  (GLDAS Evap, mm/day), `NO2` (OMI OMNO2d, 10¹⁵ molecules/cm², from 2004-10). Raw files kept in
+  (GLDAS Evap, mm/day). NO₂ dropped (not in Giovanni's web interface). Raw files kept in
   `data/raw/giovanni/`, cleaned to `data/<place>_<CODE>.csv`. Fallback: NASA POWER (no login).
 - Deploy: Streamlit Community Cloud. AI only for optional wording, never for numbers.
 
@@ -189,7 +189,7 @@ Non-significant ≠ "no change". Never state causes. "Years until significant" =
 ## Current status / handover (update this when you finish something)
 - ✅ Planning done: `docs/PLAN.md`, `docs/HANDSHAKES.md`.
 - ✅ Handshake change applied: places are **boxes** (`west,south,east,north`), variables use **short
-  codes** (`TEMP`, `RAIN`, `SOILM`, `EVAP`, `NO2`) with a `source` column (Giovanni name).
+  codes** (`TEMP`, `RAIN`, `SOILM`, `EVAP`) with a `source` column (Giovanni name).
 - ✅ Giovanni bulk-download variables verified in Giovanni's configured-variables list.
 - 🖥️ The frontend (P1) is built in a separate repo, `andrei-saveli/frontend-nasa`, against the
   fakes in `docs/HANDSHAKES.md`; its brief is that repo's `AGENTS.md`. Keep its copies of
@@ -197,9 +197,9 @@ Non-significant ≠ "no change". Never state causes. "Years until significant" =
 - ✅ **Person 4 (Trend & significance + integration)** built in `Task3/`: `stats.py` (`analyze`,
   H2, incl. "years until significant"), 19 passing tests, `scripts/results_table.py`, `scripts/check_handshakes.py`. Uses a FAKE
   `data_io.py` until the Data person delivers. See `Task3/README.md`.
-- ✅ **Data (Task2/)**: 12 cleaned Giovanni CSVs (3 places × TEMP/RAIN/SOILM/EVAP, 288 months,
-  validated), `data_io.py` (H1, works with `Task2/` now and `data/` in the final project),
-  `SOURCES.md`. ⏳ Missing: 3 NO₂ files and the raw originals (`Task2/raw/`). Don't use
+- ✅ **Data (Task2/)**: `cleaned/` holds 12 validated Giovanni CSVs (3 places × TEMP/RAIN/SOILM/EVAP,
+  288 months); `raw/` is for the original downloads (⏳ to upload); `data_io.py` (H1, reads
+  `data/` in the final project, `cleaned/` now); `SOURCES.md`. NO₂ dropped. Don't use
   `svalbard_SOILM` in the demo (glacier; unreliable).
 - 🧩 Each person builds in their own folder; at the end the team lead combines all folders into
   the final project layout below (each folder's README says how).

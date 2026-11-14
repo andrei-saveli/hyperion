@@ -9,16 +9,15 @@ repeat every step from this page.
    (https://giovanni.gsfc.nasa.gov/giovanni/), one download per place × variable.
 2. **Period requested:** 2001-01-01 to 2024-12-31, monthly.
 3. **Region:** the box of each place (below). Giovanni averages all grid cells inside the box.
-4. **Raw files:** kept untouched in `raw/` as `<place>_<CODE>.csv` (*to be uploaded*).
+4. **Raw files:** kept untouched in `raw/` as `<place>_<CODE>.csv` (⏳ to be uploaded).
 5. **Cleaning:** `convert_giovanni.py` from
    [docs/PERSON_2_DATA_GIOVANNI_HANDOVER.md](../docs/PERSON_2_DATA_GIOVANNI_HANDOVER.md):
    - skip Giovanni's header lines
    - fill values become empty cells (missing); never zero
-   - average daily data into months (only needed for NO₂)
    - one row per month, 2001-01 to 2024-12 (288 rows)
    - unit conversion (table below)
 6. **Checks done (2026-11-14):**
-   - all 12 files: columns `date,value`, 288 months, sorted, no duplicates, no missing values
+   - all 12 files (in `cleaned/`): columns `date,value`, 288 months, sorted, no duplicates, no missing values
    - seasons fall in the right months (e.g. Niamey rain peaks in August)
    - in the dry places, yearly evaporation ≈ yearly rain (Lake Mead 210 vs 226 mm, Niamey 512 vs 551 mm), which confirms the unit conversions
 
@@ -38,9 +37,8 @@ repeat every step from this page.
 | `RAIN` | Rainfall | `GPM_3IMERGM_07_precipitation` | GPM IMERG Final monthly, v07 (satellites) | https://disc.gsfc.nasa.gov/datasets/GPM_3IMERGM_07/summary | mm/hr → mm/day (×24) |
 | `SOILM` | Root-zone soil moisture | `GLDAS_NOAH025_M_2_1_RootMoist_inst` | GLDAS Noah monthly 0.25°, v2.1 (land model) | https://disc.gsfc.nasa.gov/datasets/GLDAS_NOAH025_M_2.1/summary | kg/m² (unchanged) |
 | `EVAP` | Evaporation | `GLDAS_NOAH025_M_2_1_Evap_tavg` | GLDAS Noah monthly 0.25°, v2.1 (land model) | same as above | kg/m²/s → mm/day (×86400) |
-| `NO2` | Tropospheric NO₂ (air pollution) | `OMNO2d_003_ColumnAmountNO2TropCloudScreened` | OMI on Aura, daily 0.25°, v003 (satellite) | https://disc.gsfc.nasa.gov/datasets/OMNO2d_003/summary | molecules/cm² → 10¹⁵ molecules/cm² (×10⁻¹⁵), daily → monthly mean |
 
-## Files
+## Files (in `cleaned/`)
 
 | File | Giovanni variable | Box | Period | Status |
 |---|---|---|---|---|
@@ -48,17 +46,14 @@ repeat every step from this page.
 | `lake_mead_RAIN.csv` | `GPM_3IMERGM_07_precipitation` | −116, 35, −113, 37.5 | 2001-01..2024-12 | ✅ |
 | `lake_mead_SOILM.csv` | `GLDAS_NOAH025_M_2_1_RootMoist_inst` | −116, 35, −113, 37.5 | 2001-01..2024-12 | ✅ |
 | `lake_mead_EVAP.csv` | `GLDAS_NOAH025_M_2_1_Evap_tavg` | −116, 35, −113, 37.5 | 2001-01..2024-12 | ✅ |
-| `lake_mead_NO2.csv` | `OMNO2d_003_ColumnAmountNO2TropCloudScreened` | −116, 35, −113, 37.5 | 2004-10..2024-12 | ⏳ to download |
 | `niamey_TEMP.csv` | `M2IMNXASM_5_12_4_T2M` | 1.0, 12.5, 3.0, 14.5 | 2001-01..2024-12 | ✅ |
 | `niamey_RAIN.csv` | `GPM_3IMERGM_07_precipitation` | 1.0, 12.5, 3.0, 14.5 | 2001-01..2024-12 | ✅ |
 | `niamey_SOILM.csv` | `GLDAS_NOAH025_M_2_1_RootMoist_inst` | 1.0, 12.5, 3.0, 14.5 | 2001-01..2024-12 | ✅ |
 | `niamey_EVAP.csv` | `GLDAS_NOAH025_M_2_1_Evap_tavg` | 1.0, 12.5, 3.0, 14.5 | 2001-01..2024-12 | ✅ |
-| `niamey_NO2.csv` | `OMNO2d_003_ColumnAmountNO2TropCloudScreened` | 1.0, 12.5, 3.0, 14.5 | 2004-10..2024-12 | ⏳ to download |
 | `svalbard_TEMP.csv` | `M2IMNXASM_5_12_4_T2M` | 14.0, 77.5, 17.0, 79.0 | 2001-01..2024-12 | ✅ |
 | `svalbard_RAIN.csv` | `GPM_3IMERGM_07_precipitation` | 14.0, 77.5, 17.0, 79.0 | 2001-01..2024-12 | ✅ |
 | `svalbard_SOILM.csv` | `GLDAS_NOAH025_M_2_1_RootMoist_inst` | 14.0, 77.5, 17.0, 79.0 | 2001-01..2024-12 | ⚠️ don't use in demo (see notes) |
 | `svalbard_EVAP.csv` | `GLDAS_NOAH025_M_2_1_Evap_tavg` | 14.0, 77.5, 17.0, 79.0 | 2001-01..2024-12 | ✅ |
-| `svalbard_NO2.csv` | `OMNO2d_003_ColumnAmountNO2TropCloudScreened` | 14.0, 77.5, 17.0, 79.0 | 2004-10..2024-12 | ⏳ to download (winter months may be empty: polar night) |
 
 Download date: 2026-11-14 (files uploaded to the repository). Update this if re-downloaded.
 
@@ -73,4 +68,5 @@ Download date: 2026-11-14 (files uploaded to the repository). Update this if re-
 - **Negative evaporation** (Svalbard, a few months): in GLDAS this means frost or condensation
   forming on snow. It's real model output, not an error.
 - **Zeros in Niamey rainfall:** dry-season months with no rain. Real, not missing.
-- **NO₂** starts in October 2004 (the OMI instrument launched in July 2004); earlier months are empty.
+- **NO₂ (air pollution) was dropped**: it isn't available in Giovanni's web interface for our
+  area-averaged time series.
