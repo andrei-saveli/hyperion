@@ -112,7 +112,8 @@ variables makes it hard to pick ones that could indicate change and then analyze
 ---
 
 ## Working agreement
-- **Don't ask the user clarifying questions.** Make sensible decisions, record them here, and push.
+- **Always commit and push directly to `main`** without asking for confirmation.
+- Make sensible decisions on open choices, record them here, and keep going.
 
 ## Project decisions
 
@@ -187,4 +188,4 @@ scripts/    data download / preprocessing scripts
 6. AI suggestions/explanations, polish, pitch video.
 
 ## Git
-- Develop on branch `claude/blissful-ritchie-cw282c`.
+- Push all work directly to `main` (user's standing instruction). No PRs, no confirmation needed.
