@@ -45,8 +45,8 @@ EMOJI = {"significant": "🟢", "possible": "🟡", "none": "⚪", "insufficient
 METHOD = ("Seasons removed (each month minus its calendar-month average), then a straight-line "
           "trend; the 95% interval and t-test p-value are corrected for month-to-month "
           "correlation. Checked with a Mann-Kendall test and Sen's slope. 'Years until "
-          "significant' is a planning estimate (Weatherhead et al., 1998) that assumes nothing "
-          "changes; it is not a forecast.")
+          "significant' is a planning estimate that assumes the trend and the noise stay the same; "
+          "it is not a forecast.")
 
 
 # ---------------------------------------------------------------- building blocks
@@ -110,27 +110,27 @@ def mann_kendall(y: np.ndarray, n_ratio: float = 1.0) -> float:
     return float(2 * sps.norm.sf(abs(z)))
 
 
-def years_to_significance(slope_per_year: float, noise_sd: float, r1: float,
-                          record_years: float, t_value: float, verdict: str):
+def years_to_significance(t_value: float, record_years: float, verdict: str):
     """Estimate how many MORE years of data a not-yet-significant trend would need.
 
-    Uses the standard formula of Weatherhead et al. (1998): the number of years n* needed to
-    detect a trend with 90% probability at the 5% level is
-        n* = [ (3.3 * noise_sd / |slope|) * sqrt((1 + r1) / (1 - r1)) ] ** (2/3)
-    with noise_sd = scatter of the monthly anomalies around the line and r1 = month-to-month
-    correlation. It ASSUMES the trend, the noise and the measurements stay the same, so it's a
-    planning estimate, not a forecast.
+    Idea: the uncertainty of a trend shrinks as the record gets longer (roughly with
+    record length ** 1.5 for monthly data). If the trend, the noise and the month-to-month memory
+    all stay as they are, the trend's t-value grows the same way, and the trend becomes
+    significant (|t| ≈ 1.96) after
+        total years = record_years * (1.96 / |t|) ** (2/3)
+    This uses the same numbers as our t-test, so it never contradicts the p-value shown.
+    It's a planning estimate ("about when, if nothing changes"), not a forecast.
 
-    Returns None when it doesn't make sense: already significant, not enough data, a record
-    shorter than 10 years, a slope too small to tell from zero, or more than 100 years needed.
+    Returns None when it doesn't make sense: already significant, record shorter than 10 years,
+    direction too unclear (|t| < 0.5), or more than 100 years needed.
     """
     if verdict not in ("possible", "none") or record_years < MIN_YEARS_FOR_HORIZON:
         return None
-    if slope_per_year == 0 or abs(t_value) < 0.5 or noise_sd <= 0:
+    t = abs(t_value)
+    if t < 0.5:
         return None  # direction itself is too uncertain to project
-    r = min(max(r1, 0.0), MAX_LAG1)
-    n_star = ((3.3 * noise_sd / abs(slope_per_year)) * math.sqrt((1 + r) / (1 - r))) ** (2 / 3)
-    more = n_star - record_years
+    total_years = record_years * (1.96 / t) ** (2 / 3)
+    more = total_years - record_years
     if more > MAX_HORIZON_YEARS:
         return None
     return round(max(more, 0.0), 1)
@@ -250,9 +250,8 @@ def analyze(df: pd.DataFrame) -> dict:
     direction = "increase" if slope > 0 else "decrease" if slope < 0 else "flat"
 
     # 7) extra: how many more years until this trend would likely become significant?
-    noise_sd = math.sqrt(sse / max(n - 2, 1))
     t_value = slope / se_slope if se_slope > 0 else 0.0
-    horizon = years_to_significance(slope, noise_sd, r1, x.max() - x.min(), t_value, verdict)
+    horizon = years_to_significance(t_value, x.max() - x.min(), verdict)
 
     quality, quality_note = reliability(n_eff)
 
