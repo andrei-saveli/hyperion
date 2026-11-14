@@ -97,6 +97,8 @@ def build(only=None):
     percent = {v["code"]: v["percent"] for v in catalogue["variables"]}
     OUT.mkdir(parents=True, exist_ok=True)
     index = {"tile": TILE, "missing": MISSING, "variables": {}}
+    if only and (OUT / "index.json").exists():      # building some datasets: keep the others
+        index["variables"] = json.loads((OUT / "index.json").read_text())["variables"]
     with Pool() as pool:
         for code, dataset in SOURCES.items():
             if only and dataset not in only:
@@ -123,6 +125,8 @@ def write_test_reference(index, places=((44.4, 26.1), (28.6, 77.2), (-3.1, -60.0
     check that the website reads the tiles back correctly."""
     cases = []
     for code in index["variables"]:
+        if not (CACHE / SOURCES[code]).exists():
+            continue
         months, cube = load(code)
         for lat, lon in places:
             row, col = min(179, int(np.floor(lat + 90))), int(np.floor(lon + 180)) % 360
