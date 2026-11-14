@@ -11,7 +11,10 @@ import sys
 
 import pandas as pd
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# Final project: data_io.py sits in the project root. While we work in Task folders, use the
+# Data person's real data_io.py from the sibling Task2 folder.
+sys.path[:0] = [ROOT, os.path.join(os.path.dirname(ROOT), "Task2")]
 from data_io import load_places, load_series, load_variables  # noqa: E402
 from stats import analyze  # noqa: E402
 
@@ -22,7 +25,7 @@ def build_table():
     for _, place in load_places().iterrows():
         for _, var in variables.iterrows():
             try:
-                r = analyze(load_series(place["id"], var["code"]))
+                r = analyze(load_series(place["id"], var["code"]), code=var["code"])
             except FileNotFoundError:
                 continue  # that file doesn't exist (yet)
             rows.append({
@@ -32,6 +35,9 @@ def build_table():
                 "p_value": r["p_value"], "mk_p_value": r["mk_p_value"],
                 "period": f"{r['start']}..{r['end']}", "missing": r["n_missing"],
                 "years_more": r["years_to_significance"],
+                "percent": r.get("percent_change"),
+                "reliability": r.get("reliability"),
+                "tests_agree": r.get("tests_agree"),
             })
     return pd.DataFrame(rows).sort_values("p_value", na_position="last")
 

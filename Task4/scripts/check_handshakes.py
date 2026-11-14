@@ -14,7 +14,9 @@ import sys
 import pandas as pd
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, ROOT)
+# Final project: everything sits in ROOT. While we work in Task folders, also look in the
+# sibling Task2 (data_io.py) and Task3 (search.py, explain.py) folders.
+sys.path[:0] = [ROOT] + [os.path.join(os.path.dirname(ROOT), t) for t in ("Task2", "Task3")]
 
 PLACE_COLS = {"id", "name", "lat", "lon", "west", "south", "east", "north", "type", "story"}
 VARIABLE_COLS = {"code", "name", "units", "definition", "keywords", "source"}
