@@ -1,6 +1,8 @@
 """Sync checklist (hours 8, 20, 30): checks that everyone's parts fit together.
 
-Checks handshakes H0–H4 from docs/HANDSHAKES.md automatically. Parts that don't exist yet
+Checks handshakes H0–H4 from docs/HANDSHAKES.md automatically: catalogue columns and boxes (H0),
+a complete monthly calendar of at least 10 years per file, whatever the period (H1), the result
+shape (H2), explanations (H3), and that search answers our demo questions (H4). Parts that don't exist yet
 (e.g. explain.py before Person 3 delivers it) are reported as "not delivered yet", not errors.
 
 Run from the project folder:  python scripts/check_handshakes.py
@@ -8,6 +10,7 @@ Exit code 0 = all delivered parts OK.
 """
 import importlib
 import json
+import logging
 import os
 import sys
 
@@ -26,7 +29,33 @@ H2_KEYS = {"slope_per_decade", "ci_low", "ci_high", "p_value", "mk_p_value", "to
            "anomaly", "trend", "band_low", "band_high", "years_to_significance", "method"}
 VERDICTS = {"significant", "possible", "none", "insufficient"}
 
+# Demo questions the search must answer: (question, expected place, expected variable code)
+DEMO_QUESTIONS = [
+    ("is the desert drying out", "lake_mead", "SOILM"),
+    ("Is Lake Mead getting hotter?", "lake_mead", "TEMP"),
+    ("Is the Arctic getting warmer?", "svalbard", "TEMP"),
+    ("does the Sahel get more rain", "niamey", "RAIN"),
+]
+MIN_YEARS = 10
+
 problems, notes = [], []
+
+
+def calendar_check(df, name):
+    """H1: date,value columns, first-of-month dates, no skipped or repeated months, >= 10 years."""
+    if list(df.columns[:2]) != ["date", "value"] or not pd.api.types.is_datetime64_any_dtype(df["date"]):
+        return False, f"H1 {name}: columns must be date (dates), value"
+    d = df["date"]
+    month_index = d.dt.year * 12 + d.dt.month
+    steps_ok = bool((month_index.diff().dropna() == 1).all())
+    first_of_month = bool((d.dt.day == 1).all())
+    years = len(df) / 12
+    ok = steps_ok and first_of_month and years >= MIN_YEARS
+    period = f"{d.iloc[0]:%Y-%m}..{d.iloc[-1]:%Y-%m}" if len(df) else "empty"
+    why = "" if ok else (" (months skipped/repeated/unsorted)" if not steps_ok else
+                         " (dates must be the 1st of the month)" if not first_of_month else
+                         f" (only {years:.1f} years; need {MIN_YEARS})")
+    return ok, f"H1 {name}: {period}, {len(df)} months, {int(df['value'].isna().sum())} missing{why}"
 
 
 def check(ok, message):
@@ -73,12 +102,12 @@ if data_io:
             except FileNotFoundError:
                 problems.append(f"❌ H1 {name}: file missing")
                 continue
-            ok = (list(df.columns[:2]) == ["date", "value"] and len(df) == 288
-                  and df["date"].is_monotonic_increasing and df["date"].is_unique
-                  and pd.api.types.is_datetime64_any_dtype(df["date"]))
-            check(ok, f"H1 {name}: {len(df)} rows, {int(df['value'].isna().sum())} missing")
+            check(*calendar_check(df, name))
             if stats:
-                r = stats.analyze(df)
+                try:
+                    r = stats.analyze(df, code=v["code"])
+                except TypeError:  # an older analyze(df) without the optional code argument
+                    r = stats.analyze(df)
                 ok = (H2_KEYS <= set(r) and r["verdict"] in VERDICTS
                       and all(len(r[k]) == len(df) for k in ("anomaly", "trend", "band_low", "band_high")))
                 try:
@@ -92,11 +121,25 @@ if data_io:
                           and bool(e["headline"]), f"H3 {name}: explanation has headline/details/caveat")
 
 if search:
-    for text in ["is the desert drying", "", "zzzz"]:
+    logging.getLogger("search").setLevel(logging.CRITICAL)  # we report problems ourselves
+    known = set()
+    if data_io:
+        known = {(p, c) for p in data_io.load_places()["id"] for c in data_io.load_variables()["code"]}
+
+    def well_formed(res):
+        return isinstance(res, list) and len(res) <= 5 and all(
+            {"place_id", "code", "reason", "score"} <= set(x) and (not known or (x["place_id"], x["code"]) in known)
+            for x in res)
+
+    for text in ["", "zzzz"]:  # nonsense must give nothing
         res = search.search(text)
-        ok = isinstance(res, list) and len(res) <= 5 and all(
-            {"place_id", "code", "reason", "score"} <= set(x) for x in res)
-        check(ok, f"H4 search({text!r}) → {len(res)} suggestions")
+        check(well_formed(res) and res == [], f"H4 search({text!r}) → {len(res)} suggestions (expected 0)")
+    # Our demo questions must find something sensible (not just an empty list).
+    for text, place, code in DEMO_QUESTIONS:
+        res = search.search(text)
+        hit = any(x["place_id"] == place and x["code"] == code for x in res)
+        found = [f"{x['place_id']}:{x['code']}" for x in res]
+        check(well_formed(res) and hit, f"H4 search({text!r}) → {found} (expected {place}:{code})")
 
 for line in notes + problems:
     print(line)
