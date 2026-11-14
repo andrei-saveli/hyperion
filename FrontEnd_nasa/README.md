@@ -8,16 +8,21 @@ From the Hyperion repository root, using Python 3.11 or newer:
 
 ```sh
 python Task4/scripts/combine.py --frontend FrontEnd_nasa --no-checks
-python -m pip install -r final/requirements.txt
+python -m pip install -r final/requirements.txt -r final/requirements-search.txt
 cd final
+python -m scripts.build_search_index --download-models
+python -m scripts.train_search_model --allow-draft
 python -m streamlit run app.py --server.address 127.0.0.1
 ```
 
 Open [the local demo](http://127.0.0.1:8501). **Guided demo** walks through Lake Mead
 air temperature, Niamey evaporation, and a comparison of temperature trends in both
-places. **Start** opens a place-and-year query. Try `Niamey from 2001 to 2024`, then
-switch between variables and use **Remove seasons** to see the raw monthly series.
+places. **Start** opens Searchlight. Try `Is the Arctic warming?`, then open one of the ranked
+datasets. Adjust **Years to analyze** to focus on a shorter period or use **Remove seasons**
+to see the raw monthly series.
 
 The browser reads the saved data through the local app without an Earthdata account.
-The query uses place names and years. The optional Searchlight model is only needed
-for the separate H4 search checks documented in [Task3](../Task3/README.md).
+The model setup uses the existing draft Searchlight calibration. If the artifacts are already
+built in `Task3/models/search/`, the combine step copies them to `final/` and you can skip the
+build and calibration commands. **Browse available data** also works without the search model.
+See [Task3](../Task3/README.md) for search setup and evaluation details.
