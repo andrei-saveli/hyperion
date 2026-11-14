@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Byte Me</title>
+  <style>
+    /* Full-screen page with no scrollbars */
+    html, body {
+      margin: 0;
+      height: 100%;
+      overflow: hidden;
+      background: #0b1020;
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+
+    /* The big text, centred left-to-right */
+    h1 {
+      position: absolute;
+      left: 50%;
+      margin: 0;
+      font-size: clamp(3rem, 12vw, 9rem);
+      color: #7cf7c5;
+      text-shadow: 0 0 24px rgba(124, 247, 197, 0.6);
+      white-space: nowrap;
+      /* Move between the top and bottom of the page, forever */
+      animation: bounce 3s ease-in-out infinite alternate;
+    }
+
+    /* Top of the page -> bottom of the page */
+    @keyframes bounce {
+      from { top: 0;    transform: translate(-50%, 0); }
+      to   { top: 100%; transform: translate(-50%, -100%); }
+    }
+
+    /* Respect people who turn off motion in their system settings */
+    @media (prefers-reduced-motion: reduce) {
+      h1 { animation: none; top: 50%; transform: translate(-50%, -50%); }
+    }
+  </style>
+</head>
+<body>
+  <h1>Byte Me</h1>
+</body>
+</html>
