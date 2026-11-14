@@ -13,7 +13,7 @@ from scipy import stats as sps
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from stats import (RESULT_KEYS, analyze, deseasonalize, mann_kendall,  # noqa: E402
-                   seasonal_mann_kendall, seasonal_sen_slope, years_to_significance)
+                   seasonal_mann_kendall, seasonal_sen_slope, tests_agree, years_to_significance)
 
 H2_KEYS = {  # the keys promised in docs/HANDSHAKES.md (H2)
     "slope_per_decade", "ci_low", "ci_high", "p_value", "mk_p_value", "total_change",
@@ -276,3 +276,19 @@ def test_seasonal_mk_on_a_hand_checked_example():
     values = np.array([1, 9, 2, 8, 3, 7], dtype=float)
     months = np.array([1, 2, 1, 2, 1, 2])
     assert seasonal_mann_kendall(values, months) == pytest.approx(1.0)
+
+
+# ------------------------------------------------------------------ do the two tests agree?
+
+def test_clear_trend_both_tests_agree():
+    r = analyze(make_series(0.8, noise=0.5, seed=12))
+    assert r["tests_agree"] is True and r["tests_note"] is None
+
+
+def test_disagreement_rules():
+    assert tests_agree(0.01, 0.30, 1.0, 1.0) == (False, tests_agree(0.01, 0.30, 1.0, 1.0)[1])  # one significant, other far
+    assert tests_agree(0.30, 0.01, 1.0, 1.0)[0] is False
+    assert tests_agree(0.04, 0.06, 1.0, 1.0)[0] is True      # just either side of the line: fine
+    assert tests_agree(0.08, 0.40, 1.0, -1.0)[0] is False    # opposite directions near significance
+    assert tests_agree(0.50, 0.70, 1.0, -1.0)[0] is True     # opposite but both nowhere near: no story
+    assert tests_agree(0.01, float("nan"), 1.0, 1.0) == (None, None)
