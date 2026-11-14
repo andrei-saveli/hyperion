@@ -192,6 +192,7 @@ or 24 valid months. Flags: `reliability` (low if < 30 effective months), `tests_
 Non-significant ≠ "no change". Never state causes.
 
 ## Current status / handover (update this when you finish something)
+- Global website branch review and NASA Space Apps discussion notes: [Trend Detective handover](docs/TREND_DETECTIVE_HANDOVER.md).
 - ✅ Planning done: `docs/PLAN.md`, `docs/HANDSHAKES.md`.
 - ✅ Handshake change applied: places are **boxes** (`west,south,east,north`), variables use **short
   codes** (`TEMP`, `RAIN`, `SOILM`, `EVAP`) with a `source` column (Giovanni name).

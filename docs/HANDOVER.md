@@ -1,5 +1,7 @@
 # ByteMe project: handover for a new chat / agent
 
+For the global NASA POWER website, start with the [Trend Detective handover](TREND_DETECTIVE_HANDOVER.md).
+
 Read this first. It explains what the project is, what exists, what works, **what is broken**,
 and how to run it. Written 2026-11-14. Repository: `andrei-saveli/hyperion` (private, branch `main`).
 
