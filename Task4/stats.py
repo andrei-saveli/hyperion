@@ -206,7 +206,7 @@ def analyze(df: pd.DataFrame) -> dict:
     valid = anomaly.notna().to_numpy()
     n_missing = int(df["value"].isna().sum())
     valid_dates = df["date"][valid]
-    span_years = ((valid_dates.max() - valid_dates.min()).days / 365.25) if valid.any() else 0.0
+    span_years = float(np.ptp(decimal_years(valid_dates))) if valid.any() else 0.0  # in whole months / 12
     if valid.sum() < MIN_MONTHS or span_years < MIN_RECORD_YEARS:
         # Too little data for a climate trend: 2 years of data can't tell a trend from a wet spell.
         return _empty_result(df, anomaly, n_missing)
