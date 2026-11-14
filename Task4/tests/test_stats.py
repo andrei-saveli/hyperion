@@ -12,7 +12,7 @@ import pytest
 from scipy import stats as sps
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from stats import (RESULT_KEYS, analyze, deseasonalize, mann_kendall,  # noqa: E402
+from stats import (RESULT_KEYS, analyze, deseasonalize, deseasonalize_with_trend, mann_kendall,  # noqa: E402
                    seasonal_mann_kendall, seasonal_sen_slope, years_to_significance)
 from stats import tests_agree as agreement  # noqa: E402  (renamed so pytest doesn't treat it as a test)
 
@@ -68,12 +68,41 @@ def test_known_negative_slope_is_recovered():
     assert r["sen_slope_per_decade"] == pytest.approx(-0.8, abs=0.2)
 
 
+def joint_regression_slope(df):
+    """Reference answer: one big regression, value ~ 12 month averages + slope x time."""
+    ok = df["value"].notna().to_numpy()
+    t = np.arange(len(df))[ok] / 12
+    dummies = np.eye(12)[df["date"].dt.month.to_numpy()[ok] - 1]
+    X = np.column_stack([dummies, t])
+    coef, *_ = np.linalg.lstsq(X, df["value"].to_numpy()[ok], rcond=None)
+    return coef[-1]
+
+
+def test_slope_matches_joint_regression_with_month_averages():
+    df = make_series(0.3, seed=3)
+    assert analyze(df)["slope_per_decade"] == pytest.approx(joint_regression_slope(df) * 10, rel=1e-9)
+
+
+def test_slope_matches_joint_regression_with_gaps_and_partial_years():
+    df = make_series(0.3, seed=5, months=200, start="2003-07-01")   # starts in July, ends in February
+    df.loc[[5, 6, 40, 41, 42, 120], "value"] = np.nan
+    assert analyze(df)["slope_per_decade"] == pytest.approx(joint_regression_slope(df) * 10, rel=1e-9)
+
+
 def test_slope_matches_ordinary_regression_on_anomalies():
     df = make_series(0.3, seed=3)
     r = analyze(df)
-    anom = deseasonalize(df["value"], df["date"])
+    anom = deseasonalize_with_trend(df["value"], df["date"])
     ref = sps.linregress(np.arange(len(df)) / 12, anom)
     assert r["slope_per_decade"] == pytest.approx(ref.slope * 10, rel=1e-9)
+
+
+def test_joint_fit_recovers_exact_trend_where_plain_averages_fall_short():
+    # No noise, record starts mid-year: the joint fit is exact, the plain one slightly too small.
+    df = make_series(1.0, noise=0.0, months=150, start="2001-07-01")
+    assert analyze(df)["slope_per_decade"] == pytest.approx(1.0, rel=1e-9)
+    plain = sps.linregress(np.arange(len(df)) / 120, deseasonalize(df["value"], df["date"])).slope
+    assert plain < 0.999
 
 
 def test_seasons_only_gives_flat_anomalies():

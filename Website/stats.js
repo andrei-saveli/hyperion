@@ -6,7 +6,8 @@
 //
 // What it does, in plain words
 // 1. Ignore missing months (never treat them as zero).
-// 2. Remove the seasons: subtract each calendar month's average ("anomalies").
+// 2. Remove the seasons: subtract each calendar month's average ("anomalies"), with the 12
+//    averages estimated together with the trend line.
 // 3. Fit a straight line through the anomalies -> change per decade and total change.
 // 4. Measure how sure we are: a 95% interval and a t-test p-value, corrected for the fact that
 //    neighbouring months are similar (otherwise trends look more certain than they are).
@@ -25,7 +26,8 @@ const ByteMeStats = (function () {
 
   const BAND_MEANING = "Shaded band: the 95% range of the straight-line trend, i.e. where the true " +
     "trend line most likely lies. It is not the range of the monthly values.";
-  const METHOD = "Seasons removed (each month minus its calendar-month average), then a straight-line " +
+  const METHOD = "Seasons removed (each month minus its calendar-month average, estimated together with " +
+    "the trend), then a straight-line " +
     "trend; the 95% interval and t-test p-value are corrected for month-to-month correlation. " +
     "Checked with a seasonal Mann-Kendall test and seasonal Sen's slope. 'Years until significant' " +
     "is a planning estimate that assumes the trend and the noise stay the same; it is not a forecast.";
@@ -114,11 +116,23 @@ const ByteMeStats = (function () {
 
   // ---------------------------------------------------------------- building blocks
 
-  // Anomalies: each value minus the average of all values from the same calendar month
-  function deseasonalize(values, months) {
-    const total = new Array(13).fill(0), count = new Array(13).fill(0);
-    values.forEach((v, i) => { if (isNum(v)) { total[months[i]] += v; count[months[i]]++; } });
-    return values.map((v, i) => (isNum(v) ? v - total[months[i]] / count[months[i]] : null));
+  // Anomalies, with the 12 calendar-month averages estimated TOGETHER with the trend line
+  // (same as deseasonalize_with_trend in stats.py). Each value is compared only with values from
+  // the same calendar month; that gives the slope. Then each month's average is moved to the
+  // middle of the record, so the anomalies are the trend plus noise, centred on zero.
+  function deseasonalize(values, months, times) {
+    const tSum = new Array(13).fill(0), vSum = new Array(13).fill(0), count = new Array(13).fill(0);
+    values.forEach((v, i) => { if (isNum(v)) { tSum[months[i]] += times[i]; vSum[months[i]] += v; count[months[i]]++; } });
+    const tMonth = (i) => tSum[months[i]] / count[months[i]], vMonth = (i) => vSum[months[i]] / count[months[i]];
+    let sxy = 0, sxx = 0, tTotal = 0, n = 0;
+    values.forEach((v, i) => {
+      if (!isNum(v)) return;
+      const dt = times[i] - tMonth(i);
+      sxy += dt * (v - vMonth(i)); sxx += dt * dt; tTotal += times[i]; n++;
+    });
+    const slope = sxx > 0 ? sxy / sxx : 0;
+    const tMiddle = tTotal / n;
+    return values.map((v, i) => (isNum(v) ? v - (vMonth(i) - slope * (tMonth(i) - tMiddle)) : null));
   }
 
   // Correlation between each value and the one `lag` steps later (pairs with both present)
@@ -229,7 +243,7 @@ const ByteMeStats = (function () {
   function analyze(dates, values, percentOk = false) {
     const months = dates.map((d) => d.month);
     const xAll = dates.map((d) => ((d.year - dates[0].year) * 12 + (d.month - dates[0].month)) / 12);
-    const anomaly = deseasonalize(values, months);
+    const anomaly = deseasonalize(values, months, xAll);
     const validIndex = anomaly.map((v, i) => (isNum(v) ? i : -1)).filter((i) => i >= 0);
     const nMissing = values.filter((v) => !isNum(v)).length;
     const n = validIndex.length;

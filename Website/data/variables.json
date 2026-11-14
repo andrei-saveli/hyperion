@@ -1,60 +1,298 @@
 {
-  "note": "The measurements ByteMe offers. One shared list: the website (app.js) and the Python scripts (build_world.py, tests) both read it. 'code' is the NASA POWER parameter name. 'scale' multiplies the raw value (soil wetness 0-1 becomes percent). 'percent' says whether a percent change makes sense (zero means 'none of it').",
-  "groups": ["Temperature", "Water", "Land", "Air", "Sun and sky"],
-  "variables": [
-    {"code": "T2M", "name": "Air temperature", "units": "°C", "group": "Temperature", "source": "MERRA-2", "percent": false,
-     "definition": "How warm the air is 2 metres above the ground, averaged over day and night.",
-     "keywords": "temperature hot hotter warm warmer warming cold colder cooling heat climate"},
-    {"code": "T2M_MAX", "name": "Hottest temperature of the month", "units": "°C", "group": "Temperature", "source": "MERRA-2", "percent": false,
-     "definition": "The highest air temperature reached during each month.",
-     "keywords": "maximum hottest heatwave heatwaves extreme peak highs"},
-    {"code": "T2M_MIN", "name": "Coldest temperature of the month", "units": "°C", "group": "Temperature", "source": "MERRA-2", "percent": false,
-     "definition": "The lowest air temperature reached during each month.",
-     "keywords": "minimum coldest frost freeze freezing nights lows winter winters"},
-    {"code": "TS", "name": "Surface temperature", "units": "°C", "group": "Temperature", "source": "MERRA-2", "percent": false,
-     "definition": "How warm the ground or the sea surface itself is (its 'skin').",
-     "keywords": "surface skin ground sea ocean water temperature"},
-    {"code": "PRECTOTCORR", "name": "Rain and snowfall", "units": "mm/day", "group": "Water", "source": "MERRA-2", "percent": true,
-     "definition": "How much rain and snow fall each day on average.",
-     "keywords": "rain rains raining rainfall rainy precipitation downpour wet wetter drought monsoon storms flood floods"},
-    {"code": "EVLAND", "name": "Evaporation from land", "units": "mm/day", "group": "Water", "source": "MERRA-2", "percent": true,
-     "definition": "How much water moves from the ground and plants into the air each day. Land only.",
-     "keywords": "evaporation evaporate evaporates evaporating evapotranspiration"},
-    {"code": "RH2M", "name": "Relative humidity", "units": "%", "group": "Water", "source": "MERRA-2", "percent": false,
-     "definition": "How close the air is to holding all the water vapour it can (100% = saturated).",
-     "keywords": "humidity humid muggy damp relative"},
-    {"code": "QV2M", "name": "Water vapour in the air", "units": "g/kg", "group": "Water", "source": "MERRA-2", "percent": true,
-     "definition": "Grams of water vapour in each kilogram of air near the ground.",
-     "keywords": "vapour vapor moisture specific humidity"},
-    {"code": "PW", "name": "Water in the whole air column", "units": "cm", "group": "Water", "source": "MERRA-2", "percent": true,
-     "definition": "If all the water vapour above you fell as rain at once, how deep the layer would be.",
-     "keywords": "precipitable column atmosphere water"},
-    {"code": "GWETTOP", "name": "Surface soil wetness", "units": "%", "scale": 100, "group": "Land", "source": "MERRA-2", "percent": false,
-     "definition": "How wet the top 5 cm of soil is: 0% is completely dry, 100% is fully soaked.",
-     "keywords": "soil topsoil surface wetness dry drier drying dust dirt"},
-    {"code": "GWETROOT", "name": "Root-zone soil wetness", "units": "%", "scale": 100, "group": "Land", "source": "MERRA-2", "percent": false,
-     "definition": "How wet the soil is where plant roots grow (top metre): 0% dry, 100% soaked. Land only.",
-     "keywords": "soil moisture roots root dry drier drying drought crops farming farmland agriculture desert"},
-    {"code": "SNODP", "name": "Snow depth", "units": "cm", "group": "Land", "source": "MERRA-2", "percent": true,
-     "definition": "How deep the snow lying on the ground is. Land only.",
-     "keywords": "snow snowy snowpack ski glacier ice melting melt"},
-    {"code": "WS10M", "name": "Wind speed", "units": "m/s", "group": "Air", "source": "MERRA-2", "percent": true,
-     "definition": "How fast the air moves 10 metres above the ground.",
-     "keywords": "wind winds windy windier breeze gust storm"},
-    {"code": "PS", "name": "Air pressure", "units": "kPa", "group": "Air", "source": "MERRA-2", "percent": false,
-     "definition": "The weight of the air above pressing on the surface.",
-     "keywords": "pressure barometer barometric"},
-    {"code": "TO3", "name": "Ozone layer", "units": "DU", "group": "Air", "source": "MERRA-2", "percent": false,
-     "definition": "The total amount of ozone above you, in Dobson units. Ozone high up shields life from UV light.",
-     "keywords": "ozone hole layer uv ultraviolet"},
-    {"code": "AOD_55", "name": "Haze and dust in the air", "units": "AOD", "group": "Air", "source": "MERRA-2", "percent": true,
-     "definition": "How much tiny particles (dust, smoke, pollution) dim the sunlight. 0 is perfectly clear air; above 0.4 is hazy.",
-     "keywords": "aerosol aerosols haze hazy dust dusty smoke smog pollution polluted air quality particles wildfire"},
-    {"code": "ALLSKY_SFC_SW_DWN", "name": "Sunlight reaching the ground", "units": "MJ/m²/day", "group": "Sun and sky", "source": "CERES", "percent": true,
-     "definition": "The energy of the sunlight that arrives at the surface each day, clouds included.",
-     "keywords": "sun sunny sunnier sunlight sunshine solar radiation light energy brightness dimming"},
-    {"code": "CLOUD_AMT", "name": "Cloud cover", "units": "%", "group": "Sun and sky", "source": "CERES", "percent": false,
-     "definition": "The share of the sky covered by clouds.",
-     "keywords": "cloud clouds cloudy cloudier cloudiness overcast sky"}
-  ]
+ "note": "The measurements ByteMe offers. One shared list: the website (app.js) and the Python scripts (build_world.py, tests) both read it. 'code' is the NASA POWER parameter name. 'scale' multiplies the raw value (soil wetness 0-1 becomes percent). 'percent' says whether a percent change makes sense (zero means 'none of it'). Search: 'phrases' (several words, strong match) and 'keywords' (single words) link a question to a measurement. Avoid very general words such as water, air or ground: they appear in questions about many measurements. 'not_available' lists things people ask for that this data set does not have, with what to say and the closest measurement we do have.",
+ "groups": [
+  "Temperature",
+  "Water",
+  "Land",
+  "Air",
+  "Sun and sky"
+ ],
+ "variables": [
+  {
+   "code": "T2M",
+   "name": "Air temperature",
+   "units": "°C",
+   "group": "Temperature",
+   "source": "MERRA-2",
+   "percent": false,
+   "definition": "How warm the air is 2 metres above the ground, averaged over day and night.",
+   "keywords": "temperature temperatures hot hotter warm warmer warmed warming warmth cold colder cooling heat climate degrees",
+   "phrases": "air temperature, near-ground air, near-surface air, 2-m air, 2 m air, two metres, above the ground, warmth of the air, near surface temperature, air-temperature, near-surface air"
+  },
+  {
+   "code": "T2M_MAX",
+   "name": "Hottest temperature of the month",
+   "units": "°C",
+   "group": "Temperature",
+   "source": "MERRA-2",
+   "percent": false,
+   "definition": "The highest air temperature reached during each month.",
+   "keywords": "maximum hottest heatwave heatwaves highs",
+   "phrases": "maximum temperature, daily maximum, hottest days, hottest temperature, days above, over forty degrees, above 40"
+  },
+  {
+   "code": "T2M_MIN",
+   "name": "Coldest temperature of the month",
+   "units": "°C",
+   "group": "Temperature",
+   "source": "MERRA-2",
+   "percent": false,
+   "definition": "The lowest air temperature reached during each month.",
+   "keywords": "minimum coldest frost frosts freeze freezing nights lows",
+   "phrases": "minimum temperature, coldest nights, coldest temperature"
+  },
+  {
+   "code": "TS",
+   "name": "Surface temperature",
+   "units": "°C",
+   "group": "Temperature",
+   "source": "MERRA-2",
+   "percent": false,
+   "definition": "How warm the ground or the sea surface itself is (its 'skin').",
+   "keywords": "sst ocean sea",
+   "phrases": "surface temperature, skin temperature, sea surface, sea-surface, ocean surface, at the surface, land surface temperature, ground temperature"
+  },
+  {
+   "code": "PRECTOTCORR",
+   "name": "Rain and snowfall",
+   "units": "mm/day",
+   "group": "Water",
+   "source": "MERRA-2",
+   "percent": true,
+   "definition": "How much rain and snow fall each day on average.",
+   "keywords": "rain rains raining rainfall rainy precipitation downpour downpours wet wetter drought droughts monsoon storms",
+   "phrases": "from the sky, rain or snow, water equivalent, rain and snow"
+  },
+  {
+   "code": "EVLAND",
+   "name": "Evaporation from land",
+   "units": "mm/day",
+   "group": "Water",
+   "source": "MERRA-2",
+   "percent": true,
+   "definition": "How much water moves from the ground and plants into the air each day. Land only.",
+   "keywords": "evaporation evaporate evaporates evaporating evaporated evapotranspiration transpiration",
+   "phrases": "into the air from, to the air from, back into the air, back to the air, returns to the air, to the atmosphere, into the atmosphere, giving off, gives off, given off, sent back, water loss, loss to the air, lost to the atmosphere, becoming vapor, becoming vapour, releases into the air, going out"
+  },
+  {
+   "code": "RH2M",
+   "name": "Relative humidity",
+   "units": "%",
+   "group": "Water",
+   "source": "MERRA-2",
+   "percent": false,
+   "definition": "How close the air is to holding all the water vapour it can (100% = saturated).",
+   "keywords": "humidity humid muggy damp",
+   "phrases": "relative humidity, percentage of the moisture, close to saturation"
+  },
+  {
+   "code": "QV2M",
+   "name": "Water vapour in the air",
+   "units": "g/kg",
+   "group": "Water",
+   "source": "MERRA-2",
+   "percent": true,
+   "definition": "Grams of water vapour in each kilogram of air near the ground.",
+   "keywords": "vapour vapor",
+   "phrases": "water vapour, water vapor, specific humidity, moisture in the air"
+  },
+  {
+   "code": "PW",
+   "name": "Water in the whole air column",
+   "units": "cm",
+   "group": "Water",
+   "source": "MERRA-2",
+   "percent": true,
+   "definition": "If all the water vapour above you fell as rain at once, how deep the layer would be.",
+   "keywords": "precipitable",
+   "phrases": "precipitable water, whole air column, air column, column of air"
+  },
+  {
+   "code": "GWETTOP",
+   "name": "Surface soil wetness",
+   "units": "%",
+   "scale": 100,
+   "group": "Land",
+   "source": "MERRA-2",
+   "percent": false,
+   "definition": "How wet the top 5 cm of soil is: 0% is completely dry, 100% is fully soaked.",
+   "keywords": "topsoil",
+   "phrases": "top layer, topsoil, top centimetre, top centimeter, top 1 cm, top 5 cm, surface soil, surface-only soil, skin of dirt, thin skin, upper soil"
+  },
+  {
+   "code": "GWETROOT",
+   "name": "Root-zone soil wetness",
+   "units": "%",
+   "scale": 100,
+   "group": "Land",
+   "source": "MERRA-2",
+   "percent": false,
+   "definition": "How wet the soil is where plant roots grow (top metre): 0% dry, 100% soaked. Land only.",
+   "keywords": "soil moisture roots root rooting dirt crops crop farming farmland agriculture dry drier drying",
+   "phrases": "root zone, root-zone, rooting layer, root layer, where plants root, where plant roots, crop roots, for plants, plant-accessible, soil moisture, soil water, water in the soil, moisture in the soil, water stored, water held, water retained, left in the ground, water storage, rooting-layer"
+  },
+  {
+   "code": "SNODP",
+   "name": "Snow depth",
+   "units": "cm",
+   "group": "Land",
+   "source": "MERRA-2",
+   "percent": true,
+   "definition": "How deep the snow lying on the ground is. Land only.",
+   "keywords": "snow snowy snowpack ski skiing",
+   "phrases": "snow depth, snow on the ground, layer of snow, snow cover, snowpack thickness"
+  },
+  {
+   "code": "WS10M",
+   "name": "Wind speed",
+   "units": "m/s",
+   "group": "Air",
+   "source": "MERRA-2",
+   "percent": true,
+   "definition": "How fast the air moves 10 metres above the ground.",
+   "keywords": "wind winds windy windier breeze breezy gust gusts",
+   "phrases": "wind speed"
+  },
+  {
+   "code": "PS",
+   "name": "Air pressure",
+   "units": "kPa",
+   "group": "Air",
+   "source": "MERRA-2",
+   "percent": false,
+   "definition": "The weight of the air above pressing on the surface.",
+   "keywords": "pressure barometer barometric",
+   "phrases": "air pressure, surface pressure"
+  },
+  {
+   "code": "TO3",
+   "name": "Ozone layer",
+   "units": "DU",
+   "group": "Air",
+   "source": "MERRA-2",
+   "percent": false,
+   "definition": "The total amount of ozone above you, in Dobson units. Ozone high up shields life from UV light.",
+   "keywords": "ozone ultraviolet uv",
+   "phrases": "ozone layer, ozone hole"
+  },
+  {
+   "code": "AOD_55",
+   "name": "Haze and dust in the air",
+   "units": "AOD",
+   "group": "Air",
+   "source": "MERRA-2",
+   "percent": true,
+   "definition": "How much tiny particles (dust, smoke, pollution) dim the sunlight. 0 is perfectly clear air; above 0.4 is hazy.",
+   "keywords": "aerosol aerosols haze hazy dust dusty smoke smoky smog pollution polluted particles particulate wildfire wildfires",
+   "phrases": "air quality, air pollution, dirty air"
+  },
+  {
+   "code": "ALLSKY_SFC_SW_DWN",
+   "name": "Sunlight reaching the ground",
+   "units": "MJ/m²/day",
+   "group": "Sun and sky",
+   "source": "CERES",
+   "percent": true,
+   "definition": "The energy of the sunlight that arrives at the surface each day, clouds included.",
+   "keywords": "sun sunny sunnier sunlight sunshine solar brightness dimming",
+   "phrases": "solar radiation, solar energy, sunlight reaching"
+  },
+  {
+   "code": "CLOUD_AMT",
+   "name": "Cloud cover",
+   "units": "%",
+   "group": "Sun and sky",
+   "source": "CERES",
+   "percent": false,
+   "definition": "The share of the sky covered by clouds.",
+   "keywords": "cloud clouds cloudy cloudier cloudiness overcast",
+   "phrases": "cloud cover"
+  }
+ ],
+ "not_available": [
+  {
+   "words": "no2 nitrogen dioxide",
+   "say": "Nitrogen dioxide (NO₂) isn't in our NASA data set yet.",
+   "closest": "AOD_55",
+   "phrases": ""
+  },
+  {
+   "words": "forecast forecasts predict prediction projected projection projections",
+   "say": "ByteMe measures how things changed in the past; it doesn't forecast the future.",
+   "closest": null,
+   "phrases": "will fall, will rain, will it, next year, next month, next summer, next winter, in the future"
+  },
+  {
+   "words": "hourly hour hours",
+   "say": "Our data are monthly averages, not hourly values.",
+   "closest": null,
+   "phrases": ""
+  },
+  {
+   "words": "groundwater aquifer aquifers wells pumping withdrawals",
+   "say": "Groundwater use isn't in our data set.",
+   "closest": "GWETROOT",
+   "phrases": ""
+  },
+  {
+   "words": "river rivers streamflow discharge flood floods flooding runoff overland",
+   "say": "River flow, floods and runoff aren't in our data set.",
+   "closest": "PRECTOTCORR",
+   "phrases": "runs downhill, overland flow, flow in the"
+  },
+  {
+   "words": "yield yields harvest harvests millet wheat maize",
+   "say": "Crop yields aren't in our data set.",
+   "closest": "GWETROOT",
+   "phrases": ""
+  },
+  {
+   "words": "glacier glaciers ice-mass",
+   "say": "Glacier mass isn't in our data set.",
+   "closest": "SNODP",
+   "phrases": ""
+  },
+  {
+   "words": "sea-ice",
+   "phrases": "sea ice, floating ice",
+   "say": "Sea-ice extent isn't in our data set.",
+   "closest": "TS"
+  },
+  {
+   "words": "greenness ndvi greener",
+   "phrases": "less green, more green",
+   "say": "Vegetation greenness isn't in our data set yet.",
+   "closest": "GWETROOT"
+  },
+  {
+   "words": "volume",
+   "phrases": "water level, surface area, square kilometres, square kilometers, footprint, how high the reservoir",
+   "say": "Lake and reservoir size or water level aren't in our data set.",
+   "closest": "EVLAND"
+  },
+  {
+   "words": "chill",
+   "phrases": "wind chill, feels-like, feels like, feel colder",
+   "say": "'Feels-like' temperature (wind chill) isn't in our data set; we have air temperature and wind speed separately.",
+   "closest": "T2M"
+  },
+  {
+   "phrases": "soil temperature, below the surface, buried layers, underground temperature",
+   "words": "permafrost",
+   "say": "Temperature below the ground isn't in our data set.",
+   "closest": "TS"
+  },
+  {
+   "words": "snowfall snowflakes",
+   "phrases": "fell as snow, snow-only",
+   "say": "Snowfall on its own isn't in our data set; 'Rain and snowfall' counts both together.",
+   "closest": "PRECTOTCORR"
+  },
+  {
+   "phrases": "over the lake surface, off the reservoir, from the water surface, open-water",
+   "say": "Evaporation from a lake's own water surface isn't in our data set; 'Evaporation from land' covers the land around it.",
+   "closest": "EVLAND",
+   "words": ""
+  }
+ ]
 }

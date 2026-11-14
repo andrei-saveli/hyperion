@@ -14,6 +14,7 @@ const END_YEAR = new Date().getFullYear() - 1;          // last complete year
 const POWER = "https://power.larc.nasa.gov/api/temporal/monthly/point";
 const MAP_STYLE = "https://tiles.openfreemap.org/styles/positron";
 const GEOCODER = "https://geocoding-api.open-meteo.com/v1/search";
+const GEOCODER_2 = "https://photon.komoot.io/api/";
 const REVERSE = "https://api.bigdatacloud.net/data/reverse-geocode-client";
 const REVERSE_2 = "https://nominatim.openstreetmap.org/reverse";
 const CELL = { lat: 0.5, lon: 0.625 };                  // size of one MERRA-2 grid square
@@ -27,28 +28,7 @@ const CASES = [
 ];
 window.BYTEME_CASES = CASES;
 
-// Well-known regions that a place-name search doesn't find well
-const REGIONS = [
-  ["sahel", "Niamey, Sahel (Niger)", 13.5, 1.875], ["sahara", "Sahara (Algeria)", 24.0, 5.0],
-  ["amazon", "Manaus, Amazon (Brazil)", -3.0, -60.0], ["arctic", "Svalbard (Arctic)", 78.25, 15.625],
-  ["svalbard", "Svalbard (Arctic)", 78.25, 15.625], ["antarctica", "Antarctica (Vostok)", -78.5, 106.875],
-  ["antarctic", "Antarctica (Vostok)", -78.5, 106.875], ["north pole", "North Pole", 89.5, 0],
-  ["south pole", "South Pole", -89.5, 0], ["greenland", "Greenland ice sheet", 72.0, -40.0],
-  ["himalaya", "Himalaya (Everest region)", 28.0, 86.875], ["himalayas", "Himalaya (Everest region)", 28.0, 86.875],
-  ["siberia", "Siberia (Yakutsk)", 62.0, 129.375], ["alps", "Alps (Switzerland)", 46.5, 10.0],
-  ["lake mead", "Lake Mead (USA)", 36.0, -114.375], ["aral sea", "Aral Sea", 45.0, 60.0],
-  ["great barrier reef", "Great Barrier Reef (Australia)", -18.0, 147.5], ["pacific", "Pacific Ocean (equator)", 0, -140.0],
-  ["atlantic", "Atlantic Ocean", 30.0, -40.0], ["indian ocean", "Indian Ocean", -10.0, 80.0],
-  ["mediterranean", "Mediterranean Sea", 35.0, 18.125], ["gobi", "Gobi Desert (Mongolia)", 43.0, 105.0],
-  ["congo", "Congo rainforest", 0, 21.25], ["outback", "Australian outback", -25.0, 133.75],
-];
-// Words that are part of a question, not of a place name
-const FILLER = new Set(("is are was the a an of in on at to and or does do did it its getting get got become becoming more less " +
-  "than there any how what which where why when has have been being much many trend trends change changes changing changed " +
-  "over around near here now this that about show me tell for with be will going up down rising falling increasing " +
-  "decreasing higher lower level levels amount long term years year last past since really still").split(" "));
-
-let VARS = [], WORLD = null, LAND = null, map = null, marker = null;
+let VARS = [], NOT_AVAILABLE = [], WORLD = null, LAND = null, map = null, marker = null;
 const state = { lat: null, lon: null, name: "", code: "T2M", raw: false, loading: false, error: null, place: null, layer: true };
 const compare = { code: "AOD_55", a: { name: "Beijing (China)", lat: 40.0, lon: 116.25 }, b: { name: "Delhi (India)", lat: 28.5, lon: 77.5 } };
 const $ = (id) => document.getElementById(id);
@@ -167,7 +147,7 @@ Promise.all([
   fetch("data/world.json").then((r) => (r.ok ? r.json() : null)).catch(() => null),   // optional overview
   fetch(MAP_STYLE).then((r) => (r.ok ? r.json() : null)).catch(() => null),             // optional detailed map
 ]).then(([catalogue, land, world, mapStyle]) => {
-  VARS = catalogue.variables; LAND = land; WORLD = world;
+  VARS = catalogue.variables; NOT_AVAILABLE = catalogue.not_available || []; LAND = land; WORLD = world;
   if (world) $("built").textContent = `World overview built ${world.built}`;
   buildVariableSelect(catalogue.groups);
   buildCases();
@@ -492,46 +472,153 @@ function drawChart(el, r, s, v, raw, yRange) {
 }
 
 // ------------------------------------------------------------------ search: any place + a question
-function words(text) { return (text || "").toLowerCase().match(/[a-zà-ž0-9'.-]+/g) || []; }
+// How a question is read (simple rules, no AI):
+// 1. Measurement: look for each measurement's phrases (strong) and keywords (weaker) from
+//    data/variables.json. The best score wins.
+// 2. Things we don't have (NO₂, river flow, forecasts...): "not_available" in variables.json.
+//    We say so plainly and offer the closest measurement we do have.
+// 3. Place: well-known regions ("Sahel"), then names written with capital letters ("Hoover Dam"),
+//    then the words left over. Each is looked up in two free place-name services.
+// Lower case, hyphens become spaces ("root-zone" = "root zone"), punctuation dropped
+const TEXT = (s) => " " + (s || "").toLowerCase().replace(/[’`]/g, "'").replace(/[^a-z0-9à-ž']+/g, " ").replace(/'s\b/g, "").trim() + " ";
+function words(text) { return TEXT(text).trim().split(" ").filter(Boolean); }
 function matches(token, word) {
   return token === word || (word.length >= 4 && token.startsWith(word)) || (token.length >= 4 && word.startsWith(token));
 }
+const listOf = (s) => (s || "").split(",").map((x) => TEXT(x).trim()).filter(Boolean);
 
-// Split a question into the measurement it is about and the words that name a place
+// Words that are part of the question, not of a place name
+const FILLER = new Set(("is are was were the a an of in on at to and or does do did it its it's getting get got gotten become becoming " +
+  "more less than then there any how what which where why when who has have had been being much many trend trends change changes " +
+  "changing changed over around near nearby here now this that these those about show me my tell for with be will would could should " +
+  "can i you we us our please need want like see find look up down rising falling increasing decreasing higher lower level levels " +
+  "amount amounts long term long-term long-run years year last past since really still also just only both together alongside " +
+  "versus vs compare compared comparing between from through until till to data dataset datasets record records series monthly " +
+  "month months daily per each every average averaged averages nowadays days today used use early earlier late later decade decades " +
+  "twenty ten area areas region regions box site place places surrounding wider across two three separate side by give pull plot " +
+  "i'm i've i'd it's don't doing " +
+  "chart charts graph map maps typically usually people same different faster slower rate rates historical history " +
+  "making make made goes going gone come comes coming out off into onto as total totals inputs input losses loss school project poster " +
+  "measured measure model output report reports land air ground water sky plants plant").split(" "));
+
+// Well-known regions that a place-name search doesn't find well
+const REGIONS = [
+  ["sahel", "Niamey, Sahel (Niger)", 13.5, 1.875], ["sahara", "Sahara (Algeria)", 24.0, 5.0],
+  ["amazon", "Manaus, Amazon (Brazil)", -3.0, -60.0], ["arctic", "Svalbard (Arctic)", 78.25, 15.625],
+  ["svalbard", "Svalbard (Arctic)", 78.25, 15.625], ["antarctica", "Antarctica (Vostok)", -78.5, 106.875],
+  ["antarctic", "Antarctica (Vostok)", -78.5, 106.875], ["north pole", "North Pole", 89.5, 0],
+  ["south pole", "South Pole", -89.5, 0], ["greenland", "Greenland ice sheet", 72.0, -40.0],
+  ["himalaya", "Himalaya (Everest region)", 28.0, 86.875], ["siberia", "Siberia (Yakutsk)", 62.0, 129.375],
+  ["alps", "Alps (Switzerland)", 46.5, 10.0], ["lake mead", "Lake Mead (USA)", 36.0, -114.375],
+  ["aral sea", "Aral Sea", 45.0, 60.0], ["great barrier reef", "Great Barrier Reef (Australia)", -18.0, 147.5],
+  ["pacific", "Pacific Ocean (equator)", 0, -140.0], ["atlantic", "Atlantic Ocean", 30.0, -40.0],
+  ["indian ocean", "Indian Ocean", -10.0, 80.0], ["mediterranean", "Mediterranean Sea", 35.0, 18.125],
+  ["gobi", "Gobi Desert (Mongolia)", 43.0, 105.0], ["congo", "Congo rainforest", 0, 21.25],
+  ["outback", "Australian outback", -25.0, 133.75],
+];
+
+// Read a question: which measurement, what we don't have, which words might name a place
 function understand(text) {
+  const t = TEXT(text);
+  let rest = t;                                  // the question minus the words we have explained
+  const take = (piece) => { rest = rest.split(` ${piece} `).join("  "); };
   const tokens = words(text);
-  const scores = VARS.map(() => 0), used = new Set();
-  tokens.forEach((t) => {
-    if (FILLER.has(t)) return;
-    VARS.forEach((v, i) => {
-      const inName = words(v.name).some((w) => !FILLER.has(w) && matches(t, w));
-      const inKeys = words(v.keywords).some((w) => matches(t, w));
-      if (inName || inKeys) { scores[i] += inKeys ? 3 : 2; used.add(t); }
+
+  // 1) measurement: phrases count 6, keywords 3, words of the measurement's name 2
+  const scores = VARS.map((v) => {
+    let score = 0, own = t;                      // own: the question minus this measurement's phrases
+    listOf(v.phrases).forEach((p) => {
+      if (own.includes(` ${p} `)) { score += 6; own = own.split(` ${p} `).join("  "); p.split(" ").forEach(take); }
     });
+    const keys = words(v.keywords), name = words(v.name).filter((w) => !FILLER.has(w));
+    words(own).forEach((tok) => {               // a word inside a phrase that already counted isn't counted again
+      if (FILLER.has(tok)) return;
+      if (keys.some((k) => matches(tok, k))) { score += 3; take(tok); }
+      else if (name.some((k) => matches(tok, k))) { score += 2; take(tok); }
+    });
+    return score;
   });
   const best = Math.max(...scores);
+  let variable = best > 0 ? VARS[scores.indexOf(best)] : null;
+
+  // 2) things we don't have
+  let missing = null;
+  for (const n of NOT_AVAILABLE) {
+    const hit = listOf(n.phrases).some((p) => t.includes(` ${p} `)) || tokens.some((tok) => words(n.words).includes(tok));
+    if (hit) {
+      missing = n;
+      listOf(n.phrases).forEach((p) => p.split(" ").forEach(take));
+      words(n.words).forEach(take);
+      if (!variable && n.closest) variable = variable || VARS.find((v) => v.code === n.closest);
+      break;
+    }
+  }
+  const years = (t.match(/\b(1[89]\d\d|20\d\d)\b/g) || []).map(Number);
+  if (!missing && years.some((y) => y < START_YEAR)) missing = { say: `Our records start in ${START_YEAR} (haze in 2001), so earlier years aren't available.` };
+  if (!missing && years.some((y) => y > END_YEAR)) missing = { say: `Our records run to ${END_YEAR}. ByteMe measures past change; it doesn't forecast.` };
+
+  // 3) place: names with capital letters first ("Hoover Dam"), then the leftover words
+  const capitals = (text.match(/[A-ZÀ-Ž][\p{L}'’.-]*(?:\s+(?:of|de|del|da|la|le|the)?\s*[A-ZÀ-Ž][\p{L}'’.-]*)*/gu) || [])
+    .map((c) => c.replace(/['’]s\b/g, "").split(/\s+/))
+    .map((ws) => { while (ws.length && FILLER.has(ws[0].toLowerCase())) ws.shift(); return ws.join(" "); })
+    .map((c) => c.replace(/[.,;:!?]+$/, ""))
+    .filter((c) => c.length >= 3 && !FILLER.has(c.toLowerCase()) && !VARS.some((v) => words(v.keywords).includes(c.toLowerCase())));
+  const leftover = words(rest).filter((w) => !FILLER.has(w) && !/^\d/.test(w)).map((w) => w.replace(/'s$/, ""));
   return {
-    variable: best > 0 ? VARS[scores.indexOf(best)] : null,
-    placeText: tokens.filter((t) => !FILLER.has(t) && !used.has(t)).join(" "),
-    asksWhy: tokens.includes("why") || tokens.includes("because") || tokens.includes("cause"),
+    variable, missing,
+    placeCandidates: [...new Set([...capitals, leftover.join(" ")])].filter(Boolean),
+    leftoverWords: leftover,
+    asksWhy: tokens.includes("why") || tokens.includes("because") || tokens.includes("cause") || tokens.includes("causes"),
   };
 }
 
-// Find places by name: "lat, lon" typed directly, our short list of famous regions, then the geocoder
+// Look a name up in two free place-name services: Photon (OpenStreetMap: good for lakes, dams,
+// islands, regions) and Open-Meteo (GeoNames: good for towns and cities). Photon's best answers first.
+const SKIP_KINDS = new Set(["highway", "building", "shop", "amenity", "office", "railway", "leisure", "tourism", "craft", "historic"]);
+async function geocode(name) {
+  const found = [];
+  const [photon, meteo] = await Promise.all([
+    fetch(`${GEOCODER_2}?q=${encodeURIComponent(name)}&limit=6&lang=en`).then((r) => r.json()).catch(() => null),
+    fetch(`${GEOCODER}?name=${encodeURIComponent(name)}&count=5&language=en&format=json`).then((r) => r.json()).catch(() => null),
+  ]);
+  ((photon && photon.features) || []).forEach((f) => {
+    const p = f.properties;
+    if (!p.name || SKIP_KINDS.has(p.osm_key)) return;
+    found.push({ name: [p.name, p.state !== p.name ? p.state : null, p.country !== p.name ? p.country : null].filter(Boolean).join(", "),
+                 lat: f.geometry.coordinates[1], lon: f.geometry.coordinates[0] });
+  });
+  ((meteo && meteo.results) || []).forEach((p) => found.push({
+    name: [p.name, p.admin1 !== p.name ? p.admin1 : null, p.country !== p.name ? p.country : null].filter(Boolean).join(", "),
+    lat: p.latitude, lon: p.longitude }));
+  // drop repeats: same name, or practically the same spot
+  return found.filter((p, i) => found.findIndex((q) => q.name === p.name || (Math.abs(q.lat - p.lat) < 0.2 && Math.abs(q.lon - p.lon) < 0.2)) === i);
+}
+
+// Find places by name: "lat, lon" typed directly, our short list of famous regions, then the geocoders
 async function findPlaces(text) {
   const direct = text.match(/^\s*(-?\d+(?:\.\d+)?)[\s,;]+(-?\d+(?:\.\d+)?)\s*$/);
   if (direct && Math.abs(+direct[1]) <= 90 && Math.abs(+direct[2]) <= 180) {
     return [{ name: null, label: coordText(+direct[1], +direct[2]), lat: +direct[1], lon: +direct[2] }];   // name is looked up after picking
   }
-  const lower = text.toLowerCase().trim();
-  const found = REGIONS.filter(([key]) => lower.includes(key)).map(([, name, lat, lon]) => ({ name, lat, lon }));
-  try {
-    const j = await (await fetch(`${GEOCODER}?name=${encodeURIComponent(text)}&count=5&language=en&format=json`)).json();
-    (j.results || []).forEach((p) => found.push({
-      name: [p.name, p.admin1 !== p.name ? p.admin1 : null, p.country !== p.name ? p.country : null].filter(Boolean).join(", "),
-      lat: p.latitude, lon: p.longitude }));
-  } catch (e) { /* offline: the famous regions still work */ }
+  const found = REGIONS.filter(([key]) => TEXT(text).includes(` ${key}`)).map(([, name, lat, lon]) => ({ name, lat, lon }));
+  found.push(...(await geocode(text)));
   return found.filter((p, i) => found.findIndex((q) => q.name === p.name) === i).slice(0, 6);
+}
+
+// Places for a whole question: famous regions in it, then each candidate name, then single words
+async function placesForQuestion(question, q) {
+  const regions = REGIONS.filter(([key]) => TEXT(question).includes(` ${key}`)).map(([, name, lat, lon]) => ({ name, lat, lon }));
+  if (regions.length) return regions.filter((p, i) => regions.findIndex((r) => r.name === p.name) === i);
+  for (const candidate of q.placeCandidates) {
+    const places = await findPlaces(candidate);
+    if (places.length) return places;
+  }
+  for (const word of [...q.leftoverWords].sort((a, b) => b.length - a.length)) {   // "romania cold winters" -> word by word
+    if (word.length < 3) continue;
+    const places = await findPlaces(word);
+    if (places.length) return places;
+  }
+  return [];
 }
 
 // Turns an <input> into a place picker with a list of suggestions.
@@ -543,25 +630,22 @@ function placePicker(input, list, onPick, withQuestions) {
   const run = async () => {
     const text = input.value.trim(), mine = ++ticket;
     if (!text) { hide(); return; }
-    const q = withQuestions ? understand(text) : { variable: null, placeText: text, asksWhy: false };
-    const why = q.asksWhy ? `<button disabled>ByteMe shows what changed and how sure we are, not why.<span class="why">Finding the cause needs a separate investigation</span></button>` : "";
-    if (!q.placeText) {   // a question about a measurement only: answer it for the place on the map
+    const q = withQuestions ? understand(text) : null;
+    const notes = [];
+    if (q && q.missing) notes.push(`<button disabled>${escapeHTML(q.missing.say)}<span class="why">${q.variable ? "Closest we have: " + q.variable.name : "Try another measurement"}</span></button>`);
+    if (q && q.asksWhy) notes.push(`<button disabled>ByteMe shows what changed and how sure we are, not why.<span class="why">Finding the cause needs a separate investigation</span></button>`);
+    if (q && !q.placeCandidates.length && !q.leftoverWords.length) {   // a question about a measurement only: answer it for the place on the map
       hits = q.variable ? [{ name: state.name, lat: state.lat, lon: state.lon, variable: q.variable }] : [];
     } else {
       show(`<button disabled>Searching places…</button>`);
-      let places = await findPlaces(q.placeText);
-      if (!places.length && q.placeText.includes(" ")) {   // "romania cold winters" -> try word by word
-        for (const word of q.placeText.split(" ").sort((a, b) => b.length - a.length)) {
-          places = await findPlaces(word);
-          if (places.length) break;
-        }
-      }
+      const places = q ? await placesForQuestion(text, q) : await findPlaces(text);
       if (mine !== ticket) return;   // the visitor kept typing
-      hits = places.map((p) => ({ ...p, variable: q.variable }));
+      hits = places.map((p) => ({ ...p, variable: q ? q.variable : null }));
     }
+    const notesHTML = notes.join("");
     show(hits.length
-      ? hits.map((h, i) => `<button data-i="${i}">${escapeHTML(h.name || h.label)}<span class="why">${h.variable ? h.variable.name + " · " : ""}${coordText(h.lat, h.lon)}</span></button>`).join("") + why
-      : `<button disabled>No place found. Try a city, country or region, or click the map<span class="why">Examples: Bucharest · Sahel · Great Barrier Reef · 44.4, 26.1</span></button>` + why);
+      ? notesHTML + hits.map((h, i) => `<button data-i="${i}">${escapeHTML(h.name || h.label)}<span class="why">${h.variable ? h.variable.name + " · " : ""}${coordText(h.lat, h.lon)}</span></button>`).join("")
+      : notesHTML + `<button disabled>No place found. Try a city, country or region, or click the map<span class="why">Examples: Bucharest · Sahel · Great Barrier Reef · 44.4, 26.1</span></button>`);
     list.querySelectorAll("[data-i]").forEach((b) => b.addEventListener("click", () => { hide(); onPick(hits[+b.dataset.i]); }));
   };
   input.addEventListener("input", () => { clearTimeout(timer); timer = setTimeout(run, 350); });

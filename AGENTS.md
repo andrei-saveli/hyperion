@@ -188,7 +188,8 @@ data/                          places.csv, variables.csv, <place>_<code>.csv, SO
 ```
 
 ### Statistics (stats.py)
-Skip missing values (never zero). Deseasonalize (subtract each calendar month's mean). OLS slope
+Skip missing values (never zero). Deseasonalize (subtract each calendar month's mean; the 12 means
+are estimated together with the trend line, so partial years and gaps can't bias the slope). OLS slope
 per decade; 95% CI and t-test p-value corrected for lag-1 autocorrelation (effective n,
 Santer et al. 2000). Seasonal Mann-Kendall + seasonal Sen's slope (year-to-year memory
 correction) as second checks. Verdict: 🟢 p<0.05 · 🟡 p<0.10 · ⚪ otherwise · ⚫ under 10 years
@@ -227,6 +228,11 @@ Non-significant ≠ "no change". Never state causes.
   `Website/build_world.py` (Python, real `stats.py`) builds the world overview squares
   (`data/world.json`). Run: `python3 -m http.server 8000 --directory Website`. Details:
   `Website/README.md`. The 3 Giovanni regions (Task2) stay as the Python reference data set.
+- 🔎 **Website search** (rules, no AI, in `Website/app.js` + `data/variables.json`): measurement from
+  phrases/keywords, plain "we don't have that" notes with the closest measurement (`not_available`),
+  place from famous regions, capitalised names, then leftover words (Photon + Open-Meteo geocoders).
+  On Task3's 48 fresh benchmark questions (held out): right measurement 36/36, right place and
+  measurement 32/36, 1/12 unavailable requests answered without a note. Details: `Website/README.md`.
 - 🖥️ **Website first version** in `FrontEnd_claude/` (built for P1 on the real Task2/3/4 parts):
   `app.py`, `charts.py` (H5), theme, 6 passing app tests, mock-ups + screenshots in `design/`.
   Run: `streamlit run FrontEnd_claude/app.py`. Combine with `--frontend FrontEnd_claude`.
