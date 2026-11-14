@@ -117,24 +117,24 @@ variables makes it hard to pick ones that could indicate change and then analyze
 - Make sensible decisions on open choices, record them here, and keep going.
 - 4-person team including the user (team lead = Person 2, Stats/Backend + integration, works
   with Claude Code); the other 3 do **not** use Claude Code. Roles, contracts (CSV / YAML / API JSON)
-  and timeline live in `docs/TEAM_PLAN.md`. Respect those contracts; Claude does the bulk of
+  and timeline live in `docs/PLAN.md` (**authoritative**, simple plan; team has minimal
+  coding skills and everyone uses AI). `TEAM_PLAN*.md` / `DATA_GUIDE*.md` are background only. Respect those contracts; Claude does the bulk of
   Person 2's coding and helps the others via the lead (skeleton, stats, API, reviews, fixes).
 
 ## Project decisions
 
-### Concept: "Trend Detective"
+### Concept: "Trend Detective" (see `docs/PLAN.md`)
+Pick a place + variable → monthly NASA data since 2001 → chart (seasons-removable) with trend
+line and 95% band → verdict card (🟢 significant / 🟡 not significant yet / ⚪ no clear trend,
+rate per decade, total change, p-value, plain sentence) → compare two places. Say *what*
+changed, never claim *why*. Demo cases are chosen from real results, not assumed.
 
-`docs/TEAM_PLAN.md` is authoritative. The MVP uses one primary NASA variable and two verified
-regions. Each investigation shows the exact region, raw monthly series, deseasonalized anomalies,
-rate per decade, dependence-aware 95% interval, record quality, provenance, and limitations. A
-comparison uses the same product, units, period, and method. Trend analysis does not establish
-cause.
-
-### Stack
-- **Backend**: Python 3.11, FastAPI, xarray, numpy, scipy, statsmodels, pymannkendall.
-- **Frontend**: React + Vite + TypeScript, MapLibre/Leaflet for the map, Plotly for charts.
-- **AI**: optional after the MVP is stable, limited to rephrasing approved text. It never
-  generates data, statistics, causes, or scientific conclusions.
+### Stack (simplified for a beginner team)
+- **Everything in Python.** Website: **Streamlit** (`app.py`), charts: Plotly.
+- Stats: `stats.py` (numpy/scipy/statsmodels, pymannkendall).
+- Data: **NASA POWER** monthly point API, no login (verified: T2M °C, PRECTOTCORR mm/day,
+  GWETROOT 0–1, RH2M %; month "13" = annual mean, skip; -999 = missing). Saved as CSVs in `data/`.
+- Deploy: Streamlit Community Cloud. AI only for optional wording, never for numbers.
 
 ### Data strategy (reliability first, live demo must not depend on NASA uptime)
 - Start with one variable and two pre-downloaded regional monthly series.
