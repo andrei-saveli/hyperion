@@ -2,11 +2,13 @@
 
 **NASA Space Apps Challenge**, *Be An Earth System Trend Detective!*
 
-> 👥 **Team members:** we have **two recommended plans**. Read the comparison below, then the plan
-> the team picks at kickoff.
+> 🚀 **Team members: start with [docs/PLAN.md](docs/PLAN.md).** It's the short, simple plan
+> we follow (Python + Streamlit + NASA POWER, with starter AI prompts for each person).
 >
-> | | Plan A: "Detective Casebook" | Plan B: "Validated Evidence MVP" |
-> |---|---|---|
+> Background reading only: the two detailed plans compared below
+> ([Plan A](docs/TEAM_PLAN_CLAUDE.md) · [Plan B](docs/TEAM_PLAN.md)).
+
+---|---|---|
 > | Team plan | [docs/TEAM_PLAN_CLAUDE.md](docs/TEAM_PLAN_CLAUDE.md) | [docs/TEAM_PLAN.md](docs/TEAM_PLAN.md) |
 > | Data guide | [docs/DATA_GUIDE_CLAUDE.md](docs/DATA_GUIDE_CLAUDE.md) | [docs/DATA_GUIDE.md](docs/DATA_GUIDE.md) |
 > | Written by | Claude | Codex |
@@ -87,7 +89,10 @@ the challenge brief.
 | Full provenance, quality flags, strict tests | Drops "significant" wording the brief asks for |
 | Never claims causes; very defensible with scientist judges | Fewer demos and less "wow"; AI suggestions cut |
 
-### Our recommendation: start with Plan B's rigor, grow toward Plan A's features
+### How the simple plan combines them
+[docs/PLAN.md](docs/PLAN.md) takes Plan B's caution (real data first, no causal claims) and
+Plan A's features (significance verdict, compare, demo stories), with a much simpler stack.
+The original combined recommendation:
 - **Hours 0–24:** follow **Plan B**: data gate, provenance, tests, one solid end-to-end case.
 - **Hours 24–36:** add **Plan A** features in this order, if the MVP is stable:
   1. More variables from NASA POWER (cheap once the pipeline works) + a second demo case.
@@ -131,7 +136,8 @@ A trend line shows *that* something changed, not *why*.
 ## Repository layout (planned)
 ```
 backend/    Python: FastAPI app, stats module, data loaders, tests
-frontend/   React website (or Streamlit, decided at kickoff)
+app.py      Streamlit website (one Python file)
+stats.py    trend + significance math
 data/       variables.yaml, cases.yaml, SOURCES.md, raw/ downloads, demo/ cleaned CSVs
 scripts/    data download / preprocessing scripts
 docs/       team plans, data guides, pitch material
