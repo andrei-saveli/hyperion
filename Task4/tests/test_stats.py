@@ -183,19 +183,24 @@ def test_weak_trend_gets_a_positive_estimate():
     assert hits and all(0 <= h <= 100 for h in hits)
 
 
-def test_horizon_grows_with_noise_and_memory():
-    base = years_to_significance(0.01, 1.0, 0.2, 24, 1.5, "none")
-    noisier = years_to_significance(0.01, 2.0, 0.2, 24, 1.5, "none")
-    more_memory = years_to_significance(0.01, 1.0, 0.7, 24, 1.5, "none")
-    assert base < noisier and base < more_memory
+def test_horizon_grows_as_the_trend_gets_less_clear():
+    near = years_to_significance(1.8, 24, "possible")
+    far = years_to_significance(0.8, 24, "none")
+    assert 0 < near < far
+
+
+def test_horizon_matches_the_t_test():
+    # a trend that is exactly at the significance line needs no more years
+    assert years_to_significance(1.96, 24, "none") == 0
+    # half the t-value -> needs 2**(2/3) ≈ 1.59 times the record length in total
+    assert years_to_significance(0.98, 24, "none") == pytest.approx(24 * (2 ** (2 / 3) - 1), abs=0.1)
 
 
 def test_horizon_hidden_when_it_makes_no_sense():
-    assert years_to_significance(0.0, 1.0, 0.2, 24, 0.0, "none") is None       # no slope
-    assert years_to_significance(0.01, 1.0, 0.2, 24, 0.3, "none") is None      # direction unclear
-    assert years_to_significance(0.01, 1.0, 0.2, 5, 1.5, "none") is None       # record too short
-    assert years_to_significance(1e-6, 5.0, 0.2, 24, 1.5, "none") is None      # > 100 years
-    assert years_to_significance(0.05, 1.0, 0.2, 24, 3.0, "significant") is None
+    assert years_to_significance(0.3, 24, "none") is None          # direction unclear
+    assert years_to_significance(1.5, 5, "none") is None           # record too short
+    assert years_to_significance(0.51, 24, "none") is not None     # just clear enough
+    assert years_to_significance(3.0, 24, "significant") is None   # already significant
     assert analyze(make_series(0.5, months=20))["years_to_significance"] is None
 
 
