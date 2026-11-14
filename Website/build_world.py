@@ -76,7 +76,7 @@ def main():
     parser.add_argument("--workers", type=int, default=4)
     args = parser.parse_args()
 
-    variables = json.loads((HERE / "data" / "variables.json").read_text())["variables"]
+    variables = [v for v in json.loads((HERE / "data" / "variables.json").read_text())["variables"] if v.get("dataset") != "nasa"]
     step = args.step
     lats = [round(-90 + step / 2 + i * step, 3) for i in range(int(180 / step))]
     lons = [round(-180 + step / 2 + i * step, 3) for i in range(int(360 / step))]

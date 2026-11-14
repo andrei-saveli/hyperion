@@ -22,7 +22,7 @@ from stats import analyze  # noqa: E402
 
 POINTS = {"bucharest": (44.25, 26.25), "svalbard": (78.25, 15.625), "niamey": (13.5, 1.875),
           "amazon": (-3.25, -60.0), "pacific": (0.25, -140.0)}
-VARIABLES = json.loads((HERE.parent / "data" / "variables.json").read_text())["variables"]
+VARIABLES = [v for v in json.loads((HERE.parent / "data" / "variables.json").read_text())["variables"] if v.get("dataset") != "nasa"]
 KEYS = ["slope_per_decade", "ci_low", "ci_high", "p_value", "mk_p_value", "total_change", "start", "end",
         "n_months", "n_missing", "direction", "verdict", "years_to_significance", "sen_slope_per_decade",
         "lag1_autocorrelation", "effective_n", "reliability", "percent_change", "tests_agree",
