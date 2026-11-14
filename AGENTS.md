@@ -185,6 +185,9 @@ Non-significant ≠ "no change". Never state causes. "Years until significant" =
 ## Current status / handover (update this when you finish something)
 - ✅ Planning done: `docs/PLAN.md`, `docs/HANDSHAKES.md`.
 - ✅ NASA POWER API verified working for T2M, PRECTOTCORR, GWETROOT, RH2M (no login).
+- 🖥️ The frontend (P1) is built in a separate repo, `andrei-saveli/frontend-nasa`, against the
+  fakes in `docs/HANDSHAKES.md`; its brief is that repo's `AGENTS.md`. Keep its copies of
+  `PLAN.md`/`HANDSHAKES.md` in sync when these change.
 - ⏳ No code in the repo yet. **Do not start building until the team lead says so.**
 - ⏭️ Next: team kickoff (30 min) → everyone starts their hour 0.5–8 tasks in `docs/PLAN.md`.
 
