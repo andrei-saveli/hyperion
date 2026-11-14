@@ -148,6 +148,12 @@ trend line and 95% band → verdict card (🟢 significant / 🟡 possible, not 
 ⚪ no clear trend / ⚫ not enough data; rate per decade, total change, p-value, plain explanation)
 → compare two places. Say *what* changed, never claim *why*. Demo cases are chosen from real results, not assumed.
 
+### Data decision (global version)
+The public site uses **NASA POWER** monthly point data (MERRA-2 + CERES, 1981 onwards, any place on
+Earth, no login) instead of the three pre-downloaded Giovanni regions, so a visitor can pick any
+place. Giovanni needs a login and manual downloads, which made "any place" impossible. The trend
+math is unchanged; the website runs a tested JavaScript copy of it.
+
 ### Stack (simplified for a beginner team)
 - **Everything in Python.** Website: **Streamlit** (`app.py`), charts: Plotly.
 - Stats: `stats.py`, our own code on **numpy + scipy only** (no statsmodels/pymannkendall;
@@ -213,11 +219,14 @@ Non-significant ≠ "no change". Never state causes.
   `svalbard_SOILM` in the demo (glacier; unreliable).
 - 🧩 Each person builds in their own folder; at the end the team lead combines all folders into
   the final project layout below (each folder's README says how).
-- 🌐 **Static website "ByteMe"** in `Website/` (current design, replaces the Streamlit look; logo `B/ ByteMe`): light
-  Isomorphic-inspired style (Geist + Geist Mono, mint/aqua/teal palette, pixel-globe hero), MapLibre map with regions coloured by trend and
-  focus brackets, result panel, compare, method, keyword search. `build_data.py` runs the real
-  Task2/3/4 code once → `data/results.json`; the site only displays it. Run:
-  `python -m http.server 8000 --directory Website`. Deploy = upload the folder to static hosting.
+- 🌐 **Static website "ByteMe"** in `Website/` (current design; logo `B/ ByteMe`), now **global and
+  live**: search or click any place on Earth → monthly NASA POWER data since 1981 (no login,
+  18 measurements in `Website/data/variables.json`) → every measurement tested for a trend
+  ("What is changing here" list) → chart + verdict → compare two places. `Website/stats.js` is a
+  tested copy of `Task4/stats.py` (`node Website/tests/test_stats.js`, 105 real series).
+  `Website/build_world.py` (Python, real `stats.py`) builds the world overview squares
+  (`data/world.json`). Run: `python3 -m http.server 8000 --directory Website`. Details:
+  `Website/README.md`. The 3 Giovanni regions (Task2) stay as the Python reference data set.
 - 🖥️ **Website first version** in `FrontEnd_claude/` (built for P1 on the real Task2/3/4 parts):
   `app.py`, `charts.py` (H5), theme, 6 passing app tests, mock-ups + screenshots in `design/`.
   Run: `streamlit run FrontEnd_claude/app.py`. Combine with `--frontend FrontEnd_claude`.

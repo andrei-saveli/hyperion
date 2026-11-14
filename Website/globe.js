@@ -1,6 +1,6 @@
 // Hero art: a slowly rotating globe drawn from "satellite pixels".
-// Each square is one land grid cell (from data/land.geojson, Natural Earth); our three study
-// regions (from data/results.json) are lit in coral. Pure decoration: no data is computed here.
+// Each square is one land grid cell (from data/land.geojson, Natural Earth); the demo cases
+// are lit in coral. Pure decoration: no data is computed here.
 (function () {
   const canvas = document.getElementById("globe");
   if (!canvas) return;
@@ -108,14 +108,9 @@
         }
       }
       ocean = ocean.filter((_, i) => i % 3 === 0);   // fewer, fainter ocean pixels
-      // light up the grid cells inside each region's box (at least its centre cell)
-      data.places.forEach((p) => {
-        let found = false;
-        for (let lat = p.south; lat <= p.north; lat += STEP / 2) {
-          for (let lon = p.west; lon <= p.east; lon += STEP / 2) { regions.push([lon, lat]); found = true; }
-        }
-        if (!found) regions.push([p.lon, p.lat]);
-      });
+      // light up the demo cases (set by app.js); fall back to the three original study regions
+      if (window.BYTEME_CASES) window.BYTEME_CASES.forEach((c) => regions.push([c.lon, c.lat]));
+      else data.places.forEach((p) => regions.push([p.lon, p.lat]));
       resize();
       window.addEventListener("resize", () => { resize(); draw(); });
       if (still) { draw(); return; }
