@@ -1,5 +1,7 @@
 # Team Plan (4 people)
 
+The team lead (Person 2) uses Claude Code; the other three don't need it.
+
 How we split the work so four people can build in parallel without waiting on each other.
 
 ## The idea: split by layer, agree on the "handshakes" first
@@ -33,15 +35,20 @@ frontend can be built against fake data while the real data and statistics are s
 - **Done when:** all 5 demo cases (7 CSVs, two cases are comparisons) are in `data/demo/` and load
   correctly.
 
-### 👤 Person 2: Statistician / Backend (Python)
-*Good fit for: the strongest Python programmer.*
+### 👤 Person 2: Team Lead + Statistics/Backend (works with Claude Code)
+*This is the team lead, the only one with Claude Code. Claude writes most of the code; the lead
+directs it, checks the results and keeps everyone's parts fitting together.*
 
 - `backend/stats.py`: deseasonalize, linear trend + t-test + 95% CI, autocorrelation correction,
   Mann-Kendall + Sen's slope, "years until significant", verdict (🟢/🟡/⚪).
 - Tests with **fake data where we know the answer** (e.g. a series rising exactly 1 unit/decade
   plus noise must give ~1/decade and 🟢).
 - `backend/app.py` (FastAPI): endpoints in the API contract below.
-- **Done when:** `/analyze` returns correct JSON for every demo CSV and tests pass.
+- **Integration owner:** merges everyone's work, runs the full app, unblocks teammates.
+- **Help desk for the team:** teammates send requests ("write me a chart component",
+  "why does this CSV fail?") and the lead runs them through Claude Code.
+- **Done when:** `/analyze` returns correct JSON for every demo CSV, tests pass, and the full
+  app runs end to end.
 
 ### 👤 Person 3: Frontend Builder (website)
 *Good fit for: whoever knows JavaScript/React best.*
@@ -64,11 +71,6 @@ frontend can be built against fake data while the real data and statistics are s
 - Be the **tester**: try the app as a student would; report confusing bits.
 - Own the **submission**: project page, slides, demo video, final presentation.
 - **Done when:** walkthrough texts are in `data/cases.yaml`, pitch is rehearsed.
-
-### 🤖 Claude Code (run by the team lead)
-Works as a fifth teammate: sets up the repo skeleton, writes the first version of the stats module
-and API, generates boilerplate for the frontend, reviews code, fixes bugs. Teammates send requests
-to whoever runs it.
 
 ---
 
@@ -133,7 +135,7 @@ Person 2 commits a `docs/mock_analyze.json` in this exact shape in hour 1 so Per
 
 ## Timeline (Space Apps is a 48-hour hackathon; adjust if ours differs)
 
-| When | Everyone | P1 Data | P2 Stats/API | P3 Frontend | P4 Story/Pitch |
+| When | Everyone | P1 Data | P2 Lead + Stats/API | P3 Frontend | P4 Story/Pitch |
 |---|---|---|---|---|---|
 | **0–2 h** Kickoff | Read README, agree contracts, React vs Streamlit, set up Git | Earthdata account | Mock JSON | Project skeleton | Pick final 5 demo cases |
 | **2–16 h** Build | | Demo CSVs | Stats module + tests | Map, chart, verdict card on mock data | Definitions, case research |
