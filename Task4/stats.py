@@ -9,7 +9,8 @@ What it does, in plain words
    neighbouring months are similar (otherwise trends look more certain than they are).
 5. Double-check with the Mann-Kendall test (does the series keep going up or down?) and
    Sen's slope (a robust rate that ignores outliers).
-6. Give a verdict: 🟢 significant · 🟡 possible · ⚪ no clear trend · ⚫ not enough data, plus a
+6. Give a verdict: 🟢 significant · 🟡 possible · ⚪ no clear trend · ⚫ not enough data (fewer
+   than 10 years or 24 months of observations), plus a
    reliability flag ("low" when the record holds too little independent information).
 7. Extra, for trends that aren't significant yet: estimate how many more years of data would
    likely be needed ("years until significant"), clearly labelled as an estimate.
@@ -24,6 +25,7 @@ import pandas as pd
 from scipy import stats as sps
 
 MIN_MONTHS = 24            # fewer valid months than this -> "insufficient"
+MIN_RECORD_YEARS = 10      # a record spanning fewer years than this -> "insufficient"
 SIGNIFICANT_P = 0.05       # 🟢 below this
 POSSIBLE_P = 0.10          # 🟡 below this
 MAX_LAG1 = 0.95            # cap on month-to-month correlation, keeps the maths stable
@@ -203,7 +205,10 @@ def analyze(df: pd.DataFrame) -> dict:
     anomaly = deseasonalize(df["value"], df["date"])
     valid = anomaly.notna().to_numpy()
     n_missing = int(df["value"].isna().sum())
-    if valid.sum() < MIN_MONTHS or df["date"].nunique() < MIN_MONTHS:
+    valid_dates = df["date"][valid]
+    span_years = ((valid_dates.max() - valid_dates.min()).days / 365.25) if valid.any() else 0.0
+    if valid.sum() < MIN_MONTHS or span_years < MIN_RECORD_YEARS:
+        # Too little data for a climate trend: 2 years of data can't tell a trend from a wet spell.
         return _empty_result(df, anomaly, n_missing)
 
     # 1) straight line through the anomalies
@@ -255,7 +260,6 @@ def analyze(df: pd.DataFrame) -> dict:
 
     quality, quality_note = reliability(n_eff)
 
-    valid_dates = df["date"][valid]
     return {
         "slope_per_decade": _clean(slope * 10),
         "ci_low": _clean(ci_low),
