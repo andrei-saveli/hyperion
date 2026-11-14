@@ -13,7 +13,8 @@ from scipy import stats as sps
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from stats import (RESULT_KEYS, analyze, deseasonalize, mann_kendall,  # noqa: E402
-                   seasonal_mann_kendall, seasonal_sen_slope, tests_agree, years_to_significance)
+                   seasonal_mann_kendall, seasonal_sen_slope, years_to_significance)
+from stats import tests_agree as agreement  # noqa: E402  (renamed so pytest doesn't treat it as a test)
 
 H2_KEYS = {  # the keys promised in docs/HANDSHAKES.md (H2)
     "slope_per_decade", "ci_low", "ci_high", "p_value", "mk_p_value", "total_change",
@@ -286,9 +287,9 @@ def test_clear_trend_both_tests_agree():
 
 
 def test_disagreement_rules():
-    assert tests_agree(0.01, 0.30, 1.0, 1.0) == (False, tests_agree(0.01, 0.30, 1.0, 1.0)[1])  # one significant, other far
-    assert tests_agree(0.30, 0.01, 1.0, 1.0)[0] is False
-    assert tests_agree(0.04, 0.06, 1.0, 1.0)[0] is True      # just either side of the line: fine
-    assert tests_agree(0.08, 0.40, 1.0, -1.0)[0] is False    # opposite directions near significance
-    assert tests_agree(0.50, 0.70, 1.0, -1.0)[0] is True     # opposite but both nowhere near: no story
-    assert tests_agree(0.01, float("nan"), 1.0, 1.0) == (None, None)
+    assert agreement(0.01, 0.30, 1.0, 1.0) == (False, agreement(0.01, 0.30, 1.0, 1.0)[1])  # one significant, other far
+    assert agreement(0.30, 0.01, 1.0, 1.0)[0] is False
+    assert agreement(0.04, 0.06, 1.0, 1.0)[0] is True      # just either side of the line: fine
+    assert agreement(0.08, 0.40, 1.0, -1.0)[0] is False    # opposite directions near significance
+    assert agreement(0.50, 0.70, 1.0, -1.0)[0] is True     # opposite but both nowhere near: no story
+    assert agreement(0.01, float("nan"), 1.0, 1.0) == (None, None)
