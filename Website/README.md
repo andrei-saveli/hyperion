@@ -1,4 +1,4 @@
-# Website: the Hyperion site (static)
+# Website: the ByteMe site (static)
 
 The public website: a light, clean design (Geist + Geist Mono fonts, thin outlines), an interactive
 map where regions are coloured by their trend, and every result explained in plain language.
@@ -46,4 +46,4 @@ the free Space Apps domain hosting, GitHub Pages, Netlify, etc. Rebuild `results
 - Needs internet only for the fonts (Google Fonts) and the two libraries (jsDelivr). The map outline
   (`data/land.geojson`, Natural Earth) and the map stylesheet (`vendor/`) ship with the site.
 - Shareable links: `#niamey--EVAP` (or `#lake-mead--TEMP`) opens that region and measurement directly.
-- The tool name ("Hyperion") appears in `index.html` only (title, logo, footer): one place to rename.
+- The site name ("ByteMe") appears in `index.html` only (title, logo, footer): one place to rename.
