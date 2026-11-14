@@ -88,6 +88,9 @@ Set `EARTHDATA_TOKEN` to your token (Earthdata profile → Generate Token) when 
 own computer. `build` runs `Task4/stats.py` for the map and writes the tiles; `test_nasa.js` checks
 that the website reads them back correctly. Needs `numpy`, `h5py`, `pandas`, `scipy`.
 
+The tiles add up to about 200 MB. Commit a rebuild only when it matters: every rebuild adds that
+much to the repository's history.
+
 ## Files
 | File | What it is |
 |---|---|

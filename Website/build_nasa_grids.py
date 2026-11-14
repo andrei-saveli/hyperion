@@ -26,7 +26,8 @@ network proxy adds it. To run it elsewhere, set the environment variable EARTHDA
 Run (from the repository root):
     python3 Website/build_nasa_grids.py download            # all six datasets (a few hours)
     python3 Website/build_nasa_grids.py download GPM OMI    # only some
-    python3 Website/build_nasa_grids.py build
+    python3 Website/build_nasa_grids.py build               # all downloaded datasets
+    python3 Website/build_nasa_grids.py build GPM AIRS      # only some
 
 Needs: numpy, h5py (reading the files), pandas + scipy (the trend code).
 """
@@ -244,6 +245,6 @@ if __name__ == "__main__":
         download(sys.argv[2:] or list(DATASETS))
     elif command == "build":
         from build_nasa_tiles import build   # second half: trends + website files
-        build()
+        build(sys.argv[2:])
     else:
         print(__doc__)

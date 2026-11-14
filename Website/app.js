@@ -450,9 +450,10 @@ function renderScan() {
   }
   const results = state.place.results;
   const confirmed = (v) => {               // short note for measurements an independent source backs up
-    if (!v.pair || !results[v.code] || results[v.code].verdict !== "significant") return "";
+    const other = partnerOf(v);
+    if (!other || !results[v.code] || results[v.code].verdict !== "significant") return "";
     const s = secondOpinion(state.place, v);
-    return s && s.agreement === "agree" ? ` · confirmed by ${variable(v.pair).source.split(" ")[0]}` : "";
+    return s && s.agreement === "agree" ? ` · confirmed by ${other.source.split(" ")[0]}` : "";
   };
   const rows = VARS.map((v) => ({ v, r: results[v.code] })).sort((a, b) => {
     const rank = (x) => (x.r ? VERDICT_ORDER[x.r.verdict] : 4);
@@ -499,7 +500,7 @@ function renderDetail() {
   const second = secondOpinion(state.place, v);
   if (second) {
     const line = (x, rx) => `<li><strong style="font-weight:500">${x.source}</strong>: ${verdictText(rx).toLowerCase()}, ${num(rx.slope_per_decade)} ${x.units} per decade</li>`;
-    notes.push(`<div class="note second ${second.agreement}"><b>Second source</b><span>Same place, same years (${second.years}):
+    notes.push(`<div class="note second ${second.agreement}"><b>Second source</b><span>Same area, same years (${second.years}):
       <ul>${line(v, second.ra)}${line(second.other, second.rb)}</ul>${AGREEMENT_TEXT[second.agreement]}</span></div>`);
   }
 
