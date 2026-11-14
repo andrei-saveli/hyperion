@@ -6,4 +6,6 @@
 
 `search.py` provides H4. The local encoder and ranking code is in `search_model.py`, the question splits are in `data/`, and the index, training, and evaluation commands are in `scripts/`.
 
+`explain.py` provides H3. Pass the H2 analysis and the selected H0 variable and place. The returned `headline` is the card verdict, `details` goes under **What does this mean?**, and `caveat` goes under **Data and method**. The frontend reads the numeric fields from H2 and checks series provenance against [the data handover](../Task2/SOURCES.md).
+
 From this folder, run `python -m pytest -q scripts/test_search.py` to check Searchlight. The model card describes how to provision the pinned checkpoints for the offline model test.

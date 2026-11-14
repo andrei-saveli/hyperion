@@ -205,6 +205,7 @@ Non-significant ≠ "no change". Never state causes. "Years until significant" =
 - 🧩 Each person builds in their own folder; at the end the team lead combines all folders into
   the final project layout below (each folder's README says how).
 - 🔎 **Searchlight (P3)** lives in `Task3/`. See `Task3/README.md` for the handover and setup.
+- 💬 **Trend explanations (P3)** are available in `Task3/explain.py` (H3). The trend card and chart integration are P1's frontend work.
 - ⏭️ Next: team kickoff (30 min) → everyone starts their hour 0.5–8 tasks in `docs/PLAN.md`.
 
 ## Git
