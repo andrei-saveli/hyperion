@@ -198,7 +198,8 @@ Non-significant ≠ "no change". Never state causes. "Years until significant" =
   H2, incl. "years until significant"), 19 passing tests, `scripts/results_table.py`, `scripts/check_handshakes.py`. Uses a FAKE
   `data_io.py` until the Data person delivers. See `Task4/README.md`.
 - ✅ **Data (Task2/)**: `cleaned/` holds 12 validated Giovanni CSVs (3 places × TEMP/RAIN/SOILM/EVAP,
-  288 months); `raw/` is for the original downloads (⏳ to upload); `data_io.py` (H1, reads
+  288 months); `raw/` holds the 12 original Giovanni downloads (verified: re-cleaning
+  reproduces `cleaned/` exactly, `convert_giovanni.py`); `data_io.py` (H1, reads
   `data/` in the final project, `cleaned/` now); `SOURCES.md`. NO₂ dropped. Don't use
   `svalbard_SOILM` in the demo (glacier; unreliable).
 - 🧩 Each person builds in their own folder; at the end the team lead combines all folders into

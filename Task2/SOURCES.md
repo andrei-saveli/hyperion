@@ -9,9 +9,10 @@ repeat every step from this page.
    (https://giovanni.gsfc.nasa.gov/giovanni/), one download per place × variable.
 2. **Period requested:** 2001-01-01 to 2024-12-31, monthly.
 3. **Region:** the box of each place (below). Giovanni averages all grid cells inside the box.
-4. **Raw files:** kept untouched in `raw/` as `<place>_<CODE>.csv` (⏳ to be uploaded).
-5. **Cleaning:** `convert_giovanni.py` from
-   [docs/PERSON_2_DATA_GIOVANNI_HANDOVER.md](../docs/PERSON_2_DATA_GIOVANNI_HANDOVER.md):
+4. **Raw files:** kept untouched in `raw/` as `<place>_<CODE>.csv` (✅ all 12 uploaded).
+5. **Cleaning:** [`convert_giovanni.py`](convert_giovanni.py) (from
+   [docs/PERSON_2_DATA_GIOVANNI_HANDOVER.md](../docs/PERSON_2_DATA_GIOVANNI_HANDOVER.md)).
+   Re-run any time with `python Task2/convert_giovanni.py`:
    - skip Giovanni's header lines
    - fill values become empty cells (missing); never zero
    - one row per month, 2001-01 to 2024-12 (288 rows)
@@ -19,6 +20,9 @@ repeat every step from this page.
 6. **Checks done (2026-11-14):**
    - all 12 files (in `cleaned/`): columns `date,value`, 288 months, sorted, no duplicates, no missing values
    - seasons fall in the right months (e.g. Niamey rain peaks in August)
+   - **raw ↔ cleaned verified:** every raw file has the right Giovanni variable, box and
+     dates (2001-01 to 2024-12, 288 months, no fill values), and re-cleaning the raw files
+     reproduces `cleaned/` exactly (difference 0 on every value)
    - in the dry places, yearly evaporation ≈ yearly rain (Lake Mead 210 vs 226 mm, Niamey 512 vs 551 mm), which confirms the unit conversions
 
 ## Places (boxes: west, south, east, north, in degrees)
