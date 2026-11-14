@@ -11,7 +11,7 @@ Searchlight helps English-speaking students find runnable Hyperion investigation
 
 ## Prepare the launch index
 
-Person 4's requested dependency pin is `sentence-transformers==5.1.2`. The shared dependency list belongs to P4. Searchlight also uses Hyperion's existing NumPy and SciPy. Run from the repository root with Python 3.11 or later and the pinned dependency installed.
+Person 4's requested dependency pin is `sentence-transformers==5.1.2`. The shared dependency list belongs to P4. Searchlight also uses Hyperion's existing NumPy and SciPy. Run the commands below from `Task3/` with Python 3.11 or later and the pinned dependency installed.
 
 ```sh
 python -m scripts.build_search_index --download-models
