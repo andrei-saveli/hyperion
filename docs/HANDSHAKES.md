@@ -133,9 +133,9 @@ def load_series(place_id, code):
 ## H2 · Trend result (owner: P4)
 
 ```python
-analyze(df: DataFrame) -> dict   # df from load_series()
+analyze(df: DataFrame, code: str | None = None) -> dict   # df from load_series(); code optional (enables percent_change)
 ```
-Never crashes on a normal series. With fewer than **24** non-missing months it returns
+Never crashes on a normal series. With fewer than **24** non-missing months or a record shorter than **10 years** it returns
 `verdict = "insufficient"` and `None` for every number.
 
 | Key | Type | Meaning |
@@ -143,7 +143,7 @@ Never crashes on a normal series. With fewer than **24** non-missing months it r
 | `slope_per_decade` | float | linear trend, in the variable's units per 10 years |
 | `ci_low`, `ci_high` | float | 95% interval of `slope_per_decade` |
 | `p_value` | float 0–1 | trend t-test, corrected for month-to-month correlation |
-| `mk_p_value` | float or None | Mann-Kendall p-value (None until implemented) |
+| `mk_p_value` | float or None | seasonal Mann-Kendall p-value (corrected for year-to-year memory) |
 | `total_change` | float | `slope_per_decade × years in record / 10` |
 | `start`, `end` | str `"YYYY-MM"` | first and last month used |
 | `n_months`, `n_missing` | int | rows, and how many were empty |
@@ -152,11 +152,17 @@ Never crashes on a normal series. With fewer than **24** non-missing months it r
 | `emoji` | str | 🟢 · 🟡 · ⚪ · ⚫ (same order) |
 | `anomaly` | list | seasons removed, one value per row of `df` (None where missing) |
 | `trend`, `band_low`, `band_high` | list | trend line and 95% band, one value per row, same scale as `anomaly` |
-| `years_to_significance` | float or None | extra years of data likely needed before a 🟡/⚪ trend becomes significant (planning estimate, Weatherhead et al. 1998); None if significant or not meaningful |
+| `years_to_significance` | float or None | extra years of data until a 🟡/⚪ trend would reach significance if nothing changes (planning estimate); None if significant or not meaningful |
 | `method` | str | one plain sentence describing the method (shown in the app) |
-| `sen_slope_per_decade` | float or None | *extra:* Sen's robust slope per decade |
+| `sen_slope_per_decade` | float or None | *extra:* seasonal Sen's robust slope per decade |
 | `lag1_autocorrelation` | float or None | *extra:* month-to-month memory (0–1) |
 | `effective_n` | float or None | *extra:* independent months the record is worth |
+| `reliability` | str or None | *extra:* `"good"` or `"low"` (< 30 effective months: show a caution) |
+| `reliability_note` | str or None | *extra:* plain sentence to show when reliability is low |
+| `tests_agree` | bool or None | *extra:* do the t-test and seasonal Mann-Kendall tell the same story? |
+| `tests_note` | str or None | *extra:* plain sentence to show when they disagree |
+| `percent_change` | float or None | *extra:* change over the record in % (only RAIN, SOILM, EVAP, when `code=` is given and values never go below 0) |
+| `band_meaning` | str or None | *extra:* one sentence explaining the shaded band, for under the chart |
 
 **Fake (for P1 and P3 until H2 is ready):**
 ```python

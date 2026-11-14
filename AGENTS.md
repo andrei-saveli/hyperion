@@ -150,7 +150,8 @@ trend line and 95% band → verdict card (🟢 significant / 🟡 possible, not 
 
 ### Stack (simplified for a beginner team)
 - **Everything in Python.** Website: **Streamlit** (`app.py`), charts: Plotly.
-- Stats: `stats.py` (numpy/scipy/statsmodels, pymannkendall).
+- Stats: `stats.py`, our own code on **numpy + scipy only** (no statsmodels/pymannkendall;
+  the seasonal Mann-Kendall was checked against pymannkendall and matches exactly).
 - Data: **NASA Giovanni** area-averaged monthly time series over a box per place (harmony-py +
   earthaccess, free Earthdata account). Variables: `TEMP` (MERRA-2 `M2IMNXASM_5_12_4_T2M`, °C),
   `RAIN` (GPM `GPM_3IMERGM_07_precipitation`, mm/day), `SOILM` (GLDAS RootMoist, kg/m²), `EVAP`
@@ -183,8 +184,12 @@ data/                          places.csv, variables.csv, <place>_<code>.csv, SO
 ### Statistics (stats.py)
 Skip missing values (never zero). Deseasonalize (subtract each calendar month's mean). OLS slope
 per decade; 95% CI and t-test p-value corrected for lag-1 autocorrelation (effective n,
-Santer et al. 2000). Mann-Kendall (same correction) + Sen's slope as second checks. Verdict: 🟢 p<0.05 · 🟡 p<0.10 · ⚪ otherwise · ⚫ fewer than 24 valid months.
-Non-significant ≠ "no change". Never state causes. "Years until significant" = labelled estimate.
+Santer et al. 2000). Seasonal Mann-Kendall + seasonal Sen's slope (year-to-year memory
+correction) as second checks. Verdict: 🟢 p<0.05 · 🟡 p<0.10 · ⚪ otherwise · ⚫ under 10 years
+or 24 valid months. Flags: `reliability` (low if < 30 effective months), `tests_agree`,
+`band_meaning`. `percent_change` only for RAIN/SOILM/EVAP and never-negative data.
+"Years until significant" = record × (1.96/|t|)^(2/3) − record; labelled planning estimate.
+Non-significant ≠ "no change". Never state causes.
 
 ## Current status / handover (update this when you finish something)
 - ✅ Planning done: `docs/PLAN.md`, `docs/HANDSHAKES.md`.
@@ -194,9 +199,10 @@ Non-significant ≠ "no change". Never state causes. "Years until significant" =
 - 🖥️ The frontend (P1) is built in a separate repo, `andrei-saveli/frontend-nasa`, against the
   fakes in `docs/HANDSHAKES.md`; its brief is that repo's `AGENTS.md`. Keep its copies of
   `PLAN.md`/`HANDSHAKES.md` in sync when these change.
-- ✅ **Person 4 (Trend & significance + integration)** built in `Task4/`: `stats.py` (`analyze`,
-  H2, incl. "years until significant"), 19 passing tests, `scripts/results_table.py`, `scripts/check_handshakes.py`. Uses a FAKE
-  `data_io.py` until the Data person delivers. See `Task4/README.md`.
+- ✅ **Person 4 (Trend & significance + integration)** in `Task4/`: `stats.py` (H2 + reliability,
+  test-agreement, percent change, band meaning, years until significant), 34 passing tests,
+  `scripts/results_table.py`, `scripts/check_handshakes.py` (use the real `Task2/data_io.py`),
+  `RESULTS.md` (real-data results + demo suggestions). See `Task4/README.md`.
 - ✅ **Data (Task2/)**: `cleaned/` holds 12 validated Giovanni CSVs (3 places × TEMP/RAIN/SOILM/EVAP,
   288 months); `raw/` holds the 12 original Giovanni downloads (verified: re-cleaning
   reproduces `cleaned/` exactly, `convert_giovanni.py`); `data_io.py` (H1, reads
