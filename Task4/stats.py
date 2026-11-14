@@ -42,7 +42,7 @@ RESULT_KEYS = [
     "anomaly", "trend", "band_low", "band_high", "years_to_significance", "method",
     # extra keys (allowed: they don't break the handshake)
     "sen_slope_per_decade", "lag1_autocorrelation", "effective_n",
-    "reliability", "reliability_note", "percent_change",
+    "reliability", "reliability_note", "percent_change", "tests_agree", "tests_note",
 ]
 
 EMOJI = {"significant": "🟢", "possible": "🟡", "none": "⚪", "insufficient": "⚫"}
@@ -182,6 +182,24 @@ def years_to_significance(t_value: float, record_years: float, verdict: str):
     return round(max(more, 0.0), 1)
 
 
+def tests_agree(p_t: float, p_mk: float, slope: float, sen: float):
+    """Do the t-test and the seasonal Mann-Kendall test tell the same story?
+
+    They clearly DISAGREE when one says significant (p < 0.05) and the other isn't even close
+    (p >= 0.10), or when they point in opposite directions while either is near significance.
+    Small differences around the cut-off don't count as disagreement.
+    Returns (True | False | None, plain-language note or None).
+    """
+    if p_mk is None or math.isnan(p_mk):
+        return None, None
+    one_sided = (p_t < SIGNIFICANT_P <= POSSIBLE_P <= p_mk) or (p_mk < SIGNIFICANT_P <= POSSIBLE_P <= p_t)
+    opposite = (np.sign(slope) * np.sign(sen) < 0) and min(p_t, p_mk) < POSSIBLE_P
+    if one_sided or opposite:
+        return False, ("The two tests disagree about this trend, so treat it with caution: "
+                       "it may depend on a few unusual months.")
+    return True, None
+
+
 def reliability(n_eff: float):
     """Is the record informative enough to trust the verdict?
 
@@ -222,6 +240,7 @@ def _empty_result(df, anomaly, n_missing):
         "years_to_significance": None, "method": METHOD,
         "sen_slope_per_decade": None, "lag1_autocorrelation": None, "effective_n": None,
         "reliability": None, "reliability_note": None, "percent_change": None,
+        "tests_agree": None, "tests_note": None,
     }
 
 
@@ -300,6 +319,7 @@ def analyze(df: pd.DataFrame, code: str | None = None) -> dict:
     horizon = years_to_significance(t_value, x.max() - x.min(), verdict)
 
     quality, quality_note = reliability(n_eff)
+    agree, agree_note = tests_agree(p_value, mk_p, slope, sen)
 
     # 8) percent change over the record, relative to the average level (only where meaningful)
     total_change = slope * (x.max() - x.min())
@@ -334,4 +354,6 @@ def analyze(df: pd.DataFrame, code: str | None = None) -> dict:
         "reliability": quality,
         "reliability_note": quality_note,
         "percent_change": _clean(percent),
+        "tests_agree": agree,
+        "tests_note": agree_note,
     }
