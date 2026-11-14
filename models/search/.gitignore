@@ -1,0 +1,4 @@
+checkpoints/
+candidate_documents.json
+candidate_embeddings.npy
+ranking_head.pt
