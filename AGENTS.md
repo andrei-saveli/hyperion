@@ -203,6 +203,9 @@ Non-significant ≠ "no change". Never state causes.
   test-agreement, percent change, band meaning, years until significant), 34 passing tests,
   `scripts/results_table.py`, `scripts/check_handshakes.py` (use the real `Task2/data_io.py`),
   `RESULTS.md` (real-data results + demo suggestions). See `Task4/README.md`.
+- 🧩 **Combine:** `python Task4/scripts/combine.py [--frontend ../frontend-nasa]` builds `final/`
+  (git-ignored), runs tests + handshake checks, prints READY / NOT READY. Deploy steps:
+  `Task4/README.md`.
 - ✅ **Data (Task2/)**: `cleaned/` holds 12 validated Giovanni CSVs (3 places × TEMP/RAIN/SOILM/EVAP,
   288 months); `raw/` holds the 12 original Giovanni downloads (verified: re-cleaning
   reproduces `cleaned/` exactly, `convert_giovanni.py`); `data_io.py` (H1, reads
