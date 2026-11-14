@@ -195,7 +195,7 @@ Non-significant ≠ "no change". Never state causes. "Years until significant" =
   fakes in `docs/HANDSHAKES.md`; its brief is that repo's `AGENTS.md`. Keep its copies of
   `PLAN.md`/`HANDSHAKES.md` in sync when these change.
 - ✅ **Person 4 (Trend & significance + integration)** built in `Task3/`: `stats.py` (`analyze`,
-  H2), 15 passing tests, `scripts/results_table.py`, `scripts/check_handshakes.py`. Uses a FAKE
+  H2, incl. "years until significant"), 19 passing tests, `scripts/results_table.py`, `scripts/check_handshakes.py`. Uses a FAKE
   `data_io.py` until the Data person delivers. See `Task3/README.md`.
 - 🧩 Each person builds in their own folder; at the end the team lead combines all folders into
   the final project layout below (each folder's README says how).

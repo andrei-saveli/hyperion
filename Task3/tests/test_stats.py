@@ -12,7 +12,7 @@ import pytest
 from scipy import stats as sps
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from stats import RESULT_KEYS, analyze, deseasonalize, mann_kendall  # noqa: E402
+from stats import RESULT_KEYS, analyze, deseasonalize, mann_kendall, years_to_significance  # noqa: E402
 
 H2_KEYS = {  # the keys promised in docs/HANDSHAKES.md (H2)
     "slope_per_decade", "ci_low", "ci_high", "p_value", "mk_p_value", "total_change",
@@ -166,3 +166,34 @@ def test_unsorted_rows_and_text_dates_are_handled():
     df = make_series(0.5, noise=0.3, seed=10)
     shuffled = df.sample(frac=1, random_state=1).assign(date=lambda d: d["date"].dt.strftime("%Y-%m-%d"))
     assert analyze(shuffled)["slope_per_decade"] == pytest.approx(analyze(df)["slope_per_decade"])
+
+
+# ------------------------------------------------------------------ years until significant
+
+def test_significant_trend_needs_no_more_years():
+    assert analyze(make_series(0.5, noise=0.3, seed=1))["years_to_significance"] is None
+
+
+def test_weak_trend_gets_a_positive_estimate():
+    hits = []
+    for seed in range(20):
+        r = analyze(make_series(0.15, noise=1.0, phi=0.3, seed=seed))
+        if r["verdict"] in ("possible", "none") and r["years_to_significance"] is not None:
+            hits.append(r["years_to_significance"])
+    assert hits and all(0 <= h <= 100 for h in hits)
+
+
+def test_horizon_grows_with_noise_and_memory():
+    base = years_to_significance(0.01, 1.0, 0.2, 24, 1.5, "none")
+    noisier = years_to_significance(0.01, 2.0, 0.2, 24, 1.5, "none")
+    more_memory = years_to_significance(0.01, 1.0, 0.7, 24, 1.5, "none")
+    assert base < noisier and base < more_memory
+
+
+def test_horizon_hidden_when_it_makes_no_sense():
+    assert years_to_significance(0.0, 1.0, 0.2, 24, 0.0, "none") is None       # no slope
+    assert years_to_significance(0.01, 1.0, 0.2, 24, 0.3, "none") is None      # direction unclear
+    assert years_to_significance(0.01, 1.0, 0.2, 5, 1.5, "none") is None       # record too short
+    assert years_to_significance(1e-6, 5.0, 0.2, 24, 1.5, "none") is None      # > 100 years
+    assert years_to_significance(0.05, 1.0, 0.2, 24, 3.0, "significant") is None
+    assert analyze(make_series(0.5, months=20))["years_to_significance"] is None

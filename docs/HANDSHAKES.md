@@ -153,7 +153,7 @@ Never crashes on a normal series. With fewer than **24** non-missing months it r
 | `emoji` | str | 🟢 · 🟡 · ⚪ · ⚫ (same order) |
 | `anomaly` | list | seasons removed, one value per row of `df` (None where missing) |
 | `trend`, `band_low`, `band_high` | list | trend line and 95% band, one value per row, same scale as `anomaly` |
-| `years_to_significance` | float or None | extra; None until implemented |
+| `years_to_significance` | float or None | extra years of data likely needed before a 🟡/⚪ trend becomes significant (planning estimate, Weatherhead et al. 1998); None if significant or not meaningful |
 | `method` | str | one plain sentence describing the method (shown in the app) |
 | `sen_slope_per_decade` | float or None | *extra:* Sen's robust slope per decade |
 | `lag1_autocorrelation` | float or None | *extra:* month-to-month memory (0–1) |
