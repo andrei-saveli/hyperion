@@ -8,11 +8,6 @@
 > Background reading only: the two detailed plans compared below
 > ([Plan A](docs/TEAM_PLAN_CLAUDE.md) · [Plan B](docs/TEAM_PLAN.md)).
 
----|---|---|
-> | Team plan | [docs/TEAM_PLAN_CLAUDE.md](docs/TEAM_PLAN_CLAUDE.md) | [docs/TEAM_PLAN.md](docs/TEAM_PLAN.md) |
-> | Data guide | [docs/DATA_GUIDE_CLAUDE.md](docs/DATA_GUIDE_CLAUDE.md) | [docs/DATA_GUIDE.md](docs/DATA_GUIDE.md) |
-> | Written by | Claude | Codex |
-
 ---
 
 ## The challenge in plain words
