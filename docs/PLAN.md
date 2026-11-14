@@ -115,6 +115,7 @@ prompt below). You need nothing from anyone.
 - [ ] *(extra)* click on the map → live data (uses P2's `fetch_point`)
 
 ### 🛰️ Person 2: Data (retrieval + cleaning)
+📄 **Full guide (Giovanni bulk download + cleaning): [PERSON_2_DATA_GIOVANNI_HANDOVER.md](PERSON_2_DATA_GIOVANNI_HANDOVER.md).**
 **Start with:** the starter prompt below. You need nothing from anyone.
 - [ ] `scripts/download.py`: NASA POWER monthly data for every place in `data/places.csv`
 - [ ] Cleaning: skip month "13" (yearly average), turn -999 into empty (missing), one row per
