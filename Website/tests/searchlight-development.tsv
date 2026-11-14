@@ -1,0 +1,51 @@
+measurement	question
+T2M	Has the air gotten warmer?
+PRECTOTCORR	Is there more precipitation now?
+WS10M	Are winds getting stronger?
+RH2M	How has relative humidity changed?
+EVLAND	Are plants and land releasing more water to the air?
+AOD_55	How has smoke and haze changed?
+CLOUD_AMT	Is the sky more overcast?
+GWETROOT	Is the layer where roots grow getting wetter?
+-	How much water does the reservoir hold in total?
+-	What is the millet harvest per hectare?
+-	Has the population grown?
+-	How many people live below the poverty line?
+-	Has ground-level nitrogen dioxide declined?
+-	What is the hourly temperature forecast for tomorrow?
+-	Is sea ice extent shrinking?
+-	Are groundwater levels falling?
+T2M	Has the air near the ground gotten hotter over the decades?
+PRECTOTCORR	Is there less rainfall nowadays?
+EVLAND	Is more water evaporating from land and plants?
+GWETROOT	Is there less moisture in the soil where crops take up water?
+T2M	Is average air temperature climbing?
+PRECTOTCORR	Has the amount of water falling from the sky each month changed?
+EVLAND	Do the ground and vegetation send more moisture back into the atmosphere?
+GWETROOT	How has root-zone soil wetness changed?
+T2M	How much has the air about two metres above the ground warmed?
+PRECTOTCORR	Has total precipitation including both rain and snow increased?
+WS10M	How fast does the wind blow ten metres up, and has that changed?
+RH2M	Is the air closer to saturation than it used to be?
+ALLSKY_SFC_SW_DWN	Has more sunlight been reaching the ground?
+AOD_55	Have airborne particles been blocking more light?
+CLOUD_AMT	How has the fraction of the sky covered by clouds changed?
+T2M_MAX	Are the highest daily air temperatures recorded each month going up?
+PS	Has barometric pressure at the surface changed?
+SNODP	Is the blanket of snow lying on the ground getting shallower?
+TO3	Is the ozone layer above us changing?
+QV2M	Has the number of grams of water vapour per kilogram of near-surface air increased?
+T2M_MIN	Have the coldest readings in each month gotten warmer?
+TS	Is the temperature of the ocean skin rising?
+PW	If all the vapor from the full column of air condensed, would the water layer be thicker than before?
+GWETTOP	How wet is the top five centimetres of soil compared with decades ago?
+-	Has reservoir elevation fallen since 2010?
+-	How many times did the river overtop its banks each year?
+-	How many glaciers have lost more than half their area?
+-	What will the forecast air temperature be tomorrow afternoon?
+-	Show me hourly rainfall totals from last Tuesday.
+-	What are the monthly ground-level PM2.5 concentrations?
+-	Did annual carbon dioxide emissions decline?
+-	Has crop yield in kilograms per hectare gone up?
+-	Is chlorophyll concentration in the ocean rising?
+-	Are earthquake counts rising?

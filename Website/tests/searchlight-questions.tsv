@@ -1,0 +1,43 @@
+id	place	measurement	question
+1	Lima	T2M	Do the monthly averages show a change in how warm the air is at breathing height?
+2	Montreal	T2M	Has the typical air temperature risen when averaged over entire months?
+3	Casablanca	T2M_MAX	Are the hottest days recorded within each month now reaching higher temperatures?
+4	Yellowknife	T2M_MIN	Have the very lowest temperatures measured each month become less cold?
+5	Coral Sea	TS	How has the temperature of the sea surface changed?
+6	Ouagadougou	PRECTOTCORR	Does a typical month bring a different amount of rain and snowfall than it used to?
+7	Melbourne	PRECTOTCORR	What is the long-run trend in average daily precipitation, grouped by month?
+8	Gaborone	EVLAND	Are more litres of water returning to the atmosphere from vegetation and soil?
+9	Sacramento	EVLAND	Is evapotranspiration from the land rising over time?
+10	Hanoi	RH2M	Has the percentage of saturation of the air changed over time?
+11	Miami	QV2M	Is there more water vapour in each kilogram of air near the ground?
+12	Singapore	PW	How is total precipitable water through the whole atmosphere changing?
+13	Kansas City	GWETTOP	Is the very top layer of dirt getting wetter?
+14	Adelaide	GWETTOP	How much wetter or drier are the upper few centimetres of soil?
+15	Rome	GWETROOT	Do plant roots have access to wetter soil than they used to?
+16	Sofia	GWETROOT	Has root-zone soil wetness increased?
+17	Helsinki	SNODP	How has the accumulated depth of snow on land changed?
+18	Anchorage	SNODP	Is the snow lying on the ground usually deeper now?
+19	Wellington	WS10M	What is the trend in average near-ground wind speed?
+20	Punta Arenas	WS10M	Has the air been moving faster at a height of ten metres?
+21	Lisbon	PS	Do the monthly barometer readings show a sustained change?
+22	Reykjavik	PS	Is the atmosphere exerting less pressure on the ground?
+23	Santiago	TO3	Has the amount of ozone through the atmosphere changed?
+24	Dhaka	AOD_55	Are airborne dust and smoke dimming the air more strongly?
+25	Albuquerque	ALLSKY_SFC_SW_DWN	Has the solar energy reaching the ground changed from one decade to the next?
+26	Madrid	ALLSKY_SFC_SW_DWN	Has there been a change in how much sunshine reaches the ground, including on overcast days?
+27	Bergen	CLOUD_AMT	What is the trend in the share of sky that is covered by clouds?
+28	Seattle	CLOUD_AMT	Are more of the sky's pixels cloud-covered in a typical month?
+29	Oslo	-	Can you predict how warm the air will be next weekend?
+30	Manila	-	Which hour of the day had the highest wind speed yesterday?
+31	Athens	-	Does the air feel colder once you account for wind chill?
+32	Milan	-	Are PM2.5 readings at street level changing?
+33	Valencia	-	Has nitrogen dioxide in the streets declined?
+34	London	-	Are local carbon dioxide emissions lower than before?
+35	Chad	-	Has the lake level increased or decreased?
+36	Osaka	-	What is the trend in river discharge?
+37	Winnipeg	-	Have wheat harvests per hectare changed?
+38	Fairbanks	-	Has permafrost thickness been falling?
+39	Vancouver	-	Is the monthly tide range changing?
+40	Kyoto	-	How many people are living within the city limits compared with 2001?
+41	Baltic Sea	-	Is dissolved oxygen in the water increasing?
+42	Fiji	-	Is the monthly average of UV index at the ground going up?
