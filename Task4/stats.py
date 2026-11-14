@@ -43,9 +43,15 @@ RESULT_KEYS = [
     # extra keys (allowed: they don't break the handshake)
     "sen_slope_per_decade", "lag1_autocorrelation", "effective_n",
     "reliability", "reliability_note", "percent_change", "tests_agree", "tests_note",
+    "band_meaning",
 ]
 
 EMOJI = {"significant": "🟢", "possible": "🟡", "none": "⚪", "insufficient": "⚫"}
+
+# What the shaded band on the chart means. Shown next to the chart so nobody reads it as
+# "where the monthly values fall" (that would be a much wider range).
+BAND_MEANING = ("Shaded band: the 95% range of the straight-line trend, i.e. where the true "
+                "trend line most likely lies. It is not the range of the monthly values.")
 
 METHOD = ("Seasons removed (each month minus its calendar-month average), then a straight-line "
           "trend; the 95% interval and t-test p-value are corrected for month-to-month "
@@ -241,6 +247,7 @@ def _empty_result(df, anomaly, n_missing):
         "sen_slope_per_decade": None, "lag1_autocorrelation": None, "effective_n": None,
         "reliability": None, "reliability_note": None, "percent_change": None,
         "tests_agree": None, "tests_note": None,
+        "band_meaning": None,
     }
 
 
@@ -356,4 +363,5 @@ def analyze(df: pd.DataFrame, code: str | None = None) -> dict:
         "percent_change": _clean(percent),
         "tests_agree": agree,
         "tests_note": agree_note,
+        "band_meaning": BAND_MEANING,
     }

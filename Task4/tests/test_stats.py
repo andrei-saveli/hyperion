@@ -293,3 +293,11 @@ def test_disagreement_rules():
     assert agreement(0.08, 0.40, 1.0, -1.0)[0] is False    # opposite directions near significance
     assert agreement(0.50, 0.70, 1.0, -1.0)[0] is True     # opposite but both nowhere near: no story
     assert agreement(0.01, float("nan"), 1.0, 1.0) == (None, None)
+
+
+def test_band_meaning_is_explained():
+    r = analyze(make_series(0.5, noise=0.3, seed=1))
+    assert "trend line" in r["band_meaning"] and "not the range" in r["band_meaning"]
+    # the band really is narrower than the spread of the monthly anomalies
+    width = np.nanmean(np.array(r["band_high"]) - np.array(r["band_low"]))
+    assert width < np.nanstd(np.array(r["anomaly"], dtype=float))
