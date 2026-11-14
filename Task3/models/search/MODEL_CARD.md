@@ -1,6 +1,7 @@
 # Searchlight model card
 
-**Status** · Implementation ready for integration testing. Launch calibration, held-out evaluation, and deployment benchmarking are pending.
+**Status** · Searchlight powers H4. A provisional build can be generated from the draft
+question splits. Human review, release evaluation, and deployment benchmarking are pending.
 
 Searchlight helps English-speaking students find runnable Hyperion investigations. A CPU bi-encoder compares a question with the precomputed investigation embeddings. A cross-encoder reranks one batch of up to 20 candidates. A small linear ranking head learns how to combine the two scores. Validation selects the query abstention threshold, the result cutoff, and the maximum result count for each mode. H4 returns up to five suggestions with a reason drawn from H0 metadata.
 
@@ -17,7 +18,15 @@ Person 4's requested dependency pin is `sentence-transformers==5.1.2`. The share
 python -m scripts.build_search_index --download-models
 ```
 
-The download flag provisions the two public checkpoints locally and verifies the weight hashes. Omit the flag for an offline rebuild using the same local checkpoints. Use `--download-models --models-only` to provision before the H1 data arrives. The index expects H0 catalogs and cleaned H1 files in `data/`. It records each indexed series hash and the period of observed values. Rebuild and recalibrate after changing the catalog or any indexed series, and restart the app after installing the artifacts.
+The download flag provisions the two public checkpoints locally and verifies the weight hashes.
+Omit it when the checkpoints are already present. In the Task folders, the index reads the H0
+catalogs from `Task3/data/` and the H1 series from `Task2/cleaned/`. In the combined app, both are
+in `data/`. Rebuild and recalibrate after changing the catalog or an indexed series, and restart
+the app after replacing the artifacts. The combine script copies the local model directory.
+
+To run the existing draft labels locally, use `python -m scripts.train_search_model --allow-draft`
+after building the index. This produces a provisional calibration. Evaluation with
+`--allow-draft` reports metrics without certifying release gates.
 
 ## Review, train, and evaluate
 
@@ -32,13 +41,14 @@ python -m scripts.evaluate_search --split test --test-sha256 <reviewed-test-sha2
 
 Training reads the training and validation questions. The head learns pairwise ordering and relevance from the training split. Validation calibrates both pretrained modes and the trained head under the same 10% unsupported false-answer limit. The final comparison reports ranking, multi-result retrieval, abstention, and CPU performance for the frozen modes. Run it on the deployment CPU. The test release gates require Recall@5 of at least 90%, nDCG@5 of at least 0.80, full direct-measurement retrieval on at least 80% of multi-direct questions, at most 10% false answers on unsupported questions, warm p95 below one second, and improved nDCG@5 over both frozen pretrained modes.
 
-Training date, index and ranker checksums, training and validation data hashes, and learned thresholds are written to the local `config.json`. The index manifest records the build date, model identity, and embedding hash. The source config starts with empty calibration. Save the deployment config together with both index artifacts, the ranking head, and the provisioned checkpoint directory. Keep checkpoint binaries out of Git.
+Training writes the date, index and ranker checksums, question split hashes, and learned thresholds
+to `calibrated_config.json`. Keep it with both index artifacts, the ranking head, and the provisioned
+checkpoint directory when assembling the app. Git tracks the pinned source `config.json`.
 
 ## Runtime behavior and limitations
 
-- H4 uses keyword search by default. Set `HYPERION_USE_SEARCH_MODEL=1` to try Searchlight on
-  queries with no keyword matches after installing the calibrated assets. Load is attempted once
-  per app process. A reranker failure falls back to independently calibrated dense retrieval.
+- H4 loads Searchlight on the first query after the artifacts are built. A reranker failure
+  falls back to the same model pipeline's independently calibrated dense retrieval.
 - Ranking scores express relevance and have no probability or scientific-confidence interpretation. A question may have several useful investigations. An omitted investigation may still be scientifically relevant.
 - Search covers measured place-variable combinations in the executable index. Unsupported questions can still produce false matches or ambiguous abstentions. Partial answers contain only available measurements.
 - The initial index uses H0 descriptions and H1 coverage. Observed trend direction, evidence-strength queries, and opposite-trend queries require existing H2 result metadata and additional reviewed examples. Searchlight makes no causal or statistical conclusions.

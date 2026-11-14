@@ -36,12 +36,12 @@ def validate_splits(splits):
                     raise ValueError(f"Empty or cross-split {name}: {value!r}")
 
 
-def collect(engine, rows, *, require_cross=True):
+def collect(engine, rows, *, require_cross=True, allow_draft=False):
     candidates = [f"{doc['place_id']}:{doc['code']}" for doc in engine.documents]
     known = set(candidates)
     cases = []
     for row in rows:
-        if row.get("reviewed") is not True:
+        if row.get("reviewed") is not True and not allow_draft:
             raise ValueError(f"Human review is pending for {row['query_id']}")
         grades = row["relevance"]
         if not set(grades) <= known or any(type(grade) is not int or not 0 <= grade <= 3 for grade in grades.values()):
@@ -143,6 +143,7 @@ def main():
     parser.add_argument("--baseline", action="store_true", help="Run pretrained modes without thresholds")
     parser.add_argument("--dense-only", action="store_true", help="Benchmark the dense baseline alone")
     parser.add_argument("--test-sha256", help="Digest recorded when the reviewed test set was frozen")
+    parser.add_argument("--allow-draft", action="store_true", help="Run a provisional evaluation with unreviewed labels")
     args = parser.parse_args()
     if args.split == "test" and (args.baseline or args.dense_only):
         parser.error("Use validation for baseline diagnostics. Test compares frozen calibrated modes.")
@@ -164,7 +165,10 @@ def main():
         for name, digest in calibration["split_sha256"].items():
             if sha256(DATA / f"search_{name}.jsonl") != digest:
                 raise ValueError(f"Searchlight {name} changed after calibration")
-    cases = collect(engine, rows, require_cross=not args.dense_only)
+    provisional = args.allow_draft or bool(calibration and calibration.get("draft"))
+    if provisional and not args.allow_draft:
+        parser.error("This model was calibrated on draft labels. Use --allow-draft for a provisional evaluation.")
+    cases = collect(engine, rows, require_cross=not args.dense_only, allow_draft=args.allow_draft)
     modes = ["dense"] if args.dense_only else ["dense", "cross"]
     if not args.baseline and engine.head is not None:
         modes.append("head")
@@ -192,6 +196,7 @@ def main():
     output = {
         "split": args.split,
         "questions": len(rows),
+        "provisional": provisional,
         "implementation": "baseline" if args.baseline else "calibrated",
         "metrics": report,
         "runtime": {
@@ -204,7 +209,7 @@ def main():
             )),
         },
     }
-    if args.split == "test":
+    if args.split == "test" and not provisional:
         trained = report.get("head", {}).get("overall", {})
         cross = report["cross"]["overall"]
         dense = report["dense"]["overall"]

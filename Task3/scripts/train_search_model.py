@@ -1,5 +1,6 @@
 """Fit a score combiner on training data and choose cutoffs on validation data."""
 
+import argparse
 import numpy as np
 from scipy.optimize import minimize
 
@@ -76,11 +77,15 @@ def main():
 
     import torch
 
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--allow-draft", action="store_true", help="Build a provisional model from unreviewed labels")
+    args = parser.parse_args()
+
     splits = {name: read_split(name) for name in ("train", "validation")}
     validate_splits(splits)
     engine = SearchEngine.load(uncalibrated=True)
-    train = collect(engine, splits["train"])
-    validation = collect(engine, splits["validation"])
+    train = collect(engine, splits["train"], allow_draft=args.allow_draft)
+    validation = collect(engine, splits["validation"], allow_draft=args.allow_draft)
     head = fit_head(train)
     calibration = {mode: calibrate(validation, mode, head) for mode in ("dense", "cross", "head")}
     head_path = MODEL_DIR / "ranking_head.pt"
@@ -89,13 +94,14 @@ def main():
     temporary.replace(head_path)
     engine.config["calibration"] = {
         **calibration,
+        "draft": args.allow_draft,
         "trained_at": datetime.now(timezone.utc).isoformat(),
         "index_sha256": sha256(MODEL_DIR / "candidate_documents.json"),
         "retrieval_limit": engine.config["retrieval_limit"],
         "head_sha256": sha256(head_path),
         "split_sha256": {name: sha256(DATA / f"search_{name}.jsonl") for name in splits},
     }
-    write_json(MODEL_DIR / "config.json", engine.config)
+    write_json(MODEL_DIR / "calibrated_config.json", engine.config)
     print("Saved the fitted head and validation calibration.")
 
 

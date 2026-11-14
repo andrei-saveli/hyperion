@@ -216,8 +216,8 @@ Non-significant ≠ "no change". Never state causes.
 - 🖥️ **Website first version** in `FrontEnd_claude/` (built for P1 on the real Task2/3/4 parts):
   `app.py`, `charts.py` (H5), theme, 6 passing app tests, mock-ups + screenshots in `design/`.
   Run: `streamlit run FrontEnd_claude/app.py`. Combine with `--frontend FrontEnd_claude`.
-- 🔎 **Search (P3)** uses keywords and the H0 catalogs in `Task3/data/` (three regions with
-  available series). Searchlight is an optional experiment. See `Task3/README.md`.
+- 🔎 **Search (P3)** uses Searchlight and the H0 catalogs in `Task3/data/` (three regions
+  with available series). Build and calibrate the local assets using `Task3/README.md`.
 - 💬 **Explanations and teaching pages (P3)** are in `Task3/explain.py` and `Task3/pages/`.
   The guided demo uses the shared frontend chart (H5).
 - ⏭️ Next: team kickoff (30 min) → everyone starts their hour 0.5–8 tasks in `docs/PLAN.md`.
