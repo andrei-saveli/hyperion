@@ -218,6 +218,9 @@ Non-significant ≠ "no change". Never state causes.
   Run: `streamlit run FrontEnd_claude/app.py`. Combine with `--frontend FrontEnd_claude`.
 - 🔎 **Search (P3)** uses Searchlight and the H0 catalogs in `Task3/data/` (three regions
   with available series). Build and calibrate the local assets using `Task3/README.md`.
+- 🔎 **Search benchmark (P3):** `Task3/PRETRAINED_BENCHMARK.md` reports a 144-question draft.
+  Calibrated embeddings led the reranker on held-out recall and unsupported rejection.
+  Independent teammate or student questions are pending before a release decision.
 - 💬 **Explanations and teaching pages (P3)** are in `Task3/explain.py` and `Task3/pages/`.
   The guided demo uses the shared frontend chart (H5).
 - ⏭️ Next: team kickoff (30 min) → everyone starts their hour 0.5–8 tasks in `docs/PLAN.md`.
