@@ -213,6 +213,9 @@ Non-significant ≠ "no change". Never state causes.
   `svalbard_SOILM` in the demo (glacier; unreliable).
 - 🧩 Each person builds in their own folder; at the end the team lead combines all folders into
   the final project layout below (each folder's README says how).
+- 🖥️ **Website first version** in `FrontEnd_claude/` (built for P1 on the real Task2/3/4 parts):
+  `app.py`, `charts.py` (H5), theme, 6 passing app tests, mock-ups + screenshots in `design/`.
+  Run: `streamlit run FrontEnd_claude/app.py`. Combine with `--frontend FrontEnd_claude`.
 - 🔎 **Search (P3)** uses keywords and the H0 catalogs in `Task3/data/` (three regions with
   available series). Searchlight is an optional experiment. See `Task3/README.md`.
 - 💬 **Explanations and teaching pages (P3)** are in `Task3/explain.py` and `Task3/pages/`.

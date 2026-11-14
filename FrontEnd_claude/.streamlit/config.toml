@@ -1,0 +1,10 @@
+# Theme: "mission control" dark blue with a teal accent (users can still switch to light in Settings)
+[theme]
+base = "dark"
+primaryColor = "#17b890"
+backgroundColor = "#0b1020"
+secondaryBackgroundColor = "#121a33"
+textColor = "#e8ecf8"
+
+[client]
+toolbarMode = "minimal"
