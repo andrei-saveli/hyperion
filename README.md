@@ -5,6 +5,9 @@
 > 🚀 **Team members:** read [docs/PLAN.md](docs/PLAN.md) (who does what, when) and
 > [docs/HANDSHAKES.md](docs/HANDSHAKES.md) (how our parts fit together).
 > 🤖 **AI coding agents:** read [AGENTS.md](AGENTS.md) first.
+>
+> 🔎 **Person 3:** use the dedicated
+> [Searchlight handover](docs/PERSON_3_SEARCH_EXPLAINABILITY_HANDOVER.md).
 
 ---
 
