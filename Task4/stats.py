@@ -31,6 +31,9 @@ POSSIBLE_P = 0.10          # 🟡 below this
 MAX_LAG1 = 0.95            # cap on month-to-month correlation, keeps the maths stable
 MIN_YEARS_FOR_HORIZON = 10 # only estimate "years until significant" for records this long
 MAX_HORIZON_YEARS = 100    # beyond this we just say "a very long time" (None)
+# Variables where "percent change" makes sense: 0 means "none of it" (no rain, no water).
+# Not temperature in °C: 0 °C is not "no temperature", so a percentage would be meaningless.
+PERCENT_OK = {"RAIN", "SOILM", "EVAP"}
 MIN_EFFECTIVE_MONTHS = 30  # below this many independent months, results are flagged "low" reliability
 
 RESULT_KEYS = [
@@ -39,7 +42,7 @@ RESULT_KEYS = [
     "anomaly", "trend", "band_low", "band_high", "years_to_significance", "method",
     # extra keys (allowed: they don't break the handshake)
     "sen_slope_per_decade", "lag1_autocorrelation", "effective_n",
-    "reliability", "reliability_note",
+    "reliability", "reliability_note", "percent_change",
 ]
 
 EMOJI = {"significant": "🟢", "possible": "🟡", "none": "⚪", "insufficient": "⚫"}
@@ -185,16 +188,18 @@ def _empty_result(df, anomaly, n_missing):
         "band_low": [None] * n, "band_high": [None] * n,
         "years_to_significance": None, "method": METHOD,
         "sen_slope_per_decade": None, "lag1_autocorrelation": None, "effective_n": None,
-        "reliability": None, "reliability_note": None,
+        "reliability": None, "reliability_note": None, "percent_change": None,
     }
 
 
 # ---------------------------------------------------------------- main function
 
-def analyze(df: pd.DataFrame) -> dict:
+def analyze(df: pd.DataFrame, code: str | None = None) -> dict:
     """Trend analysis of one monthly series.
 
-    df: columns `date` (dates) and `value` (numbers; NaN = missing), one row per month.
+    df:   columns `date` (dates) and `value` (numbers; NaN = missing), one row per month.
+    code: optional variable code (e.g. "RAIN"). Only used to decide whether a percent change
+          makes sense; analyze(df) without it works exactly as before.
     Returns the H2 result dictionary (see docs/HANDSHAKES.md).
     """
     df = df.copy()
@@ -260,13 +265,20 @@ def analyze(df: pd.DataFrame) -> dict:
 
     quality, quality_note = reliability(n_eff)
 
+    # 8) percent change over the record, relative to the average level (only where meaningful)
+    total_change = slope * (x.max() - x.min())
+    average = float(np.nanmean(df["value"]))
+    never_negative = float(np.nanmin(df["value"])) >= 0  # e.g. Svalbard evaporation dips below 0
+    percent = (total_change / average * 100
+               if code in PERCENT_OK and average > 0 and never_negative else None)
+
     return {
         "slope_per_decade": _clean(slope * 10),
         "ci_low": _clean(ci_low),
         "ci_high": _clean(ci_high),
         "p_value": _clean(p_value),
         "mk_p_value": _clean(mk_p),
-        "total_change": _clean(slope * (x.max() - x.min())),
+        "total_change": _clean(total_change),
         "start": valid_dates.iloc[0].strftime("%Y-%m"),
         "end": valid_dates.iloc[-1].strftime("%Y-%m"),
         "n_months": int(len(df)),
@@ -285,4 +297,5 @@ def analyze(df: pd.DataFrame) -> dict:
         "effective_n": _clean(n_eff),
         "reliability": quality,
         "reliability_note": quality_note,
+        "percent_change": _clean(percent),
     }

@@ -229,3 +229,26 @@ def test_very_sticky_record_is_flagged_low():
 def test_insufficient_record_has_no_reliability():
     r = analyze(make_series(0.5, months=20))
     assert r["reliability"] is None
+
+
+# ------------------------------------------------------------------ percent change
+
+def test_percent_change_for_rain_like_variables():
+    df = make_series(0.5, season=0, noise=0.0)  # level 15, +0.5 per decade over 23.9 years
+    r = analyze(df, code="RAIN")
+    expected = r["total_change"] / df["value"].mean() * 100
+    assert r["percent_change"] == pytest.approx(expected)
+    assert r["percent_change"] == pytest.approx(1.2 / 15.6 * 100, rel=0.05)
+
+
+def test_no_percent_change_for_temperature_or_unknown_variable():
+    df = make_series(0.5, noise=0.3, seed=1)
+    assert analyze(df, code="TEMP")["percent_change"] is None
+    assert analyze(df)["percent_change"] is None
+
+
+def test_no_percent_change_when_values_go_below_zero():
+    df = make_series(-0.5, season=0.2, noise=0.1, seed=4)
+    df["value"] = df["value"] - 15.1  # small average, some negative months
+    assert df["value"].min() < 0
+    assert analyze(df, code="EVAP")["percent_change"] is None
