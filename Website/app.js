@@ -1,4 +1,4 @@
-// Hyperion website: map, results, search and compare.
+// ByteMe website: map, results, search and compare.
 // All numbers come from data/results.json, which build_data.py makes with the project's real
 // Python code (stats.py, explain.py). This file only displays them; it computes no statistics.
 

@@ -213,7 +213,7 @@ Non-significant ≠ "no change". Never state causes.
   `svalbard_SOILM` in the demo (glacier; unreliable).
 - 🧩 Each person builds in their own folder; at the end the team lead combines all folders into
   the final project layout below (each folder's README says how).
-- 🌐 **Static website** in `Website/` (current design, replaces the Streamlit look): light
+- 🌐 **Static website "ByteMe"** in `Website/` (current design, replaces the Streamlit look; logo `B/ ByteMe`): light
   Isomorphic-inspired style (Geist + Geist Mono, mint/aqua/teal palette, pixel-globe hero), MapLibre map with regions coloured by trend and
   focus brackets, result panel, compare, method, keyword search. `build_data.py` runs the real
   Task2/3/4 code once → `data/results.json`; the site only displays it. Run:
