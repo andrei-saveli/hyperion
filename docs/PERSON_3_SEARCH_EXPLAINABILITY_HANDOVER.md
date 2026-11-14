@@ -81,8 +81,8 @@ code,name,units,definition,keywords,source
 - `definition`: one sentence understandable to a 15-year-old.
 - `keywords`: lowercase, space-separated search words.
 
-MVP variables are `TEMP` (°C), `RAIN` (mm/day), `SOILM` (kg/m²), `EVAP` (mm/day) and `NO2`
-(10¹⁵ molecules/cm²). Exact rows: `docs/HANDSHAKES.md` H0.
+MVP variables are `TEMP` (°C), `RAIN` (mm/day), `SOILM` (kg/m²) and `EVAP` (mm/day)
+(NO₂ was dropped). Exact rows: `docs/HANDSHAKES.md` H0.
 Do not add a variable unless P2 confirms download support and P4 confirms compatibility.
 
 ### H3: explanation
@@ -147,7 +147,7 @@ Use simple word matching, not AI or live web search:
 
 1. Lowercase and remove punctuation.
 2. Match approved variants such as `dry/drying/drought`, `hot/warm/warming`,
-   `rain/rainfall/wet`, `pollution/smog/air`, and `evaporation/evaporate`.
+   `rain/rainfall/wet`, and `evaporation/evaporate`.
 3. Score place names, place types, variable names/codes, keywords, and story words.
 4. Produce only valid place-variable combinations.
 5. Include a short reason naming the match.

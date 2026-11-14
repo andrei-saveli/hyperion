@@ -7,9 +7,9 @@ layout can change in one place.
     load_variables()             -> table of variables (code, name, units, definition, keywords, source)
     load_series(place_id, code)  -> monthly data       (date, value), oldest first, NaN = missing
 
-Where the files are looked for:
+Where the files are looked for (first folder that exists):
 - Final project: a `data/` folder next to this file (data/places.csv, data/lake_mead_TEMP.csv, ...).
-- Task2 folder (now): the CSV files sit right next to this file.
+- Task2 folder (now): the `cleaned/` folder next to this file.
 
 places.csv and variables.csv are made by the Search + explainability person (H0). Until they
 exist, the starting catalogue below (copied from docs/HANDSHAKES.md H0) is used instead.
@@ -20,7 +20,7 @@ from pathlib import Path
 import pandas as pd
 
 HERE = Path(__file__).resolve().parent
-DATA = HERE / "data" if (HERE / "data").is_dir() else HERE
+DATA = next((d for d in (HERE / "data", HERE / "cleaned") if d.is_dir()), HERE)
 
 # Starting catalogue from docs/HANDSHAKES.md (H0). Only used if the real CSV file is missing.
 STARTER_PLACES = """id,name,lat,lon,west,south,east,north,type,story
@@ -33,7 +33,6 @@ TEMP,Air temperature,°C,How warm the air is 2 metres above the ground.,temperat
 RAIN,Rainfall,mm/day,Average amount of rain and snow that falls per day.,rain rainfall precipitation wet dry drought storm snow,GPM_3IMERGM_07_precipitation
 SOILM,Soil moisture,kg/m²,How much water the soil holds where plant roots grow (1 kg/m² = 1 mm of water).,soil moisture drought dry drying wet farming plants roots desert,GLDAS_NOAH025_M_2_1_RootMoist_inst
 EVAP,Evaporation,mm/day,How much water goes from the ground and plants into the air each day.,evaporation evapotranspiration water loss dry drying plants heat,GLDAS_NOAH025_M_2_1_Evap_tavg
-NO2,Air pollution (NO₂),10¹⁵ molecules/cm²,How much nitrogen dioxide gas is in the air above the ground; it comes mostly from burning fuel.,pollution air quality smog no2 nitrogen dioxide traffic city,OMNO2d_003_ColumnAmountNO2TropCloudScreened
 """
 
 

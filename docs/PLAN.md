@@ -5,7 +5,7 @@ Rules for AI coding agents: [AGENTS.md](../AGENTS.md).
 
 ## What we build (one sentence)
 A website where a student picks a **place** and a **variable** (temperature, rainfall, soil
-moisture, evaporation, air pollution), sees the monthly NASA data since 2001, and gets a plain answer: **is it going up or
+moisture, evaporation), sees the monthly NASA data since 2001, and gets a plain answer: **is it going up or
 down, by how much, and is that change significant?**
 
 > ⚠️ **Scope rule (from the challenge brief, keep in mind always):** Trend analysis with Earth
@@ -23,7 +23,7 @@ down, by how much, and is that change significant?**
   file. Free hosting on Streamlit Community Cloud.
 - **One data source: [NASA Giovanni](https://giovanni.gsfc.nasa.gov).** Monthly averages over a
   box around each place, from the instruments the challenge names: MERRA-2 (temperature), GPM
-  (rainfall), GLDAS (soil moisture, evaporation), OMI (NO₂ pollution). Bulk download by script
+  (rainfall), GLDAS (soil moisture, evaporation). Bulk download by script
   with a free Earthdata account. Fallback if Giovanni fails: [NASA POWER](https://power.larc.nasa.gov)
   (no login).
 - **Data saved as CSV files** in the repo, so the demo works even if NASA's site is down.
@@ -77,7 +77,7 @@ svalbard,Svalbard (Arctic),78.25,15.5,14.0,77.5,17.0,79.0,polar,Is the Arctic wa
 
 ### Starting variables (full format in HANDSHAKES.md H0)
 `TEMP` air temperature (°C, MERRA-2) · `RAIN` rainfall (mm/day, GPM) · `SOILM` soil moisture
-(kg/m², GLDAS) · `EVAP` evaporation (mm/day, GLDAS) · `NO2` air pollution (10¹⁵ molecules/cm², OMI)
+(kg/m², GLDAS) · `EVAP` evaporation (mm/day, GLDAS). (NO₂ was dropped: not available in Giovanni's web interface.)
 
 ### Shared building blocks: see [HANDSHAKES.md](HANDSHAKES.md)
 The exact shapes of everything passed between people, with **copy-paste fakes** so you can start
@@ -183,7 +183,7 @@ it contains both scripts and ready-made prompts.
 
 **Person 3 (Search + explainability):**
 > We're building a student tool that tests whether NASA data (air temperature, rainfall, soil
-> moisture, evaporation, NO₂ air pollution; monthly 2001–2024 from NASA Giovanni) shows a linear
+> moisture, evaporation; monthly 2001–2024 from NASA Giovanni) shows a linear
 > trend in a region. We have Lake Mead (USA, desert), Niamey (Sahel) and Svalbard (Arctic).
 > Suggest 5 more regions of different types (city, forest, coast, mountain…) where one of these
 > variables may show a trend, each as a box (west, south, east, north, about 2° wide, on land)
