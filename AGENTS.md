@@ -220,7 +220,8 @@ Non-significant ≠ "no change". Never state causes.
   with available series). Build and calibrate the local assets using `Task3/README.md`.
 - 🔎 **Search benchmark (P3):** `Task3/PRETRAINED_BENCHMARK.md` reports a 144-question draft.
   Calibrated embeddings led the reranker on held-out recall and unsupported rejection.
-  Independent teammate or student questions are pending before a release decision.
+  `Task3/COVERAGE_BENCHMARK.md` compares coverage checks on 48 fresh draft questions.
+  The checks improved recall but exceeded the false-answer ceiling, so they remain experimental.
 - 💬 **Explanations and teaching pages (P3)** are in `Task3/explain.py` and `Task3/pages/`.
   The guided demo uses the shared frontend chart (H5).
 - ⏭️ Next: team kickoff (30 min) → everyone starts their hour 0.5–8 tasks in `docs/PLAN.md`.

@@ -3,6 +3,7 @@
 - [Person 3 handover](PERSON_3_SEARCH_EXPLAINABILITY_HANDOVER.md)
 - [Searchlight model card and setup](models/search/MODEL_CARD.md)
 - [Pretrained search benchmark](PRETRAINED_BENCHMARK.md)
+- [Coverage-check experiment](COVERAGE_BENCHMARK.md)
 - [Shared plan](../docs/PLAN.md) and [frozen interfaces](../docs/HANDSHAKES.md)
 
 `search.py` provides H4 using Searchlight. It indexes the place and variable catalogs in `data/`
