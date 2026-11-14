@@ -197,6 +197,10 @@ Non-significant ≠ "no change". Never state causes. "Years until significant" =
 - ✅ **Person 4 (Trend & significance + integration)** built in `Task3/`: `stats.py` (`analyze`,
   H2, incl. "years until significant"), 19 passing tests, `scripts/results_table.py`, `scripts/check_handshakes.py`. Uses a FAKE
   `data_io.py` until the Data person delivers. See `Task3/README.md`.
+- ✅ **Data (Task2/)**: 12 cleaned Giovanni CSVs (3 places × TEMP/RAIN/SOILM/EVAP, 288 months,
+  validated), `data_io.py` (H1, works with `Task2/` now and `data/` in the final project),
+  `SOURCES.md`. ⏳ Missing: 3 NO₂ files and the raw originals (`Task2/raw/`). Don't use
+  `svalbard_SOILM` in the demo (glacier; unreliable).
 - 🧩 Each person builds in their own folder; at the end the team lead combines all folders into
   the final project layout below (each folder's README says how).
 - ⏭️ Next: team kickoff (30 min) → everyone starts their hour 0.5–8 tasks in `docs/PLAN.md`.
