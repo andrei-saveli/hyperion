@@ -32,8 +32,9 @@ frontend can be built against fake data while the real data and statistics are s
 - Fill in `data/variables.yaml`: every variable we support, with source and dataset ID.
 - Stretch: a `scripts/` downloader so *any* region can be fetched (NASA POWER API is the
   easiest; it is MERRA-2 based and has temperature, precipitation, soil wetness, humidity).
-- **Done when:** all 5 demo cases (7 CSVs, two cases are comparisons) are in `data/demo/` and load
-  correctly.
+- **Done when:** all 5 demo cases (8 CSVs: Amazon has two variables, two cases are comparisons)
+  are in `data/demo/` and load correctly.
+- 📄 **Step-by-step instructions: [DATA_GUIDE.md](DATA_GUIDE.md).**
 
 ### 👤 Person 2: Team Lead + Statistics/Backend (works with Claude Code)
 *This is the team lead, the only one with Claude Code. Claude writes most of the code; the lead
