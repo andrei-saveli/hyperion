@@ -36,7 +36,9 @@ Training date, index and ranker checksums, training and validation data hashes, 
 
 ## Runtime behavior and limitations
 
-- A reranker failure falls back to independently calibrated dense retrieval. Missing or incompatible core assets cause H4 to return an empty list and log the failure. Load is attempted once per app process.
+- H4 uses keyword search by default. Set `HYPERION_USE_SEARCH_MODEL=1` to try Searchlight on
+  queries with no keyword matches after installing the calibrated assets. Load is attempted once
+  per app process. A reranker failure falls back to independently calibrated dense retrieval.
 - Ranking scores express relevance and have no probability or scientific-confidence interpretation. A question may have several useful investigations. An omitted investigation may still be scientifically relevant.
 - Search covers measured place-variable combinations in the executable index. Unsupported questions can still produce false matches or ambiguous abstentions. Partial answers contain only available measurements.
 - The initial index uses H0 descriptions and H1 coverage. Observed trend direction, evidence-strength queries, and opposite-trend queries require existing H2 result metadata and additional reviewed examples. Searchlight makes no causal or statistical conclusions.

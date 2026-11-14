@@ -1,0 +1,5 @@
+code,name,units,definition,keywords,source
+TEMP,Air temperature,°C,How warm the air is 2 metres above the ground.,temperature hot hotter warm warmer cold colder heat warming cooling,M2IMNXASM_5_12_4_T2M
+RAIN,Rainfall,mm/day,How much rain and snow fall each day on average.,rain rains raining rainfall precipitation downpour wet wetter drought,GPM_3IMERGM_07_precipitation
+SOILM,Soil moisture,kg/m²,How much water the soil holds where plant roots grow.,soil moisture dry drier drying drought dirt roots root,GLDAS_NOAH025_M_2_1_RootMoist_inst
+EVAP,Evaporation,mm/day,How much water moves from the ground and plants into the air each day.,evaporation evaporate evaporates evaporating evapotranspiration,GLDAS_NOAH025_M_2_1_Evap_tavg

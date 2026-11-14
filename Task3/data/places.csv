@@ -1,0 +1,4 @@
+id,name,lat,lon,west,south,east,north,type,story
+lake_mead,Lake Mead (USA),36.25,-114.5,-116,35,-113,37.5,desert,Is the desert around Lake Mead drying out?
+niamey,"Niamey, Sahel (Niger)",13.5,2.0,1.0,12.5,3.0,14.5,savanna,Is the Sahel getting more or less rain?
+svalbard,Svalbard (Arctic),78.25,15.5,14.0,77.5,17.0,79.0,polar,Is the Arctic warming?

@@ -213,8 +213,10 @@ Non-significant ≠ "no change". Never state causes.
   `svalbard_SOILM` in the demo (glacier; unreliable).
 - 🧩 Each person builds in their own folder; at the end the team lead combines all folders into
   the final project layout below (each folder's README says how).
-- 🔎 **Searchlight (P3)** lives in `Task3/`. See `Task3/README.md` for the handover and setup.
-- 💬 **Trend explanations (P3)** are available in `Task3/explain.py` (H3). The trend card and chart integration are P1's frontend work.
+- 🔎 **Search (P3)** uses keywords and the H0 catalogs in `Task3/data/` (three regions with
+  available series). Searchlight is an optional experiment. See `Task3/README.md`.
+- 💬 **Explanations and teaching pages (P3)** are in `Task3/explain.py` and `Task3/pages/`.
+  The guided demo uses the shared frontend chart (H5).
 - ⏭️ Next: team kickoff (30 min) → everyone starts their hour 0.5–8 tasks in `docs/PLAN.md`.
 
 ## Git
