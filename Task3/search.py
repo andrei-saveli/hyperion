@@ -13,6 +13,15 @@ _calibration = Path(__file__).resolve().parent / "models" / "search" / "calibrat
 
 def search(text: str) -> list[dict]:
     """Suggest up to five executable investigations, ranked by relevance."""
+    return _suggest(text, explore=False)
+
+
+def explore(text: str) -> list[dict]:
+    """Offer up to three possible matches or one clearly labeled dataset to explore."""
+    return _suggest(text, explore=True)
+
+
+def _suggest(text, *, explore):
     global _engine, _load_attempted
     if not isinstance(text, str) or not text.strip():
         return []
@@ -30,7 +39,9 @@ def search(text: str) -> list[dict]:
                     from search_model import SearchEngine
 
                 _engine = SearchEngine.load()
-        return _engine.suggest(text.strip()) if _engine is not None else []
+        if _engine is None:
+            return []
+        return _engine.suggest(text.strip(), explore=True) if explore else _engine.suggest(text.strip())
     except Exception:
         _log.exception("Searchlight unavailable")
         return []

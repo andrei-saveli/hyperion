@@ -184,15 +184,20 @@ class SearchEngine:
                     LOG.warning("Searchlight rerank failed. Using dense retrieval for this query.", exc_info=True)
             return indices, features, query
 
-    def suggest(self, text):
+    def suggest(self, text, *, explore=False):
+        if explore and not text.strip():
+            return []
         indices, features, query = self.score(text)
         calibration = self.config["calibration"]
         mode = "dense" if features.shape[1] == 1 else "cross"
         if mode == "cross" and self.head is not None:
             mode = "head"
         scores = ranking_scores(features, mode, self.head)
+        positions = select(scores, calibration.get(mode))
+        if explore:
+            positions, label = self.explore_positions(text, indices, features[:, 0], positions)
         results = []
-        for position in select(scores, calibration.get(mode)):
+        for position in positions:
             index = indices[position]
             doc = self.documents[index]
             # Use the variable definition or region type as supporting evidence.
@@ -203,7 +208,45 @@ class SearchEngine:
                 "reason": f"{doc['name']}. {doc['sections'][evidence]}",
                 "score": float(scores[position]),
             })
+            if explore:
+                results[-1]["match_label"] = label
+                results[-1]["reason"] = doc["sections"][1]
         return results
+
+    def explore_positions(self, text, indices, dense_scores, positions):
+        if __package__:
+            from .scripts.coverage_search import PLACES, YEAR, covered_candidates, mentions, unavailable
+        else:
+            from scripts.coverage_search import PLACES, YEAR, covered_candidates, mentions, unavailable
+
+        docs = [self.documents[i] for i in indices]
+        keys = [f"{doc['place_id']}:{doc['code']}" for doc in docs]
+        coverage = {
+            key: (int(doc["coverage"]["start"][:4]), int(doc["coverage"]["end"][:4]))
+            for key, doc in zip(keys, docs, strict=True)
+        }
+        normalized = text.casefold().strip(" ?.")
+        places = mentions(normalized, PLACES)
+        covered, _ = covered_candidates(normalized, keys, coverage)
+        # Treat recognized out-of-catalog requests as exploration, with an exception
+        # for the available part of a multi-measurement question.
+        if unavailable(normalized):
+            positions = [i for i in positions if i in covered]
+        years = [int(year) for year in YEAR.findall(normalized)]
+        positions = [
+            i for i in positions
+            if all(coverage[keys[i]][0] <= year <= coverage[keys[i]][1] for year in years)
+        ]
+        if places:
+            positions = [i for i in positions if docs[i]["place_id"] in places]
+        if len(positions):
+            return positions[:3], "Possible match"
+        if not len(indices):
+            return [], ""
+        local = [i for i, doc in enumerate(docs) if doc["place_id"] in places]
+        candidates = sorted(covered) or local or range(len(indices))
+        best = max(candidates, key=lambda i: dense_scores[i])
+        return [best], "Related dataset" if local else "Explore a dataset"
 
 
 def ranking_scores(features, mode, head=None):

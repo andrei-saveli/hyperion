@@ -6,7 +6,7 @@ It uses the real parts of the project (handshakes in docs/HANDSHAKES.md):
   data_io.py (Task2)  load_places, load_variables, load_series   H1
   stats.py   (Task4)  analyze                                     H2
   explain.py (Task3)  explain                                     H3
-  search.py  (Task3)  search                                      H4
+  search.py  (Task3)  explore                                     Search suggestions
 This file only DISPLAYS results: it never computes statistics or writes its own verdicts.
 """
 import logging
@@ -27,9 +27,9 @@ from explain import explain  # noqa: E402
 from stats import analyze  # noqa: E402
 
 try:
-    from search import search  # noqa: E402
+    from search import explore  # noqa: E402
 except Exception:  # search is optional: the app works without it
-    def search(text):
+    def explore(text):
         return []
 logging.getLogger("search").setLevel(logging.CRITICAL)  # don't flood the screen if search is offline
 
@@ -85,7 +85,7 @@ def series_and_result(place_id, code):
 @st.cache_data(show_spinner=False)
 def run_search(text):
     try:
-        return search(text)
+        return explore(text)
     except Exception:
         return []
 
@@ -221,11 +221,24 @@ with tab_investigate:
     if question.strip() and not suggestions:
         st.caption("No suggestions for that question yet. Try one of these, or pick a place and measurement on the left:")
     if suggestions:
-        st.caption("Suggestions:")
+        if suggestions[0]["match_label"] != "Possible match":
+            st.caption("Searchlight couldn't confirm a match. You can open the dataset below or pick a measurement on the left.")
         for i, s in enumerate(suggestions):
-            if s["place_id"] in PLACE.index and s["code"] in VAR.index:
-                st.button(f"{var_label(s['code'])} · {PLACE.loc[s['place_id'], 'name']}: {s['reason']}",
-                          key=f"sugg{i}", on_click=choose, args=(s["place_id"], s["code"]))
+            pid, code = s["place_id"], s["code"]
+            if pid not in PLACE.index or code not in VAR.index:
+                continue
+            st.button(f"{s['match_label']} · {var_label(code)} · {PLACE.loc[pid, 'name']}",
+                      key=f"sugg{i}", on_click=choose, args=(pid, code))
+            _, trend = series_and_result(pid, code)
+            preview = s["reason"]
+            if trend and trend["ci_low"] is not None and trend["ci_high"] is not None:
+                low, high = num(trend["ci_low"]), num(trend["ci_high"])
+                start, end = trend["start"][:4], trend["end"][:4]
+                preview += (
+                    f" The {start}–{end} trend has a 95% confidence interval of "
+                    f"{low} to {high} {VAR.loc[code, 'units']} per decade."
+                )
+            st.caption(preview)
     cols = st.columns(len(DEMO_QUESTIONS))
     for col, (label, pid, code) in zip(cols, DEMO_QUESTIONS):
         col.button(label, on_click=choose, args=(pid, code), width="stretch")

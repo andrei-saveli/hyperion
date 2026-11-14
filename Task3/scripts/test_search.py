@@ -74,6 +74,15 @@ def test_offline_artifact_roundtrip(setup_index, monkeypatch):
     assert search.search("Lake Mead tree cover?") == []
     cross.predict.side_effect = RuntimeError("reranker unavailable")
     assert [row["code"] for row in search.search("Lake Mead rain?")] == ["RAIN"]
+    cross.predict.side_effect = None
+    cross.predict.return_value = np.array([0.6, 0.9])
+    assert search.explore(" ") == []
+    assert search.explore("Lake Mead rain?")[0]["match_label"] == "Possible match"
+    related = search.explore("Is Lake Mead shrinking?")
+    assert len(related) == 1
+    assert related[0]["place_id"] == "lake_mead"
+    assert related[0]["match_label"] == "Related dataset"
+    assert search.explore("Lake Mead rainfall in 1990")[0]["match_label"] == "Related dataset"
     (data / "lake_mead_RAIN.csv").unlink()
     with pytest.raises(FileNotFoundError):
         SearchEngine.load(model, data)
@@ -137,7 +146,8 @@ def test_review_and_split_checks():
 def test_reranks_at_most_twenty_and_returns_at_most_five():
     documents = [
         {"place_id": str(i), "code": "TEMP", "name": f"Air temperature at Site {i}",
-         "sections": ["Monthly record.", "Air warmth.", "Region type: coast."]}
+         "sections": ["Monthly record.", "Air warmth.", "Region type: coast."],
+         "coverage": {"start": "2001-01", "end": "2024-12"}}
         for i in range(25)
     ]
     bi = Mock()
@@ -152,6 +162,7 @@ def test_reranks_at_most_twenty_and_returns_at_most_five():
     assert [row["score"] for row in engine.suggest("air temperature")] == [19, 18, 17, 16, 15]
     pairs = cross.predict.call_args.args[0]
     assert len(pairs) == cross.predict.call_args.kwargs["batch_size"] == 20
+    assert [row["score"] for row in engine.suggest("air temperature", explore=True)] == [19, 18, 17]
 
 
 def test_pinned_models_offline(setup_index, monkeypatch):

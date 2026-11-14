@@ -12,6 +12,16 @@ artifacts before starting the app or running the handshake checker. See the mode
 the build commands and the difference between a provisional build and release evaluation.
 For a fresh combined app, install `requirements-search.txt` as well as `requirements.txt`.
 
+The Streamlit search box uses `explore()`. It shows up to three suggestions that
+pass the calibrated cutoffs, or offers one dataset to explore when it cannot
+confirm a match. Each card previews the full-series trend's 95% confidence
+interval and opens that dataset when selected. The frozen H4 `search()`
+interface still abstains on unfamiliar questions. On the 48-question coverage
+draft, the Streamlit flow returned a card every time, surfaced 77.2% of the
+requested series per supported question on average, and called 2 of 18
+unsupported requests possible matches. Those numbers describe draft retrieval,
+including related cards, without measuring which cards users would choose.
+
 `explain.py` provides H3. Pass the H2 analysis and the selected H0 variable and place. The returned `headline` is the card verdict, `details` goes under **What does this mean?**, and `caveat` goes under **Data and method**. The frontend reads the numeric fields from H2 and checks series provenance against [the data handover](../Task2/SOURCES.md).
 
 `pages/1_Guided_demo.py` shows Lake Mead temperature, Niamey evaporation, and a temperature
