@@ -18,12 +18,33 @@ build_world.py (run once, Python, Task4/stats.py) ─► data/world.json ─► 
   grid square, about 50 km wide, around the chosen point. 18 measurements, listed with
   plain-language definitions in `data/variables.json`. Most start in 1981, sunlight and clouds in
   1984, haze in 2001.
-- **Trend math:** `stats.js` is a line-by-line copy of the project's Python code
+- **Trend math:** seasons removed (the 12 monthly averages are estimated together with the trend
+  line), straight-line trend, significance corrected for month-to-month memory, seasonal
+  Mann-Kendall as a second test. `stats.js` is a line-by-line copy of the project's Python code
   (`Task4/stats.py`). `tests/test_stats.js` checks that both give the same numbers on 105 real
   series. If you change one, change the other and re-run the test.
 - **Search:** understands a place ("Bucharest"), a question ("is Romania getting warmer?"), a
-  famous region ("Sahel") or coordinates ("44.4, 26.1"). Place names come from the free
-  Open-Meteo geocoder. "Why" questions get the reminder that we show what changed, not why.
+  famous region ("Sahel") or coordinates ("44.4, 26.1"). Simple rules, no AI:
+  1. *Measurement:* each measurement in `data/variables.json` has `phrases` (several words, strong)
+     and `keywords` (single words). The best score wins.
+  2. *Things we don't have* (NO₂, river flow, crop yield, forecasts, hourly data...) are listed in
+     `not_available`: the search says so plainly and offers the closest measurement we do have.
+     Years before 1981 or after the last complete year get the same kind of note.
+  3. *Place:* well-known regions first ("Sahel"), then names written with capital letters
+     ("Hoover Dam"), then the leftover words. Each is looked up in Photon (OpenStreetMap, good for
+     lakes, dams, islands) and Open-Meteo (GeoNames, good for towns).
+  "Why" questions get the reminder that we show what changed, not why.
+- **How good is the search?** Checked on Task3's search benchmark questions (agent-written drafts,
+  not real students yet). Rules were tuned on the 144 draft questions and then tested once on the
+  48 fresh questions, which were kept aside:
+
+  | Question set | Right measurement | Right place and measurement (first suggestion) | "Not available" requests answered without a note |
+  |---|---|---|---|
+  | 144 draft (used for tuning) | 112/114 | 95/114 | 1/30 |
+  | 48 fresh (held out) | 36/36 | 32/36 | 1/12 |
+
+  Most misses are riddle-style places ("Niger's capital", "the Nevada reservoir"). Questions that
+  ask for several measurements get one suggestion; the "What is changing here" list shows the rest.
 - **World overview:** the coloured squares on the map show where the chosen measurement is rising
   or falling (every 5 degrees). They come from `data/world.json`.
 
@@ -65,7 +86,7 @@ Upload the whole `Website/` folder to any static hosting: the free Space Apps do
 GitHub Pages, Netlify, etc.
 
 ## Notes
-- Needs internet: NASA POWER (the data), Open-Meteo and BigDataCloud (place names), OpenFreeMap
+- Needs internet: NASA POWER (the data), Photon, Open-Meteo, BigDataCloud and Nominatim (place names), OpenFreeMap
   (the detailed map), Google Fonts and jsDelivr (fonts and the two libraries). If the detailed map
   can't load, the built-in land outline is used instead.
 - Demo cases (chosen from real results): Svalbard air temperature (+0.69 °C per decade),

@@ -3,7 +3,9 @@
 What it does, in plain words
 ----------------------------
 1. Ignore missing months (never treat them as zero).
-2. Remove the seasons: subtract each calendar month's average ("anomalies").
+2. Remove the seasons: subtract each calendar month's average ("anomalies"). The 12 monthly
+   averages and the straight line are estimated together, so a record that starts or ends
+   partway through a year (or has gaps) can't bend the seasons into the trend.
 3. Fit a straight line through the anomalies -> change per decade and total change.
 4. Measure how sure we are: a 95% interval and a t-test p-value, corrected for the fact that
    neighbouring months are similar (otherwise trends look more certain than they are).
@@ -53,8 +55,8 @@ EMOJI = {"significant": "🟢", "possible": "🟡", "none": "⚪", "insufficient
 BAND_MEANING = ("Shaded band: the 95% range of the straight-line trend, i.e. where the true "
                 "trend line most likely lies. It is not the range of the monthly values.")
 
-METHOD = ("Seasons removed (each month minus its calendar-month average), then a straight-line "
-          "trend; the 95% interval and t-test p-value are corrected for month-to-month "
+METHOD = ("Seasons removed (each month minus its calendar-month average, estimated together with "
+          "the trend), then a straight-line trend; the 95% interval and t-test p-value are corrected for month-to-month "
           "correlation. Checked with a seasonal Mann-Kendall test and seasonal Sen's slope. 'Years until "
           "significant' is a planning estimate that assumes the trend and the noise stay the same; "
           "it is not a forecast.")
@@ -67,6 +69,36 @@ def deseasonalize(values: pd.Series, dates: pd.Series) -> pd.Series:
     month = pd.to_datetime(dates).dt.month
     climatology = values.groupby(month).transform("mean")  # NaNs are skipped automatically
     return values - climatology
+
+
+def deseasonalize_with_trend(values: pd.Series, dates: pd.Series) -> pd.Series:
+    """Anomalies, with the 12 calendar-month averages estimated TOGETHER with the trend line.
+
+    Why: the plain version above takes each month's average first. If Januaries sit, on average,
+    a little earlier in the record than Decembers (a record that starts or ends mid-year, or has
+    gaps), part of the trend gets absorbed into those averages and the slope comes out slightly
+    too small. Fitting "value = average for this calendar month + slope x time" in one go avoids it.
+
+    How, without a big regression: compare each value only with values from the same calendar
+    month. The slope is the usual least-squares slope, but with time and value measured from each
+    month's own averages ("within-month" slope). Then each month's average is moved to the middle
+    of the record, so the anomalies are the trend plus noise, centred on zero.
+    Missing values stay missing (NaN).
+    """
+    v = pd.to_numeric(values, errors="coerce").to_numpy(dtype=float)
+    t = decimal_years(dates)
+    month = pd.to_datetime(dates).dt.month.to_numpy()
+    ok = ~np.isnan(v)
+    if not ok.any():
+        return pd.Series(v, index=values.index)
+    t_month = pd.Series(np.where(ok, t, np.nan)).groupby(month).transform("mean").to_numpy()
+    v_month = pd.Series(v).groupby(month).transform("mean").to_numpy()
+    dt, dv = (t - t_month)[ok], (v - v_month)[ok]
+    sxx = np.sum(dt ** 2)
+    slope = np.sum(dt * dv) / sxx if sxx > 0 else 0.0           # units per year
+    t_middle = t[ok].mean()
+    seasonal = v_month - slope * (t_month - t_middle)            # each month's level at mid-record
+    return pd.Series(v - seasonal, index=values.index)
 
 
 def decimal_years(dates: pd.Series) -> np.ndarray:
@@ -266,7 +298,7 @@ def analyze(df: pd.DataFrame, code: str | None = None) -> dict:
     df["value"] = pd.to_numeric(df["value"], errors="coerce")
     df = df.sort_values("date").reset_index(drop=True)
 
-    anomaly = deseasonalize(df["value"], df["date"])
+    anomaly = deseasonalize_with_trend(df["value"], df["date"])
     valid = anomaly.notna().to_numpy()
     n_missing = int(df["value"].isna().sum())
     valid_dates = df["date"][valid]
