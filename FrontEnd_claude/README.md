@@ -18,7 +18,9 @@ python -m pytest -q FrontEnd_claude
 ## What's in it
 | File | What it does |
 |---|---|
-| `app.py` | The website: search + demo questions, place/measurement pickers, verdict card, chart, compare tab, map |
+| `app.py` | Front door: page setup and the menu (Investigate · Guided demo · How it works) |
+| `investigate.py` | Main page: search + demo questions, place/measurement pickers, verdict card, chart, compare tab, map |
+| `pages/` | Small links that open Person 3's pages from `Task3/pages/` (in the final project the real pages replace them) |
 | `charts.py` | `trend_chart()` (handshake **H5**, reused by the guided demo page) and `place_map()` |
 | `.streamlit/config.toml` | Theme: "mission control" dark blue + teal (users can switch to light in Settings) |
 | `tests/test_app.py` | 6 tests: all 12 place × measurement combinations, demo buttons, warnings, toggle, search, compare |
@@ -41,13 +43,10 @@ python -m pytest -q FrontEnd_claude
 - Never claims why something changed.
 
 ## Known limitations / next steps for Person 1
-- The headline is whatever `explain()` returns (now "Clear increase"); it gets more specific when
-  Person 3 improves `explain.py` (see `Task3/FEEDBACK.md`).
-- Search suggestions appear only once Task3's `search()` works; until then the demo buttons and pickers do the job.
 - The map needs internet (Plotly loads the world outline online).
-- Pages (guided demo, how it works) are Person 3's: add them in a `pages/` folder and Streamlit shows
-  them in the sidebar automatically.
+- The Guided demo and How it works pages are Person 3's (`Task3/pages/`); the menu shows them
+  automatically when they exist.
 
 ## In the final project
-`python Task4/scripts/combine.py --frontend FrontEnd_claude` copies `app.py`, `charts.py` and
-`.streamlit/` into `final/` next to the real data, stats, explain and search files.
+`python Task4/scripts/combine.py --frontend FrontEnd_claude` copies `app.py`, `investigate.py`,
+`charts.py` and `.streamlit/` into `final/` next to the real data, stats, explain and search files.

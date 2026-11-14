@@ -11,7 +11,7 @@ What goes where (see AGENTS.md "Repo layout"):
     Task3 (Search+explain)  -> search.py, search_model.py, explain.py, pages/, models/search/,
                                scripts/*search*.py, data/search_*.jsonl
     Task4 (Trend)           -> stats.py, tests/, scripts/results_table.py, scripts/check_handshakes.py
-    Frontend (optional)     -> app.py, charts.py, .streamlit/  (its FAKE data_io/stats/explain/search
+    Frontend (optional)     -> app.py, investigate.py, charts.py, .streamlit/  (its FAKE data_io/stats/explain/search
                                files are NOT copied: the real ones above replace them)
     places.csv/variables.csv -> from Task3/data if they exist, otherwise the starting catalogue
                                built into Task2/data_io.py
@@ -116,10 +116,10 @@ def combine(out: Path, frontend: Path | None):
 
     if frontend:
         print("Frontend:")
-        for name in ("app.py", "charts.py"):
+        for name in ("app.py", "investigate.py", "charts.py"):
             copy(frontend / name, out / name)
         copy(frontend / ".streamlit", out / ".streamlit")
-        copy(frontend / "pages", out / "pages")
+        # pages/ come from Task3 only (the frontend's pages/ are just links to them)
     else:
         print("Frontend: not included (pass --frontend PATH once app.py exists)")
 
