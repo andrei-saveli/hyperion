@@ -222,7 +222,8 @@ Non-significant ≠ "no change". Never state causes.
   `app.py`, `charts.py` (H5), theme, 6 passing app tests, mock-ups + screenshots in `design/`.
   Run: `streamlit run FrontEnd_claude/app.py`. Combine with `--frontend FrontEnd_claude`.
 - 🖥️ **Byte Me browser demo** in `FrontEnd_nasa/` integrates the uploaded frontend from
-  `andrei-saveli/frontend-nasa` with the 12 real Giovanni series and the Task3 guided demo.
+  `andrei-saveli/frontend-nasa` with the 12 real Giovanni series, Searchlight's ranked
+  dataset suggestions, and the Task3 guided demo.
   See `FrontEnd_nasa/README.md` to build and run it.
 - 🔎 **Search (P3)** uses Searchlight and the H0 catalogs in `Task3/data/` (three regions
   with available series). Build and calibrate the local assets using `Task3/README.md`.

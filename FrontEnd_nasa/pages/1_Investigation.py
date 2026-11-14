@@ -1,6 +1,5 @@
 """Byte Me Analitics: investigate NASA trends with a plain-language query."""
 
-import re
 from pathlib import Path
 
 import pandas as pd
@@ -10,6 +9,7 @@ import streamlit as st
 from charts import trend_chart
 from data_io import load_places, load_series, load_variables
 from explain import explain
+from search import explore
 from stats import analyze
 from ui_navigation import render_top_navigation
 
@@ -118,63 +118,6 @@ st.markdown(
             background: rgba(5, 28, 53, 0.76);
         }
 
-        .query-guide {
-            margin: 1.25rem 0 1.5rem;
-            padding: 1.2rem;
-            border-left: 2px solid var(--query-cyan);
-            background: rgba(6, 24, 44, 0.72);
-        }
-
-        .query-guide-label {
-            color: #7896b4;
-            font-size: 0.68rem;
-            letter-spacing: 0.1em;
-            text-transform: uppercase;
-        }
-
-        .query-pattern {
-            margin: 0.55rem 0 0.85rem;
-            color: #e8f8ff;
-            font-size: clamp(0.85rem, 2vw, 1.05rem);
-        }
-
-        .query-pattern span {
-            color: var(--query-cyan);
-        }
-
-        .query-guide-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1.5rem;
-        }
-
-        .query-guide h4 {
-            margin: 0 0 0.45rem;
-            color: #dcefff;
-            font-size: 0.75rem;
-        }
-
-        .query-guide ul {
-            margin: 0;
-            padding-left: 1.1rem;
-            color: #83a0bd;
-            font-size: 0.72rem;
-            line-height: 1.75;
-        }
-
-        .query-example {
-            color: #83a0bd;
-            font-size: 0.72rem;
-            line-height: 1.75;
-        }
-
-        .query-example code {
-            color: #dff8ff;
-            background: #020e1d;
-            padding: 0.15rem 0.3rem;
-            border-radius: 0.15rem;
-        }
-
         .st-key-top_navigation {
             padding-bottom: 0.8rem;
             margin-bottom: 1.2rem;
@@ -211,10 +154,6 @@ st.markdown(
         @media (max-width: 780px) {
             .block-container {
                 padding: 1rem 1rem 2.5rem;
-            }
-            .query-guide-grid {
-                grid-template-columns: 1fr;
-                gap: 1rem;
             }
         }
     </style>
@@ -256,44 +195,37 @@ def row_as_dict(frame, column, value):
     return frame.loc[frame[column] == value].iloc[0].to_dict()
 
 
-def place_aliases(place):
-    """Return simple names a user might type for a repository place."""
-    visible_name = str(place["name"]).lower()
-    return {
-        visible_name,
-        visible_name.split("(")[0].strip(),
-        visible_name.split(",")[0].strip(),
-        str(place["id"]).lower().replace("_", " "),
-    }
+def open_dataset(place_id, code):
+    """Open the selected measurement and start with the full record."""
+    st.session_state.active_query = {"place_id": place_id, "code": code}
+    st.session_state.pop("investigation_years", None)
+    st.session_state.query_form_visible = False
 
 
-def parse_query(text, places):
-    """Find a repository place and two four-digit years in a user query."""
-    cleaned = " ".join(text.lower().split())
-    years = [int(year) for year in re.findall(r"\b(?:19|20)\d{2}\b", cleaned)]
-
-    if len(years) < 2:
-        return None, None, None, "Include a start and end year, such as 2005 to 2020."
-
-    start_year, end_year = years[0], years[1]
-    if start_year > end_year:
-        return None, None, None, "The start year must come before the end year."
-    if start_year < 2001 or end_year > 2024:
-        return None, None, None, "Choose years from 2001 through 2024."
-
-    matched_place_id = None
-    matched_alias_length = 0
-    for _, place in places.iterrows():
-        for alias in place_aliases(place):
-            if alias and re.search(rf"\b{re.escape(alias)}(?!\w)", cleaned) and len(alias) > matched_alias_length:
-                matched_place_id = place["id"]
-                matched_alias_length = len(alias)
-
-    if matched_place_id is None:
-        available = ", ".join(places["name"].tolist())
-        return None, None, None, f"Place not found. Available places: {available}."
-
-    return matched_place_id, start_year, end_year, None
+def render_suggestions(suggestions, places, variables):
+    """Display Searchlight's ranked cards and the confidence interval of each series."""
+    if not suggestions:
+        st.info("Searchlight returned no suggestions. You can browse the available data below.")
+        return
+    if suggestions[0]["match_label"] != "Possible match":
+        st.caption("Searchlight couldn’t confirm a match. You can explore the dataset below.")
+    for suggestion in suggestions:
+        place_id, code = suggestion["place_id"], suggestion["code"]
+        place = row_as_dict(places, "id", place_id)
+        variable = row_as_dict(variables, "code", code)
+        st.button(
+            f"{suggestion['match_label']} · {variable['name']} · {place['name']}",
+            key=f"search_result_{place_id}_{code}",
+            on_click=open_dataset,
+            args=(place_id, code),
+            width="stretch",
+        )
+        st.caption(suggestion["reason"])
+        _, result = get_period_analysis(place_id, code, 2001, 2024)
+        if result["ci_low"] is not None and result["ci_high"] is not None:
+            low = safe_number(result["ci_low"], signed=True)
+            high = safe_number(result["ci_high"], signed=True)
+            st.caption(f"95% confidence interval (2001–2024) · {low} to {high} {variable['units']} per decade")
 
 
 def verdict_label(verdict):
@@ -503,92 +435,47 @@ if "query_form_visible" not in st.session_state:
     st.session_state.query_form_visible = "active_query" not in st.session_state
 
 if st.session_state.query_form_visible:
-    st.title("Explore a place")
-    st.write(
-        "Ask about an available place and a period of time. Byte Me Analitics will locate it "
-        "and investigate every Earth-system variable currently supplied by the project."
-    )
-    st.markdown(
-        """
-        <div class="query-guide">
-            <div class="query-guide-label">Query format</div>
-            <div class="query-pattern">
-                <span>[place name]</span> from <span>[start year]</span> to <span>[end year]</span>
-            </div>
-            <div class="query-guide-grid">
-                <div>
-                    <h4>Requirements</h4>
-                    <ul>
-                        <li>Use a place listed under “Places currently available.”</li>
-                        <li>Write both years with four digits.</li>
-                        <li>Put the earlier year first.</li>
-                        <li>Choose years from 2001 through 2024.</li>
-                        <li>The trend test requires a record spanning at least 10 years.</li>
-                    </ul>
-                </div>
-                <div>
-                    <h4>Examples</h4>
-                    <div class="query-example">
-                        <code>Lake Mead from 2005 to 2020</code><br>
-                        <code>Show me Svalbard between 2010 and 2022</code><br>
-                        Extra words are fine; the place and two years are what matter.
-                    </div>
-                </div>
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    example_place = places.iloc[0]["name"].split("(")[0].strip()
+    st.title("Search Earth trends")
+    st.write("Ask a question and Searchlight will suggest datasets you can investigate.")
     with st.form("investigation_query"):
-        query = st.text_input(
-            "What place and time period do you want to investigate?",
-            placeholder=f"Example: Show me {example_place} from 2005 to 2020",
-            key="query_text",
-        )
-        submitted = st.form_submit_button("Investigate", type="primary", width="stretch")
+        query = st.text_input("Ask a question", placeholder="Is the Arctic warming?")
+        submitted = st.form_submit_button("Find datasets", type="primary", width="stretch")
 
-    with st.expander("Places currently available"):
-        for _, available_place in places.iterrows():
-            st.markdown(
-                f"- **{available_place['name']}** — {available_place['story']} "
-                f"({available_place['lat']:.3g}, {available_place['lon']:.3g})"
-            )
+    if submitted:
+        if query.strip():
+            with st.spinner("Searching datasets…"):
+                st.session_state.search_results = explore(query.strip())
+        else:
+            st.session_state.pop("search_results", None)
+            st.warning("Enter a question first.")
 
-    if not submitted:
-        st.info("Enter a place and two years to begin.")
-        st.stop()
+    if "search_results" in st.session_state:
+        render_suggestions(st.session_state.search_results, places, variables)
 
-    if not query.strip():
-        st.warning("Enter a place and a time period first.")
-        st.stop()
-    place_id, start_year, end_year, query_error = parse_query(query, places)
-    if query_error:
-        st.warning(query_error)
-        st.stop()
-    st.session_state.active_query = {
-        "text": query,
-        "place_id": place_id,
-        "start_year": start_year,
-        "end_year": end_year,
-    }
-    st.session_state.query_form_visible = False
-    st.rerun()
+    with st.expander("Browse available data"):
+        place_name = st.selectbox("Place", places["name"])
+        measurement = st.selectbox("Measurement", variables["name"])
+        place_id = row_as_dict(places, "name", place_name)["id"]
+        code = row_as_dict(variables, "name", measurement)["code"]
+        st.button("Open dataset", on_click=open_dataset, args=(place_id, code))
+    st.stop()
 
 active_query = st.session_state.active_query
+place = row_as_dict(places, "id", active_query["place_id"])
+selected_variable = row_as_dict(variables, "code", active_query["code"])
 summary_column, action_column = st.columns([5, 1], vertical_alignment="center")
 with summary_column:
-    st.caption("RESULTS FOR")
-    st.markdown(f"**{active_query['text']}**")
+    st.caption("SELECTED DATASET")
+    st.markdown(f"**{selected_variable['name']} · {place['name']}**")
 with action_column:
     if st.button("NEW QUERY", width="stretch"):
         st.session_state.query_form_visible = True
         st.rerun()
 
-place = row_as_dict(places, "id", active_query["place_id"])
-start_year = active_query["start_year"]
-end_year = active_query["end_year"]
+start_year, end_year = st.slider(
+    "Years to analyze", 2001, 2024, (2001, 2024), key="investigation_years",
+    help="A trend test requires at least 10 years of data.",
+)
 
 st.divider()
 st.caption(f"INVESTIGATION · {start_year}–{end_year}")
@@ -614,7 +501,7 @@ remove_seasons = st.toggle(
     help="Subtract the usual pattern for each calendar month so the long-term signal is easier to see.",
 )
 
-variable_tabs = st.tabs(variables["name"].tolist())
+variable_tabs = st.tabs(variables["name"].tolist(), default=selected_variable["name"])
 for tab, (_, variable_row) in zip(variable_tabs, variables.iterrows()):
     variable = variable_row.to_dict()
     with tab:
