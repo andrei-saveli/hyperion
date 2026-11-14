@@ -1,163 +1,355 @@
-# Team Plan (4 people)
+# Hyperion implementation plan
 
-The team lead (Person 2) uses Claude Code; the other three don't need it.
+## Earth System Trend Detective - four people, 48 hours
 
-How we split the work so four people can build in parallel without waiting on each other.
+This is the authoritative build plan. It replaces the earlier five-case plan.
 
-## The idea: split by layer, agree on the "handshakes" first
+## 1. Product decision
 
-The app has four natural parts. Each person **owns one part**, and we agree up front on the exact
-format of what passes between parts (the **contracts** below). Then nobody is blocked: the
-frontend can be built against fake data while the real data and statistics are still being made.
+Build a guided educational tool that turns a plain-language Earth question into a transparent
+NASA-data investigation. A user selects a curated variable and region, sees the raw monthly
+series and deseasonalized anomalies, receives an estimated rate of change with uncertainty, and
+compares the same variable in a second region.
 
-```
- ┌──────────────┐  CSV files   ┌──────────────┐  JSON API   ┌──────────────┐
- │ 1. DATA      │ ───────────► │ 2. STATS +   │ ──────────► │ 3. FRONTEND  │
- │ get NASA data│              │    BACKEND   │             │ map, charts  │
- └──────────────┘              └──────────────┘             └──────────────┘
-         ▲                                                          ▲
-         └────────────── 4. STORY, SCIENCE & PITCH ─────────────────┘
-          (picks demo cases, writes definitions, AI prompts, tests, presents)
-```
+> **Pitch:** Hyperion helps students investigate change on Earth by turning NASA data into a
+> reproducible trend, uncertainty interval, and plain-language evidence statement.
 
-## Roles
+### Audience
 
-### 👤 Person 1: Data Detective (data acquisition)
-*Good fit for: someone comfortable with websites/spreadsheets, some Python helps but isn't required.*
+- High-school and college students.
+- Educators.
+- Scientifically curious members of the public.
 
-- Create a free **NASA Earthdata account** (https://urs.earthdata.nasa.gov) on day one.
-- For each **demo case**, download real monthly time series (2000→present) using
-  **Giovanni** ("Time Series, Area-Averaged") or **NASA POWER** (no login needed) and save them as
-  CSV in the contract format below.
-- Fill in `data/variables.yaml`: every variable we support, with source and dataset ID.
-- Stretch: a `scripts/` downloader so *any* region can be fetched (NASA POWER API is the
-  easiest; it is MERRA-2 based and has temperature, precipitation, soil wetness, humidity).
-- **Done when:** all 5 demo cases (8 CSVs: Amazon has two variables, two cases are comparisons)
-  are in `data/demo/` and load correctly.
-- 📄 **Step-by-step instructions: [DATA_GUIDE.md](DATA_GUIDE.md).**
+The MVP is an educational trend-analysis tool, not a professional causal-attribution system.
 
-### 👤 Person 2: Team Lead + Statistics/Backend (works with Claude Code)
-*This is the team lead, the only one with Claude Code. Claude writes most of the code; the lead
-directs it, checks the results and keeps everyone's parts fitting together.*
+## 2. Scope
 
-- `backend/stats.py`: deseasonalize, linear trend + t-test + 95% CI, autocorrelation correction,
-  Mann-Kendall + Sen's slope, "years until significant", verdict (🟢/🟡/⚪).
-- Tests with **fake data where we know the answer** (e.g. a series rising exactly 1 unit/decade
-  plus noise must give ~1/decade and 🟢).
-- `backend/app.py` (FastAPI): endpoints in the API contract below.
-- **Integration owner:** merges everyone's work, runs the full app, unblocks teammates.
-- **Help desk for the team:** teammates send requests ("write me a chart component",
-  "why does this CSV fail?") and the lead runs them through Claude Code.
-- **Done when:** `/analyze` returns correct JSON for every demo CSV, tests pass, and the full
-  app runs end to end.
+### Must work by Hour 30
 
-### 👤 Person 3: Frontend Builder (website)
-*Good fit for: whoever knows JavaScript/React best.*
+- One primary NASA variable; add up to two more only after the first is complete.
+- Two verified regions using the same product, units, dates, and processing method.
+- Exact region geometry shown on a map.
+- Raw monthly values and deseasonalized anomalies.
+- Linear rate per decade with a 95% uncertainty interval.
+- A method that accounts for dependence between neighboring months.
+- Plain-language evidence statement and limitations.
+- Side-by-side regional comparison.
+- Visible provenance and processing details.
+- One 45-60 second guided investigation.
+- Stable public demo, repository, and offline backup.
 
-- React + Vite site with: world map (Leaflet), variable picker, Plotly chart (raw / seasons
-  removed toggle, trend line, confidence band), **verdict card**, **compare view**, glossary.
-- Start immediately with the **mock JSON** in the API contract; switch to the real API later
-  by changing one URL.
-- **Done when:** a user can click a demo case and see chart + verdict, and compare two regions.
-- If nobody on the team knows React well: build it in **Streamlit** (pure Python) instead. Less
-  flashy, much faster. Decide in the kickoff, not later.
+### Stretch goals, in order
 
-### 👤 Person 4: Science Storyteller & Pitch Lead
-*Good fit for: best communicator; science background helps.*
+1. A third curated region or variable.
+2. Rule-based variable recommendations.
+3. Downloadable case report.
+4. User-drawn region from a supported NASA API.
+5. An exploratory detection-horizon range with assumptions.
 
-- Write the **plain-language definition** for each variable (one sentence a 15-year-old understands).
-- Research and script the **5 demo cases**: why should this trend exist, what's the cause, one
-  news article or paper per case. These become the guided walkthrough text.
-- Write the **AI prompts** (variable suggestions per region type, verdict explanations).
-- Be the **tester**: try the app as a student would; report confusing bits.
-- Own the **submission**: project page, slides, demo video, final presentation.
-- **Done when:** walkthrough texts are in `data/cases.yaml`, pitch is rehearsed.
+### Out of scope for the hackathon build
 
----
+- Global scans for opposite trends.
+- EOF/REOF/CEOF analysis.
+- Liang-Kleeman information-flow maps.
+- PCMCI+, regime discovery, or causal graphs.
+- Automated literature/news mining.
+- Live CUAHSI/HydroShare integration.
+- Claims that the tool proves what caused an observed trend.
 
-## Contracts (agree on these in the kickoff, then don't change them without telling everyone)
+These may appear in the roadmap, but never as implemented features unless actually built and
+validated.
 
-### A. Demo CSV: `data/demo/<case_id>.csv`
+## 3. User journey
+
+1. **Choose a question.** Example: "Is this region getting hotter?"
+2. **Choose a variable.** A card explains the quantity, source, units, resolution, coverage, and
+   what an increasing value means.
+3. **Choose a verified region.** The map displays the exact polygon or grid cell.
+4. **Inspect the evidence.** Toggle between raw monthly values and deseasonalized anomalies.
+5. **Read the result.** See the rate per decade, uncertainty interval, record length, missing-data
+   count, and a cautious conclusion.
+6. **Compare regions.** View the same variable with the same units, scale, period, and method.
+7. **Open the evidence drawer.** See provenance, transformations, method, and limitations.
+
+## 4. Four-person ownership
+
+The team works in parallel against contracts frozen in Hour 1. Person 2 is integration owner.
+
+### Person 1 - NASA data and provenance
+
+Owns product/variable audit, two region geometries, raw and cleaned demo data, processing
+provenance, `data/variables.yaml`, `data/cases.yaml`, `data/SOURCES.md`, and quality checks.
+
+- **Hour 4:** one variable, two regions, common period, exact product/version, units, sample
+  files, and quality rules approved.
+- **Hour 12:** final cleaned data, untouched raw downloads, provenance, and quality note.
+
+Stop rule: if provenance, coverage, units, or missing-value handling is unclear at Hour 4,
+replace the product or case immediately.
+
+### Person 2 - statistics, backend, and integration lead
+
+Owns the frozen API contract, mock JSON, preprocessing, trend inference, tests, API, integration,
+deployment, and method documentation.
+
+- **Hour 1:** `docs/mock_analyze.json` matching Contract C.
+- **Hour 8:** synthetic tests pass for zero, positive, negative, seasonal, autocorrelated, and
+  missing-value cases.
+- **Hour 18:** both real regional series return validated analysis JSON.
+- **Hour 24:** full application works end to end.
+
+### Person 3 - frontend and interaction
+
+Owns question/variable/region selection, map, raw/anomaly chart, trend and interval, evidence
+card, comparison, provenance drawer, error states, responsive layout, and keyboard access.
+
+Start against mock JSON immediately. Use React/Vite only if already comfortable with it;
+otherwise choose Streamlit during kickoff and do not revisit the decision.
+
+- **Hour 16:** complete journey works with mock data.
+- **Hour 24:** journey works with real backend results.
+- **Hour 30:** accessibility and error-state pass complete.
+
+### Person 4 - science editor, user testing, story, and submission
+
+Owns plain-language definitions, the guided investigation, claim-evidence ledger, scientific
+wording, user tests, project page, citations, AI disclosure, slides/video, and pitch.
+
+- **Hour 10:** glossary and first guided-case script.
+- **Hour 26:** user-test findings and revised interface copy.
+- **Hour 36:** submission and presentation material ready except final screenshots.
+
+## 5. Data plan
+
+### Preferred first source
+
+Start with NASA POWER because it can return analysis-ready monthly JSON or CSV without an
+Earthdata login. Confirm the selected parameter's current temporal availability in the POWER
+parameter dictionary before implementation.
+
+If MODIS, GPM, GLDAS, MERRA-2, OMI, or AIRS is essential, download and freeze the exact
+processed series before frontend integration. The judged demo must not depend on a NASA queue,
+authentication flow, or remote service remaining responsive.
+
+### Hour 4 data gate
+
+Approve the primary variable and two regions only when all are true:
+
+- Exact source, product ID, and version are known.
+- Units, fill values, and quality flags are understood.
+- Both regions use the same product and common period.
+- At least 10 years of monthly observations are available; longer is preferred.
+- Missingness is low and not concentrated in one season.
+- Each series passes a visual quality check.
+- The comparison is meaningful without a causal claim.
+
+Do not select a case because the desired trend direction sounds compelling. Select it only after
+the exact data and processing have been verified.
+
+### Required provenance
+
+Each series records source name/URL, product ID/version, variable ID/name/units, native spatial
+and temporal resolution, region geometry, aggregation method, coverage, download timestamp,
+fill values, quality filter, missing count, and every transformation.
+
+## 6. Scientific method
+
+### Preprocessing
+
+1. Convert documented fill values and failed quality flags to missing.
+2. Never convert missing observations to zero or silently interpolate long gaps.
+3. Compare regions only over their common period.
+4. For monthly data, subtract each calendar month's mean over the analysis period to form
+   deseasonalized anomalies.
+5. Preserve raw and anomaly series separately.
+6. Plot and inspect data before fitting; flag visible discontinuities.
+
+### Primary trend result
+
+Report slope in physical units per decade, 95% interval, record length, missing count, primary
+method, and assumptions.
+
+Preferred methods, in order:
+
+1. Block-bootstrap interval for a linear or Theil-Sen slope, with block length documented.
+2. OLS/GLS with an explicitly fitted autocorrelated error model.
+3. OLS slope with HAC/Newey-West uncertainty.
+
+Mann-Kendall is a secondary robustness check unless a seasonal/autocorrelation-aware version is
+implemented. Do not require two unrelated p-values to both cross 0.05 as an arbitrary verdict.
+
+### Evidence states
+
+- `clear_increase` / `clear_decrease`: the 95% interval excludes zero and diagnostics show no
+  serious failure.
+- `direction_uncertain`: the estimate has a direction, but the interval includes zero.
+- `no_clear_direction`: the estimate is near zero or too uncertain to support a direction.
+- `insufficient_data`: the method cannot be estimated safely.
+
+Never translate `p >= 0.05` into "no change exists." Never say an observed association proves a
+cause.
+
+### Optional detection horizon
+
+Only implement after the MVP is stable. Label it:
+
+> Estimated record length for detection if the current linear slope, variability,
+> autocorrelation, measurement system, and data quality remain unchanged. This is a planning
+> estimate, not a forecast.
+
+Hide it for near-zero slopes, short records, poor residual diagnostics, or discontinuities.
+
+### Required tests
+
+- Zero-trend series do not systematically produce significance.
+- Known positive and negative slopes are recovered within tolerance.
+- A seasonal cycle without trend is approximately flat after deseasonalization.
+- Autocorrelated noise produces wider uncertainty than independent noise.
+- Missing months neither crash analysis nor become zeroes.
+- Reversing region order does not change either result.
+- One real case matches an independently calculated reference.
+
+## 7. Frozen contracts
+
+Changing a contract requires notifying everyone and updating the mock fixture first.
+
+### Contract A - cleaned series
+
+`data/demo/<case_id>.csv`
+
 ```csv
-date,value
-2001-01,0.312
-2001-02,0.298
+date,value,quality
+2001-01-01,0.312,good
+2001-02-01,0.298,good
+2001-03-01,,missing
 ```
-- `date` = `YYYY-MM`, one row per month, no gaps if possible (leave `value` empty if missing).
-- `value` = regional (area-averaged) monthly value in the units listed in `variables.yaml`.
 
-### B. Variable catalogue: `data/variables.yaml`
+One row per month, oldest first. Units live in metadata and never vary within a file.
+
+### Contract B - metadata
+
+`data/variables.yaml`
+
 ```yaml
-- id: soil_moisture_root
-  name: Root-zone soil moisture
-  definition: How wet the soil is where plant roots grow (top ~1 m).
-  units: "fraction (0 = dry, 1 = saturated)"
-  source: GLDAS Noah (model)
-  dataset: GLDAS_NOAH025_M_2.1
-  category: water          # water | temperature | vegetation | air quality | atmosphere
-  good_for: [desert, farmland, river basin]
+- id: gwetroot
+  name: Root-zone soil wetness
+  definition: How wet the soil is through the depth used by most plant roots.
+  units: fraction
+  source_name: NASA POWER
+  product_id: VERIFIED_AT_HOUR_4
+  product_version: VERIFIED_AT_HOUR_4
+  native_spatial_resolution: VERIFIED_AT_HOUR_4
+  native_temporal_resolution: monthly
+  source_url: VERIFIED_AT_HOUR_4
 ```
 
-### C. Demo cases: `data/cases.yaml`
+`data/cases.yaml`
+
 ```yaml
-- id: lake_mead_soil
-  title: Is Lake Mead drying up?
-  variable: soil_moisture_root
-  region: { name: Lake Mead basin, bbox: [-116, 35, -113, 37.5] }   # [W, S, E, N]
-  csv: demo/lake_mead_soil.csv
-  steps:                    # guided walkthrough text, one screen each
-    - "Lake Mead supplies water to 25 million people..."
-    - "Let's look at soil moisture around it since 2001..."
-  compare_with: null        # or another case id
+- id: primary_region
+  title: Is this region becoming drier?
+  variable: gwetroot
+  region:
+    name: Region A
+    geometry: {}
+  csv: demo/primary_region.csv
+  compare_with: comparison_region
 ```
 
-### D. API: `POST /analyze` → JSON
+No `VERIFIED_AT_HOUR_4` placeholder may remain after the data gate.
+
+### Contract C - analysis response
+
+`POST /analyze`
+
 ```json
 {
-  "variable": "soil_moisture_root",
-  "region": "Lake Mead basin",
-  "units": "fraction",
-  "series":    { "dates": ["2001-01", "..."], "values": [0.31, "..."], "anomalies": [0.01, "..."] },
-  "trend_line":{ "values": ["..."], "ci_low": ["..."], "ci_high": ["..."] },
-  "stats": {
-    "slope_per_decade": -0.012, "slope_ci95": [-0.018, -0.006],
-    "total_change": -0.027, "percent_change": -8.7,
-    "p_value_ttest": 0.003, "p_value_mk": 0.004, "sens_slope_per_decade": -0.011,
-    "years_to_significance": null
+  "case_id": "primary_region",
+  "variable": {"id": "gwetroot", "name": "Root-zone soil wetness", "units": "fraction"},
+  "region": {"name": "Region A", "geometry": {}},
+  "period": {"start": "2001-01", "end": "2025-12", "months": 300, "missing": 0},
+  "series": {"dates": [], "raw": [], "anomaly": [], "trend": [], "ci_low": [], "ci_high": []},
+  "estimate": {
+    "slope_per_decade": -0.012,
+    "ci95": [-0.020, -0.004],
+    "primary_method": "block_bootstrap_linear_slope",
+    "secondary_check": {"method": "seasonal_mann_kendall", "p_value": 0.02}
   },
-  "verdict": { "level": "significant", "emoji": "🟢", "text": "Significant decrease..." }
+  "evidence": {
+    "level": "clear_decrease",
+    "plain_language": "This record shows clear evidence of a decrease over the selected period.",
+    "limitations": ["This is a linear summary and does not establish cause."]
+  },
+  "provenance": {}
 }
 ```
-Other endpoints: `GET /variables`, `GET /cases`, `POST /compare` (two regions → two results),
-`POST /suggest` (region type → suggested variables).
-Person 2 commits a `docs/mock_analyze.json` in this exact shape in hour 1 so Person 3 can start.
 
----
+The frontend accepts `null` for every statistic that cannot be estimated safely.
 
-## Timeline (Space Apps is a 48-hour hackathon; adjust if ours differs)
+Other MVP endpoints: `GET /variables`, `GET /cases`, and `POST /compare`. `POST /suggest` is
+stretch only.
 
-| When | Everyone | P1 Data | P2 Lead + Stats/API | P3 Frontend | P4 Story/Pitch |
-|---|---|---|---|---|---|
-| **0–2 h** Kickoff | Read README, agree contracts, React vs Streamlit, set up Git | Earthdata account | Mock JSON | Project skeleton | Pick final 5 demo cases |
-| **2–16 h** Build | | Demo CSVs | Stats module + tests | Map, chart, verdict card on mock data | Definitions, case research |
-| **16–28 h** Connect | Integration check-in | variables.yaml complete, start downloader | FastAPI endpoints | Connect to real API, compare view | Walkthrough texts, AI prompts |
-| **28–40 h** Features | | Downloader for any region (stretch) | AI suggest/explain, years-to-significance | Demo walkthrough player, glossary, polish | Test as a student, slides |
-| **40–48 h** Ship | **Feature freeze at 40 h.** Fix bugs only | Help test | Deploy | Final UI polish | Video, submission, rehearse |
+## 8. Schedule and gates
 
-**Check-ins:** 10-minute stand-up every ~6 hours: what I finished, what I'm doing next, what blocks me.
+| Hours | Team outcome | Stop/go rule |
+|---|---|---|
+| 0-2 | Freeze audience, MVP, schema, and React/Streamlit choice | No advanced-method work after kickoff |
+| 2-4 | Audit one source, variable, and two regions | Replace anything with unclear provenance or coverage |
+| 4-8 | Build one end-to-end slice; tests; frontend on mocks | No second variable before one result works |
+| 8-12 | Freeze data/metadata; implement primary method | Simplify method or replace case if diagnostics fail |
+| 12-18 | Complete backend/tests and frontend journey on mocks | No AI, CUAHSI, or causal features |
+| 18-24 | Connect real results; comparison and evidence drawer | Stable end-to-end demo required by Hour 24 |
+| 24-30 | Guided case, accessibility, error states, user testing | MVP complete by Hour 30 |
+| 30-36 | Fix findings; complete project page, video, and pitch | Feature freeze at Hour 36 |
+| 36-42 | Deployment rehearsal, offline backup, final capture | Bug fixes only |
+| 42-48 | Submit early, verify public links, rehearse | No science change without rerunning tests |
 
-## Rules that keep a 4-person team fast
-1. **Work in your own folder** (`data/`, `backend/`, `frontend/`, `docs/`) → almost no Git conflicts.
-2. **Pull before you start, push small and often** (`git pull` then `git push` to `main`).
-3. **Never break the demo.** If something works, commit it before trying the next thing.
-4. **Contracts are sacred.** Changing a JSON field or CSV column? Tell the team first.
-5. **Cut scope, not quality.** If short on time, drop in this order: any-region downloader →
-   AI suggestions → glossary page. **Never drop:** demo cases, chart, verdict card, compare view.
+Ten-minute check-in at Hours 4, 8, 12, 18, 24, 30, and 36: finished, next, blocked, and whether
+a stop rule has fired.
 
-## Minimum winning product (must work by hour 40)
-- [ ] 5 demo cases with real NASA data
-- [ ] Chart with trend line + confidence band + seasons-removed toggle
-- [ ] Verdict card: rate per decade, total change, p-value, plain-language verdict
-- [ ] Compare two regions side by side
-- [ ] Guided walkthrough for at least one case
-- [ ] Plain definitions for every variable
+## 9. Judging strategy
+
+- **Impact:** show that a student can reach a defensible result without knowing NASA product
+  codes; use observed user-test results.
+- **Creativity:** emphasize the guided evidence workflow, not AI.
+- **Validity:** expose provenance, assumptions, uncertainty, tests, and limitations.
+- **Relevance:** mirror the challenge on screen: select, acquire, visualize, analyze.
+- **Presentation:** show one complete investigation, not a tour of roadmap features.
+
+## 10. Three-minute demo
+
+1. **0:00-0:20:** NASA has many Earth variables, but students do not know what to choose or how
+   to judge a trend.
+2. **0:20-0:40:** Hyperion turns a plain-language question into a transparent investigation.
+3. **0:40-1:45:** choose the primary case; show map, raw series, anomalies, rate, interval, and
+   evidence statement.
+4. **1:45-2:15:** compare the second region without making a causal claim.
+5. **2:15-2:40:** open provenance/method details and mention tests.
+6. **2:40-3:00:** explain educational value; identify arbitrary regions or causal discovery only
+   as future work.
+
+## 11. Claim-evidence ledger
+
+| Claim | Required evidence | Allowed wording |
+|---|---|---|
+| The record increased/decreased | Slope and 95% interval from frozen data | "The record shows..." |
+| Regional estimates differ | Same product, period, units, and aggregation | "The estimated trends differ..." |
+| A process caused the difference | Not established by this MVP | Do not claim |
+| Students can use the tool | Observed user test | "In a small test, X/Y users completed..." |
+| Data are NASA-derived | Exact product metadata and URL | Name the source and product |
+
+## 12. Final ship checklist
+
+- [ ] Primary case works from first click to conclusion.
+- [ ] Comparison uses the same variable, units, period, and method.
+- [ ] Source, product, version, units, geometry, period, and processing are visible.
+- [ ] Missing values and quality flags are handled explicitly.
+- [ ] Seasonality and serial dependence are addressed.
+- [ ] The uncertainty interval is visible; the result is not reduced to a p-value.
+- [ ] No observational association is labeled as proven causation.
+- [ ] No detection-horizon value is presented as exact.
+- [ ] Synthetic and reference tests pass.
+- [ ] Public demo and repository work without requesting access.
+- [ ] AI use and third-party resources are disclosed.
+- [ ] Local/offline backup works.
+- [ ] Submission is complete before the local deadline.

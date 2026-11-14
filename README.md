@@ -2,7 +2,9 @@
 
 **NASA Space Apps Challenge**, *Be An Earth System Trend Detective!*
 
-> 👥 **Team members: start with [docs/TEAM_PLAN.md](docs/TEAM_PLAN.md)** to see who does what.
+> 👥 **Team members: start with [docs/TEAM_PLAN.md](docs/TEAM_PLAN.md).** It is the
+> authoritative 48-hour plan, including scope, contracts, scientific guardrails, ownership,
+> and stop/go gates.
 
 ---
 
@@ -20,40 +22,34 @@ whether something on Earth is changing.** The tool must answer four questions:
 | **What** is changing? | Soil moisture |
 | **Where**? | Around Lake Mead, USA |
 | **How much**? | −4% per decade, −9% since 2003 |
-| **Is it real or just noise?** | Yes, statistically significant (p = 0.003) |
+| **How strong is the evidence?** | Clear decrease; the 95% interval excludes zero |
 
 The last question is the key one. Data goes up and down naturally: wet years, dry years, seasons.
-A **trend** is a steady drift underneath all that wobble. A **significance test** tells us whether
-the drift is strong enough that it's very unlikely to be random chance.
+A **trend** is a steady drift underneath all that wobble. Hyperion reports the estimated rate and
+its uncertainty, while making the method, data source, and limitations visible.
 
 ### Two tricky points the challenge highlights
-1. **Too many variables.** Users don't know what to look at, so the tool *suggests* variables that
-   fit the place they pick.
-2. **The same cause can push in opposite directions in different places.** Climate change makes
-   some regions wetter and others drier. So the tool lets users **compare regions side by side**.
+1. **Too many variables.** Users don't know what to look at, so the MVP guides them through a
+   small, verified catalogue with plain-language explanations.
+2. **The same variable can behave differently in different places.** The tool lets users compare
+   two regions side by side without claiming that trend analysis alone establishes a cause.
 
 ---
 
 ## How the finished product works: a user's journey
 
-1. **Pick a place.** Click the Amazon on a world map, or choose "rain forest" from a list.
-2. **Get suggestions.** *"In rain forests, scientists often watch vegetation greenness (NDVI),
-   surface temperature and rainfall. Deforestation makes greenness drop and temperature rise."*
-   Every variable has a one-line plain definition.
-3. **See the data.** Pick "vegetation greenness". A chart shows monthly values from 2000 to today.
-   A toggle removes the seasonal up-and-down so the long-term drift is easier to see.
-4. **Get the verdict.** A trend line with a shaded uncertainty band appears, plus a **verdict card**:
-   > 🟢 **Significant decrease.** Greenness dropped 6% per decade (2000–2025). There's less than a
-   > 1% chance this is random. Likely cause: forest cleared for farming.
-
-   If the trend is weak: ⚪ *"No clear trend yet. At this rate, about 8 more years of data would be
-   needed to be sure."*
+1. **Pick a place.** Choose one of the verified regions and see its exact geometry on the map.
+2. **Understand the variable.** Every curated variable has a plain definition, units, exact NASA
+   source, resolution, coverage, and an explanation of what increasing values mean.
+3. **See the data.** A chart shows the verified monthly record. A toggle removes the seasonal
+   up-and-down so the long-term drift is easier to see.
+4. **Read the evidence.** A trend line with a shaded uncertainty band appears, plus an evidence
+   card stating the rate per decade, interval, record length, missing observations, and a cautious
+   interpretation. The tool never turns a non-significant result into "no change exists" and never
+   presents a cause as proven by a trend line.
 5. **Compare.** Add a second region and see the same variable rising there while it falls here.
-6. **Learn by watching.** First-time users can play **demo cases**, guided walkthroughs like
-   *"Is Lake Mead drying up?"* or *"Beijing vs. Delhi air pollution"*, that show a detective
-   investigation step by step.
-
-Verdict badges: 🟢 significant (p < 0.05) · 🟡 suggestive (p < 0.10) · ⚪ no clear trend.
+6. **Learn by watching.** First-time users can play one polished guided investigation that shows
+   the complete evidence workflow step by step.
 
 ---
 
@@ -66,34 +62,31 @@ NASA data (MERRA-2, GLDAS, MODIS, GPM, OMI, AIRS)
 Backend (Python)
   • cuts out the selected region and averages it → one number per month
   • removes the seasonal cycle
-  • statistics: trend line + t-test, Mann-Kendall test, Sen's slope, confidence interval,
-    "years until significant"
+  • statistics: trend rate + dependence-aware uncertainty interval; optional robustness check
         ▼
 Frontend (website)
   • map to pick a region • charts • verdict card • compare view • demos • glossary
         ▲
-AI (Claude): only suggests variables and explains results in plain language.
-             It never invents numbers; all statistics come from real computation.
+Optional AI: may help rephrase approved text after the MVP is stable.
+             It never generates data, statistics, causes, or scientific conclusions.
 ```
 
 The data is **pre-downloaded** so the live demo in front of the judges never depends on NASA's
 servers being fast or online.
 
 ### Statistics in one paragraph
-For a region we average the data per month (weighted by area). We subtract the average value for
-each calendar month to remove the seasons, leaving **anomalies**. A straight line fitted to the
-anomalies gives the **rate of change**; a **t-test** and **95% confidence interval** show how sure
-we are. The **Mann-Kendall test** checks for a steady rise or fall without assuming a bell-curve,
-and **Sen's slope** gives a robust rate. We correct for the fact that one month is similar to the
-next (autocorrelation), which would otherwise make trends look more certain than they are.
+For a region we average the data per month using a documented spatial rule. We subtract each
+calendar month's average to form **anomalies**. A fitted line estimates the rate of change. A
+block bootstrap, autocorrelated-error model, or HAC method provides the 95% interval because
+neighboring months are not independent. A seasonal/autocorrelation-aware Mann-Kendall test may
+be shown as a secondary robustness check.
 
 ---
 
 ## Why this design can win
 - Covers **all four official objectives**: choose a variable, get regional data, plot it, test the trend.
-- Covers every **optional extra** the judges listed: guided questions, simple definitions, demo
-  walkthroughs, AI suggestions, opposite regional trends.
-- **Original twist:** the "years until significant" estimate.
+- Adds a guided, provenance-first workflow with plain definitions and a regional comparison.
+- Makes uncertainty and scientific limitations visible instead of hiding them behind a badge.
 - Built for the stated audience: the "detective case file" style turns statistics into a mystery
   to solve.
 
