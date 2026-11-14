@@ -150,6 +150,15 @@ def test_too_short_record_is_insufficient():
     json.dumps(r)
 
 
+def test_eight_year_record_is_insufficient():
+    r = analyze(make_series(1.0, noise=0.1, months=96))  # 8 years, even with a strong trend
+    assert r["verdict"] == "insufficient" and r["slope_per_decade"] is None
+
+
+def test_ten_year_record_gets_a_verdict():
+    assert analyze(make_series(1.0, noise=0.1, months=121))["verdict"] == "significant"
+
+
 def test_mostly_missing_record_is_insufficient():
     df = make_series(0.5)
     df.loc[20:, "value"] = np.nan
