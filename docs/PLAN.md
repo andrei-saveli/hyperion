@@ -65,7 +65,7 @@ All 4 people start at **hour 0** and never wait for each other. Three tricks mak
 
 Each person owns **different files**, so Git conflicts are rare.
 
-### Starting places (fixed now, Person 3 adds more later)
+### Starting places (fixed now, Person 3 adds more later; full format in HANDSHAKES.md H0)
 ```csv
 id,name,lat,lon,type,story
 lake_mead,Lake Mead (USA),36.1,-114.7,desert,Is the desert around Lake Mead drying out?
@@ -73,21 +73,19 @@ niamey,"Niamey, Sahel (Niger)",13.5,2.1,savanna,Is the Sahel getting more or les
 svalbard,Svalbard (Arctic),78.2,15.6,polar,Is the Arctic warming?
 ```
 
-### Shared building blocks (agree at kickoff, then don't change)
+### Shared building blocks: see [HANDSHAKES.md](HANDSHAKES.md)
+The exact shapes of everything passed between people, with **copy-paste fakes** so you can start
+before the real part exists. Read your section at the kickoff.
 
-| File | Owner | Function | Gives back |
-|---|---|---|---|
-| `data_io.py` | P2 | `load_places()` · `load_variables()` · `load_series(place_id, code)` | tables (`load_series` → columns `date`, `value`) |
-| `stats.py` | P4 | `analyze(df)` | dict: `slope_per_decade`, `ci_low`, `ci_high`, `p_value`, `mk_p_value`, `total_change`, `verdict` (`significant`/`possible`/`none`), `emoji`, `trend`, `band_low`, `band_high` |
-| `explain.py` | P3 | `explain(result, variable, place)` | plain-language text: headline sentence + "what does this mean?" |
-| `search.py` | P3 | `search(text)` | list of suggested `(place_id, variable_code, reason)` |
-| `charts.py` | P1 | `trend_chart(df, result, remove_seasons)` | a Plotly chart |
-
-### Data files
-- `data/<place>_<variable>.csv` with columns `date,value` (e.g. `2001-01-01,6.49`; empty = missing)
-- `data/places.csv`: `id,name,lat,lon,type,story`
-- `data/variables.csv`: `code,name,units,definition,keywords` for `T2M`, `PRECTOTCORR`,
-  `GWETROOT`, `RH2M` (`keywords` help the search, e.g. `hot warm heat temperature`)
+| # | Handshake | Giver → Receivers |
+|---|---|---|
+| H0 | `data/places.csv`, `data/variables.csv` | P3 → everyone |
+| H1 | Series CSVs + `data_io.py` (`load_places`, `load_variables`, `load_series`) | P2 → everyone |
+| H2 | `stats.py` `analyze(df)` → result dict | P4 → P1, P3 |
+| H3 | `explain.py` `explain(result, variable, place)` → headline, details, caveat | P3 → P1 |
+| H4 | `search.py` `search(text)` → up to 5 suggestions | P3 → P1 |
+| H5 | `charts.py` `trend_chart(df, result, remove_seasons)` → chart | P1 → P3 |
+| H6 | The whole app runs from a clean install | everyone → P4 |
 
 ## Tasks per person
 
