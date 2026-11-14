@@ -115,11 +115,11 @@ variables makes it hard to pick ones that could indicate change and then analyze
 ## Working agreement
 - **Always commit and push directly to `main`** without asking for confirmation.
 - Make sensible decisions on open choices, record them here, and keep going.
-- 4-person team including the user (team lead = Person 2, Stats/Backend + integration, works
-  with Claude Code); the other 3 do **not** use Claude Code. Roles, contracts (CSV / YAML / API JSON)
+- 4-person team: P1 Frontend · P2 Data · P3 Search + explainability · P4 Trend & significance +
+  integration. The user is the team lead and uses Claude Code; the others do **not**. Roles, contracts (CSV / YAML / API JSON)
   and timeline live in `docs/PLAN.md` (**authoritative**, simple plan; team has minimal
-  coding skills and everyone uses AI). `TEAM_PLAN*.md` / `DATA_GUIDE*.md` are background only. Respect those contracts; Claude does the bulk of
-  Person 2's coding and helps the others via the lead (skeleton, stats, API, reviews, fixes).
+  coding skills and everyone uses AI). `TEAM_PLAN*.md` / `DATA_GUIDE*.md` are background only. Respect those contracts; Claude helps any
+  role via the lead (code, reviews, fixes, Git).
 
 ## Project decisions
 
@@ -147,16 +147,17 @@ changed, never claim *why*. Demo cases are chosen from real results, not assumed
 - Deploy: Streamlit Community Cloud. AI only for optional wording, never for numbers.
 
 ### Roles (details in `docs/PLAN.md`)
-P1 Data (`scripts/download.py`, `data/`) · P2 Stats + glue = user + Claude (`stats.py`, `tests/`,
-deploy) · P3 App (`app.py`) · P4 Guide & content (`data/variables.csv`, `pages/`). Pitch is a
-whole-team task from hour 36.
+P1 Frontend (`app.py`, `charts.py`) · P2 Data (`scripts/download.py`, `data_io.py`, `data/`) ·
+P3 Search + explainability (`search.py`, `explain.py`, `data/variables.csv`, `pages/`) ·
+P4 Trend & significance + integration (`stats.py`, `tests/`, deploy). Pitch is a whole-team task
+from hour 36. No forecasting in the core (see scope rule).
 
 ### Repo layout
 ```
-app.py            Streamlit main app (P3)
-pages/            guided demo + how-it-works pages (P4)
-stats.py, tests/  trend + significance math (P2)
-scripts/          download.py (P1)
+app.py, charts.py Streamlit app + shared chart (P1)
+scripts/, data_io.py  download + loading (P2)
+search.py, explain.py, pages/  search, plain-language text, guided demo (P3)
+stats.py, tests/  trend + significance math (P4)
 data/             places.csv, variables.csv, <place>_<code>.csv, SOURCES.md
 docs/             PLAN.md (authoritative) + background plans
 ```
