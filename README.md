@@ -2,6 +2,8 @@
 
 **NASA Space Apps Challenge**, *Be An Earth System Trend Detective!*
 
+> 🧭 **New here (person or AI chat)? Read [docs/HANDOVER.md](docs/HANDOVER.md) first.**
+>
 > 🚀 **Team members:** read [docs/PLAN.md](docs/PLAN.md) (who does what, when) and
 > [docs/HANDSHAKES.md](docs/HANDSHAKES.md) (how our parts fit together).
 > 🤖 **AI coding agents:** read [AGENTS.md](AGENTS.md) first.
