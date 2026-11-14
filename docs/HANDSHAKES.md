@@ -42,33 +42,41 @@ shape."* If everyone keeps their handshakes, the parts click together at each sy
 
 ### `data/places.csv`
 ```csv
-id,name,lat,lon,type,story
-lake_mead,Lake Mead (USA),36.1,-114.7,desert,Is the desert around Lake Mead drying out?
-niamey,"Niamey, Sahel (Niger)",13.5,2.1,savanna,Is the Sahel getting more or less rain?
-svalbard,Svalbard (Arctic),78.2,15.6,polar,Is the Arctic warming?
+id,name,lat,lon,west,south,east,north,type,story
+lake_mead,Lake Mead (USA),36.25,-114.5,-116,35,-113,37.5,desert,Is the desert around Lake Mead drying out?
+niamey,"Niamey, Sahel (Niger)",13.5,2.0,1.0,12.5,3.0,14.5,savanna,Is the Sahel getting more or less rain?
+svalbard,Svalbard (Arctic),78.25,15.5,14.0,77.5,17.0,79.0,polar,Is the Arctic warming?
 ```
 | Column | Rule |
 |---|---|
 | `id` | lowercase letters, digits, `_`; unique; never renamed once used (it's in file names) |
 | `name` | what users see |
-| `lat`, `lon` | decimal degrees, lat −90…90, lon −180…180 |
+| `lat`, `lon` | **centre of the box**, decimal degrees (used for the map) |
+| `west`, `south`, `east`, `north` | **the box** Giovanni averages over (degrees, west < east, south < north, about 1°–3° wide). Same box for every variable of a place |
 | `type` | one of: `desert` `polar` `savanna` `city` `forest` `coast` `mountain` `farmland` |
 | `story` | one question a student would ask, ending in `?` |
 
 ### `data/variables.csv`
 ```csv
-code,name,units,definition,keywords
-T2M,Air temperature,°C,How warm the air is 2 metres above the ground.,temperature hot warm cold heat warming cooling climate
-PRECTOTCORR,Rainfall,mm/day,Average amount of rain and snow that falls per day.,rain rainfall precipitation wet dry drought storm snow
-GWETROOT,Soil wetness,0-1,How wet the soil is where plant roots grow (0 = completely dry; 1 = soaked).,soil drought dry wet farming plants roots desert
-RH2M,Humidity,%,How much water vapour is in the air compared with the most it could hold.,humidity humid moist muggy air water vapour dry
+code,name,units,definition,keywords,source
+TEMP,Air temperature,°C,How warm the air is 2 metres above the ground.,temperature hot warm cold heat warming cooling climate,M2IMNXASM_5_12_4_T2M
+RAIN,Rainfall,mm/day,Average amount of rain and snow that falls per day.,rain rainfall precipitation wet dry drought storm snow,GPM_3IMERGM_07_precipitation
+SOILM,Soil moisture,kg/m²,How much water the soil holds where plant roots grow (1 kg/m² = 1 mm of water).,soil moisture drought dry drying wet farming plants roots desert,GLDAS_NOAH025_M_2_1_RootMoist_inst
+EVAP,Evaporation,mm/day,How much water goes from the ground and plants into the air each day.,evaporation evapotranspiration water loss dry drying plants heat,GLDAS_NOAH025_M_2_1_Evap_tavg
+NO2,Air pollution (NO₂),10¹⁵ molecules/cm²,How much nitrogen dioxide gas is in the air above the ground; it comes mostly from burning fuel.,pollution air quality smog no2 nitrogen dioxide traffic city,OMNO2d_003_ColumnAmountNO2TropCloudScreened
 ```
 | Column | Rule |
 |---|---|
-| `code` | exactly the NASA POWER parameter name (it's in file names) |
-| `units` | exactly as shown in the app |
+| `code` | **our short code**: CAPITALS/digits, e.g. `TEMP` (it's in file names) |
+| `name` | what users see |
+| `units` | exactly as shown in the app (the cleaned data is already in these units) |
 | `definition` | one sentence a 15-year-old understands |
 | `keywords` | lowercase words separated by spaces, used by `search()` |
+| `source` | the exact **Giovanni variable name** the data comes from |
+
+Data source: **NASA Giovanni** area-averaged monthly time series (see
+[PERSON_2_DATA_GIOVANNI_HANDOVER.md](PERSON_2_DATA_GIOVANNI_HANDOVER.md)); NASA POWER is only a
+fallback. NO₂ (OMI) starts in late 2004, so its earlier months are empty.
 
 ---
 
@@ -84,13 +92,13 @@ date,value
 - One file for **every** place × variable.
 - `date`: first day of the month, `YYYY-MM-DD`. One row per month, **2001-01 to 2024-12 (288 rows)**,
   oldest first, no duplicates, no skipped months.
-- `value`: a number in the units from `variables.csv`, or **empty if missing**. Never `0`, `-999`
+- `value`: a number in the units from `variables.csv` (already converted, e.g. K → °C), or **empty if missing**. Never `0`, `-999`
   or `NaN` text for missing.
 
 ### `data_io.py`
 ```python
-load_places()  -> DataFrame   # columns: id, name, lat, lon, type, story
-load_variables() -> DataFrame # columns: code, name, units, definition, keywords
+load_places()  -> DataFrame   # columns: id, name, lat, lon, west, south, east, north, type, story
+load_variables() -> DataFrame # columns: code, name, units, definition, keywords, source
 load_series(place_id: str, code: str) -> DataFrame
     # columns: date (datetime), value (float, NaN = missing); sorted oldest first
     # raises FileNotFoundError if that file doesn't exist
@@ -102,13 +110,16 @@ import numpy as np, pandas as pd
 
 def load_places():
     return pd.DataFrame([
-        {"id": "lake_mead", "name": "Lake Mead (USA)", "lat": 36.1, "lon": -114.7, "type": "desert", "story": "Is the desert around Lake Mead drying out?"},
-        {"id": "svalbard", "name": "Svalbard (Arctic)", "lat": 78.2, "lon": 15.6, "type": "polar", "story": "Is the Arctic warming?"},
+        {"id": "lake_mead", "name": "Lake Mead (USA)", "lat": 36.25, "lon": -114.5, "west": -116, "south": 35, "east": -113, "north": 37.5,
+         "type": "desert", "story": "Is the desert around Lake Mead drying out?"},
+        {"id": "svalbard", "name": "Svalbard (Arctic)", "lat": 78.25, "lon": 15.5, "west": 14.0, "south": 77.5, "east": 17.0, "north": 79.0,
+         "type": "polar", "story": "Is the Arctic warming?"},
     ])
 
 def load_variables():
-    return pd.DataFrame([{"code": "T2M", "name": "Air temperature", "units": "°C",
-                          "definition": "How warm the air is 2 metres above the ground.", "keywords": "temperature hot warm"}])
+    return pd.DataFrame([{"code": "TEMP", "name": "Air temperature", "units": "°C",
+                          "definition": "How warm the air is 2 metres above the ground.", "keywords": "temperature hot warm",
+                          "source": "M2IMNXASM_5_12_4_T2M"}])
 
 def load_series(place_id, code):
     dates = pd.date_range("2001-01-01", "2024-12-01", freq="MS")
@@ -169,8 +180,8 @@ def analyze(df):
 ```python
 explain(result: dict, variable: dict, place: dict) -> dict
 # result   = output of analyze()
-# variable = one row of load_variables() as a dict (code, name, units, definition, keywords)
-# place    = one row of load_places() as a dict (id, name, lat, lon, type, story)
+# variable = one row of load_variables() as a dict (code, name, units, definition, keywords, source)
+# place    = one row of load_places() as a dict (id, name, lat, lon, west, south, east, north, type, story)
 ```
 Returns:
 ```python
@@ -199,7 +210,7 @@ def explain(result, variable, place):
 
 ```python
 search(text: str) -> list[dict]
-# each: {"place_id": "lake_mead", "code": "GWETROOT", "reason": "desert + 'dry' → soil wetness", "score": 2}
+# each: {"place_id": "lake_mead", "code": "SOILM", "reason": "desert + 'dry' → soil moisture", "score": 2}
 ```
 - Best match first, **at most 5** results. Empty or unknown text → `[]`. Never crashes.
 - Only suggests places and variables that exist in `places.csv` / `variables.csv`.
@@ -207,7 +218,7 @@ search(text: str) -> list[dict]
 **Fake (for P1 until H4 is ready):**
 ```python
 def search(text):
-    return [{"place_id": "lake_mead", "code": "T2M", "reason": "FAKE suggestion", "score": 1}] if text else []
+    return [{"place_id": "lake_mead", "code": "TEMP", "reason": "FAKE suggestion", "score": 1}] if text else []
 ```
 
 ---
@@ -231,7 +242,7 @@ trend_chart(df, result, remove_seasons: bool = True, title: str = "") -> plotly 
 | File | Owner |
 |---|---|
 | `app.py`, `charts.py` | P1 |
-| `scripts/download.py`, `data_io.py`, `data/*_*.csv`, `data/SOURCES.md` | P2 |
+| `scripts/download_giovanni.py`, `scripts/convert_giovanni.py`, `data_io.py`, `data/raw/`, `data/*_*.csv`, `data/SOURCES.md` | P2 |
 | `data/places.csv`, `data/variables.csv`, `search.py`, `explain.py`, `pages/` | P3 |
 | `stats.py`, `tests/`, `requirements.txt`, deployment | P4 |
 

@@ -49,7 +49,7 @@ We say **what** changed, never claim **why**: a trend line can't prove a cause.
 ## Under the hood
 
 ```
-NASA POWER (NASA MERRA-2 model + satellite data, monthly, no login)
+NASA Giovanni (MERRA-2, GPM, GLDAS, OMI: monthly averages over a box per place)
         │  downloaded ahead of time and saved as CSV files
         ▼
 stats.py   remove the seasons → straight-line trend → 95% interval + t-test, Mann-Kendall
@@ -89,5 +89,6 @@ data/                places, variables, monthly CSVs, sources
 ```
 
 ## Data sources
-Main source: [NASA POWER](https://power.larc.nasa.gov). Other NASA and partner resources from the
+Main source: [NASA Giovanni](https://giovanni.gsfc.nasa.gov) (fallback: [NASA POWER](https://power.larc.nasa.gov)).
+Other NASA and partner resources from the
 challenge are listed in [AGENTS.md](AGENTS.md#resources).

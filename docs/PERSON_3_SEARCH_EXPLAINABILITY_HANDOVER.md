@@ -22,7 +22,7 @@ a handshake without the team agreement required by `HANDSHAKES.md`.
 
 Build **Searchlight**, the part of Hyperion that helps a student:
 
-1. find a relevant place and NASA POWER variable from a simple question;
+1. find a relevant place and NASA variable from a simple question;
 2. understand why that suggestion matched;
 3. understand Person 4's computed result in plain language;
 4. learn what trends, seasons, uncertainty, and significance mean;
@@ -61,26 +61,28 @@ CSV and Python-function handshakes.
 `data/places.csv`:
 
 ```text
-id,name,lat,lon,type,story
+id,name,lat,lon,west,south,east,north,type,story
 ```
 
 - `id`: lowercase letters, digits, `_`; unique and never renamed after use.
-- Coordinates must be valid.
+- `west,south,east,north`: the box Giovanni averages over (about 1°–3°, on land); `lat,lon`: its centre.
 - `type`: `desert`, `polar`, `savanna`, `city`, `forest`, `coast`, `mountain`, or `farmland`.
 - `story`: one student-friendly question ending in `?`.
 
 `data/variables.csv`:
 
 ```text
-code,name,units,definition,keywords
+code,name,units,definition,keywords,source
 ```
 
-- `code`: exact NASA POWER parameter name.
+- `code`: our short code (CAPITALS), e.g. `TEMP`.
+- `source`: the exact Giovanni variable name (see the Data handover).
 - `units`: exact display unit shared with P1 and P4.
 - `definition`: one sentence understandable to a 15-year-old.
 - `keywords`: lowercase, space-separated search words.
 
-MVP variables are `T2M` (°C), `PRECTOTCORR` (mm/day), `GWETROOT` (0-1), and `RH2M` (%).
+MVP variables are `TEMP` (°C), `RAIN` (mm/day), `SOILM` (kg/m²), `EVAP` (mm/day) and `NO2`
+(10¹⁵ molecules/cm²). Exact rows: `docs/HANDSHAKES.md` H0.
 Do not add a variable unless P2 confirms download support and P4 confirms compatibility.
 
 ### H3: explanation
@@ -113,7 +115,7 @@ def search(text: str) -> list[dict]:
 Each item is:
 
 ```python
-{"place_id": "lake_mead", "code": "GWETROOT", "reason": "desert + dry -> soil wetness", "score": 2}
+{"place_id": "lake_mead", "code": "SOILM", "reason": "desert + dry -> soil moisture", "score": 2}
 ```
 
 Best match first, at most five. Empty/unknown input returns `[]`. Return only H0 IDs and codes.
@@ -132,7 +134,7 @@ Do not copy chart logic into the guided page.
 
 ### Hours 0.5-6
 
-1. Create four `variables.csv` rows with exact codes, units, definitions, and useful keywords.
+1. Check/improve the five `variables.csv` rows in H0 (definitions and keywords).
 2. Preserve the three starting places in `PLAN.md`.
 3. Research five additional locations of different allowed types.
 4. Note two promising comparison pairs, but do not claim their trend direction before P4's
@@ -145,7 +147,7 @@ Use simple word matching, not AI or live web search:
 
 1. Lowercase and remove punctuation.
 2. Match approved variants such as `dry/drying/drought`, `hot/warm/warming`,
-   `rain/rainfall/wet`, and `humid/humidity`.
+   `rain/rainfall/wet`, `pollution/smog/air`, and `evaporation/evaporate`.
 3. Score place names, place types, variable names/codes, keywords, and story words.
 4. Produce only valid place-variable combinations.
 5. Include a short reason naming the match.
@@ -158,7 +160,7 @@ is a ranking aid, never a probability or scientific confidence.
 ### Search checks
 
 - `search("") == []`; nonsense also returns `[]`.
-- `search("is the desert drying")` places a desert + `GWETROOT` suggestion near the top.
+- `search("is the desert drying")` places a desert + `SOILM` suggestion near the top.
 - Every result references H0 and has a non-empty reason.
 - Results are deterministic and never exceed five.
 - Search never claims the place actually has the expected trend.
