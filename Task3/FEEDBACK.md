@@ -1,124 +1,84 @@
 # Feedback on Task 3 (Search + explainability)
 
-Review by the team lead, based on testing everything in this folder against the real data from
-`Task2/` and the trend analysis from `Task4/`. Nothing in Task 3 was changed.
+Reviews by the team lead. Everything was tested against the real data (`Task2/`) and the trend
+analysis (`Task4/`). Nothing in Task 3 was changed; tests ran on a separate copy.
 
-**Summary:** `explain.py` works and is safe. **Search doesn't work yet** (it returns nothing for every
-question), and three deliverables are missing. Priorities are at the bottom.
-
-You can check your progress any time with the automatic checker (from the repository root):
+Check your progress any time from the repository root:
 ```bash
 python Task4/scripts/check_handshakes.py
 ```
-Task 3 is done when it prints **ALL GOOD** (right now it shows 4 ❌, all for search).
 
 ---
 
-## ✅ `explain.py` (H3): works and is safe
+## Round 2 (after commits 928dd8b → fe53114)
 
-Tested on all 12 real results plus edge cases (not enough data, missing numbers, empty input):
-no crashes, and it follows our rules:
-- never claims a cause ("Identifying the cause requires a separate investigation")
-- never says "no change" (⚪ becomes "No clear trend… leaves the direction uncertain")
-- says a straight line is a summary
+**Summary:** big step forward. The explanations and both teaching pages are now very good. The
+one serious problem left: **search returns nothing unless the AI model is built by hand first.**
 
-Example (🟢 Lake Mead, air temperature):
-> **Clear increase**: The best estimate for air temperature in Lake Mead (USA) points upward.
-> The trend test shows clear evidence of this direction over the analysis period.
+### ✅ Explanations (`explain.py`): excellent
+Every point from round 1 is fixed. Tested on all 12 real results plus a too-short record:
+- Headlines say what, where and how much:
+  > *Evaporation in Niamey, Sahel (Niger) · Possible increase (+0.0477 mm/day per decade)*
+- The details teach in plain words: what the 95% range and the p-value mean, and when the range
+  includes zero.
+- They use the extra fields: "about 2 more years of data could be enough… This is a planning
+  estimate", the low-reliability caution, and the percent change.
+- No cause claims and never "no change": checked across all 12 texts.
 
-### What to improve
-1. **The headline is vague on its own.** "Clear increase" doesn't say *what*, *where* or *how much*.
-   Handshake H3's example is:
-   > *"Svalbard's air got warmer: +0.65 °C per decade, a significant increase."*
+### ✅ Pages: both work
+- `pages/1_Guided_demo.py`: 3 steps (Lake Mead temperature 🟢 → Niamey evaporation 🟡 →
+  temperature in both places) with working Back/Next buttons.
+- `pages/2_How_it_works.py`: clear explanation of the method.
+- Both open without errors inside the combined project (`Task4/scripts/combine.py`).
 
-   This matters most in the compare tab, where two cards sit side by side. Use `place["name"]`,
-   `variable["name"]`, `variable["units"]` and `result["slope_per_decade"]` (round to 2–3 significant
-   digits; it can be `None`).
-2. **"Details" should teach.** H3 asks it to explain what the rate, the shaded band and the p-value
-   mean *for this result*. Right now it has no numbers and uses jargon ("rate interval", "analysis
-   period") that a 15-year-old won't follow. For example:
-   > *"Over 2001–2024 the air warmed by about 0.38 °C every 10 years (0.9 °C in total). The true
-   > rate is most likely between 0.08 and 0.68 °C per decade. A p-value of 0.014 means a trend this
-   > strong would be very unlikely if nothing were really changing."*
-3. **Use the helpful extra fields from `analyze()`** (all can be `None`; see H2 in
-   `docs/HANDSHAKES.md`):
-   - `years_to_significance` (🟡/⚪): *"If nothing changes, about 2 more years of data would make
-     this trend significant."* This is the challenge's own point that "sometimes all a trend needs
-     is a longer record". Say it's an estimate, not a forecast.
-   - `percent_change`: *"−9.3% since 2001"* (only rainfall, soil moisture, evaporation)
-   - `reliability` / `reliability_note`: when `"low"`, add the caution (affects both soil-moisture
-     files outside Niamey)
-   - `tests_agree` / `tests_note`: when `False`, add the caution
-4. **All 7 ⚪ results get the same sentence**, so the text adds little beyond the emoji. Including the
-   numbers (point 2) and the years estimate (point 3) fixes this.
+### ✅ Also fixed
+- `data/places.csv` and `data/variables.csv` now exist (good definitions and keywords).
+- The NO₂ example questions are gone, so training runs again.
+- Honest, careful benchmark reports (`PRETRAINED_BENCHMARK.md`, `COVERAGE_BENCHMARK.md`).
+- The new `explore()` mode always offers a clearly labelled "Possible match".
+- Your own tests pass (6 passed, 1 skipped).
 
----
+### ❌ Search only works after a manual ~1 GB setup
+Commit 1bcdd7a ("Restore model-only Searchlight") removed the keyword search, so:
 
-## ❌ Search (H4): not working yet
-
-**What happens now:** `search()` returns `[]` for every question, because the model is never built
-or calibrated (that output isn't saved in Git). The checker shows:
-```
-❌ H4 search('is the desert drying out') → [] (expected lake_mead:SOILM)
-❌ H4 search('Is Lake Mead getting hotter?') → [] (expected lake_mead:TEMP)
-❌ H4 search('Is the Arctic getting warmer?') → [] (expected svalbard:TEMP)
-❌ H4 search('does the Sahel get more rain') → [] (expected niamey:RAIN)
-```
-
-**What I found when I built the full model in a sandbox** (index, training, calibration):
-- It **builds fine** on our 12 real files (18 s), but **training is blocked**:
-  - all 20 example questions have `"reviewed": false`, and the pipeline refuses to run until they're reviewed
-  - 2 questions still point to **NO₂, which was dropped** (`search_train.jsonl` line 5,
-    `search_validation.jsonl` line 6), which stops training with "Invalid or unavailable relevance label"
-  - after removing those labels, `air_pollution_01` is marked "supported" but has no answer left
-- After working around those in the sandbox, the trained model **got some questions right**
-  ("Is Lake Mead getting hotter?", "rain in Niamey", "evaporation in the Sahel") and correctly
-  refused nonsense ("CO2", "hello"), **but missed our key demo questions**
-  ("is the desert drying out", "Is the Arctic getting warmer?", "temperature").
-- On its own test set it **failed 5 of its 6 quality targets** (found the right answer 54% of the
-  time, target 90%; wrongly answered 50% of questions it should refuse, target ≤ 10%).
-  The cause: far too few examples (8 training, 6 validation, 6 test).
-- **It's very heavy for our app:** ~810 MB of AI libraries + 175 MB of models, ~660 MB of memory,
-  5 s to start. That's a real risk for free hosting and for teammates installing it.
-- **It's fragile:** it stores fingerprints of every data file, so if the Data person changes or adds
-  a file, search silently returns nothing until someone rebuilds and recalibrates.
-
-**Good parts to keep:** it never crashes (it falls back to `[]`), refuses unrelated questions, the
-output format matches H4 exactly, the reasons are useful, and it's fast once loaded (~0.1 s).
-
-### Recommended fix
-Make **simple keyword matching** the main `search()`, as planned in `docs/PLAN.md`, and keep the AI
-model as an optional upgrade:
-- match words in the question against `variables.csv` `keywords`/`name` and `places.csv`
-  `name`/`type`/`story` (e.g. "desert" → place type desert; "dry", "drying" → soil moisture)
-- score, sort, return at most 5 with a short reason; nonsense → `[]`
-- only if the AI model is built and calibrated, use it instead (or merge both)
-
-This needs no extra libraries, always answers the demo questions, and keeps working when data files
-change. The checker's 4 demo questions are a good minimum test.
-
----
-
-## ❌ Missing deliverables
-
-| Deliverable | Why it matters |
+| | Result |
 |---|---|
-| `pages/1_Guided_demo.py`: step-by-step walkthrough (Next/Back) | The challenge asks for "demonstration examples users can watch". Judges will use it |
-| `pages/2_How_it_works.py`: trend, seasons, p-value, "significant" for a 15-year-old | Our audience is students; this is the teaching part |
-| `data/places.csv`, `data/variables.csv` (you own these, H0) | Right now the built-in starting list from `Task2/data_io.py` is used instead (it works). Add your own if you want better definitions/keywords or more places |
+| **As committed** (fresh checkout, deployed app) | `search()` returns `[]` for every question; the checker shows **4 ❌** |
+| **After building the model** (`build_search_index --download-models`, then `train_search_model --allow-draft`; ~810 MB of libraries + 175 MB of models) | checker **ALL GOOD**: all 4 demo questions find the right place and measurement; "CO2" and "hello" correctly get nothing |
 
-For the guided demo, use the suggested demo cases in [`Task4/RESULTS.md`](../Task4/RESULTS.md)
-(Lake Mead temperature 🟢, Niamey evaporation 🟡 "≈2 more years", Lake Mead vs Niamey temperature).
-Reuse the frontend's `trend_chart()` (H5) for the charts; don't copy chart code.
+So the model works well **once built**, but anyone who runs the project fresh, including the
+judges' demo, gets an empty search unless they repeat that setup. Your own benchmark also
+shows the calibrated model finding the right answer only 45.8% of the time on held-out
+questions.
+
+**Note:** the public website (`Website/`, "ByteMe") is a static site and can't run a Python
+model. Its search is simple keyword matching that uses **your keyword lists** from
+`data/variables.csv` and `data/places.csv`, so your catalogue work reaches the site directly.
+
+### What to do next (in order)
+1. **Bring back the keyword search as a fallback.** Use the model when it's built and
+   calibrated; otherwise fall back to keyword matching, so `search()` never returns `[]` just
+   because the model files are missing. The checker's 4 demo questions are the minimum test.
+2. **Say why a record is too short.** For ⚫ results, change *"This record has too little usable
+   data"* to something like *"A trend needs at least 10 years of monthly data; this record is
+   shorter."* (Users who pick a short period otherwise don't know what went wrong.)
+3. **Round numbers to 2–3 significant digits**, to match the website:
+   "+0.38 °C per decade" instead of "+0.376", "+0.08 to +0.68" instead of "+0.0771 to +0.675",
+   "+8.1%" instead of "+8.13%".
+4. **For the pitch:** present the model as research ("we trained and benchmarked a semantic
+   search; here's what we learned"). Use the keyword search for the live demo.
 
 ---
 
-## Priorities
+## Round 1 status (original review)
 
-1. **Make search answer the demo questions** (keyword matching as the main version).
-2. **Guided demo page**: the most visible part for the judges.
-3. **Specific explanation headline + "≈ X more years"** in `explain.py`.
-4. **"How it works" page.**
-5. **Fix or remove the 2 NO₂ example questions** (only needed if you keep the AI model).
-
-Done = `python Task4/scripts/check_handshakes.py` prints **ALL GOOD**, and both pages open in the app.
+| Round 1 item | Status |
+|---|---|
+| Specific explanation headline (place, variable, rate, units) | ✅ done |
+| Teach the numbers in plain words | ✅ done |
+| Use years-until-significant, percent change, reliability and test warnings | ✅ done |
+| Guided demo page | ✅ done |
+| "How it works" page | ✅ done |
+| Own `places.csv` / `variables.csv` | ✅ done |
+| Fix or remove the NO₂ example questions | ✅ done |
+| Search answers the demo questions out of the box | ❌ only after building the model (see round 2, point 1) |
