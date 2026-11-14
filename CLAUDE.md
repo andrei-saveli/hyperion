@@ -2,6 +2,7 @@
 
 Hackathon project. Goal: **win**. This file holds the challenge brief, resources, and the
 decisions we make as the project evolves. Keep it up to date when decisions change.
+make it very good and best 
 
 ---
 
