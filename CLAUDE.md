@@ -114,9 +114,10 @@ variables makes it hard to pick ones that could indicate change and then analyze
 ## Working agreement
 - **Always commit and push directly to `main`** without asking for confirmation.
 - Make sensible decisions on open choices, record them here, and keep going.
-- 4-person team; teammates do **not** use Claude Code. Roles, contracts (CSV / YAML / API JSON)
-  and timeline live in `docs/TEAM_PLAN.md`. Respect those contracts; Claude acts as a 5th
-  teammate (skeleton, stats, API, reviews, fixes).
+- 4-person team including the user (team lead = Person 2, Stats/Backend + integration, works
+  with Claude Code); the other 3 do **not** use Claude Code. Roles, contracts (CSV / YAML / API JSON)
+  and timeline live in `docs/TEAM_PLAN.md`. Respect those contracts; Claude does the bulk of
+  Person 2's coding and helps the others via the lead (skeleton, stats, API, reviews, fixes).
 
 ## Project decisions
 
