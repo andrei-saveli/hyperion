@@ -2,6 +2,9 @@
 
 ## Search + explainability for Hyperion
 
+Person 3's working folder is `Task3/`. The shared plan and handshakes sit one level above it.
+See the [Searchlight model card](models/search/MODEL_CARD.md) for the implemented search engine.
+
 This is the personal brief for Person 3 and their coding agent. It translates the shared plan and
 frozen handshakes into one isolated mission without taking work from the other three people.
 
@@ -48,7 +51,7 @@ search.py
 explain.py
 pages/1_Guided_demo.py
 pages/2_How_it_works.py
-docs/PERSON_3_SEARCH_EXPLAINABILITY_HANDOVER.md
+PERSON_3_SEARCH_EXPLAINABILITY_HANDOVER.md
 ```
 
 Do not create a competing catalogue format, API, or package tree. The team already froze simple

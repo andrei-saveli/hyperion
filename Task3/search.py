@@ -18,7 +18,10 @@ def search(text: str) -> list[dict]:
         with _load_lock:
             if not _load_attempted:
                 _load_attempted = True
-                from search_model import SearchEngine
+                if __package__:
+                    from .search_model import SearchEngine
+                else:
+                    from search_model import SearchEngine
 
                 _engine = SearchEngine.load()
         return _engine.suggest(text.strip()) if _engine is not None else []
