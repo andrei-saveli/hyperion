@@ -197,3 +197,21 @@ def test_horizon_hidden_when_it_makes_no_sense():
     assert years_to_significance(1e-6, 5.0, 0.2, 24, 1.5, "none") is None      # > 100 years
     assert years_to_significance(0.05, 1.0, 0.2, 24, 3.0, "significant") is None
     assert analyze(make_series(0.5, months=20))["years_to_significance"] is None
+
+
+# ------------------------------------------------------------------ reliability
+
+def test_normal_record_has_good_reliability():
+    r = analyze(make_series(0.5, noise=0.3, seed=1))
+    assert r["reliability"] == "good" and r["reliability_note"] is None
+
+
+def test_very_sticky_record_is_flagged_low():
+    r = analyze(make_series(0.0, phi=0.98, seed=3))  # each month ≈ the previous one
+    assert r["effective_n"] < 30
+    assert r["reliability"] == "low" and "caution" in r["reliability_note"]
+
+
+def test_insufficient_record_has_no_reliability():
+    r = analyze(make_series(0.5, months=20))
+    assert r["reliability"] is None

@@ -9,7 +9,8 @@ What it does, in plain words
    neighbouring months are similar (otherwise trends look more certain than they are).
 5. Double-check with the Mann-Kendall test (does the series keep going up or down?) and
    Sen's slope (a robust rate that ignores outliers).
-6. Give a verdict: 🟢 significant · 🟡 possible · ⚪ no clear trend · ⚫ not enough data.
+6. Give a verdict: 🟢 significant · 🟡 possible · ⚪ no clear trend · ⚫ not enough data, plus a
+   reliability flag ("low" when the record holds too little independent information).
 7. Extra, for trends that aren't significant yet: estimate how many more years of data would
    likely be needed ("years until significant"), clearly labelled as an estimate.
 
@@ -28,6 +29,7 @@ POSSIBLE_P = 0.10          # 🟡 below this
 MAX_LAG1 = 0.95            # cap on month-to-month correlation, keeps the maths stable
 MIN_YEARS_FOR_HORIZON = 10 # only estimate "years until significant" for records this long
 MAX_HORIZON_YEARS = 100    # beyond this we just say "a very long time" (None)
+MIN_EFFECTIVE_MONTHS = 30  # below this many independent months, results are flagged "low" reliability
 
 RESULT_KEYS = [
     "slope_per_decade", "ci_low", "ci_high", "p_value", "mk_p_value", "total_change",
@@ -35,6 +37,7 @@ RESULT_KEYS = [
     "anomaly", "trend", "band_low", "band_high", "years_to_significance", "method",
     # extra keys (allowed: they don't break the handshake)
     "sen_slope_per_decade", "lag1_autocorrelation", "effective_n",
+    "reliability", "reliability_note",
 ]
 
 EMOJI = {"significant": "🟢", "possible": "🟡", "none": "⚪", "insufficient": "⚫"}
@@ -133,6 +136,19 @@ def years_to_significance(slope_per_year: float, noise_sd: float, r1: float,
     return round(max(more, 0.0), 1)
 
 
+def reliability(n_eff: float):
+    """Is the record informative enough to trust the verdict?
+
+    Returns ("good" | "low", plain-language note or None). "low" means the data changes so slowly
+    from month to month that the whole record is worth fewer than MIN_EFFECTIVE_MONTHS truly
+    independent months, so even a 🟢 or ⚪ verdict should be read with caution.
+    """
+    if n_eff >= MIN_EFFECTIVE_MONTHS:
+        return "good", None
+    return "low", (f"Each month is very similar to the next, so this record is worth only about "
+                   f"{n_eff:.0f} independent months. Treat this result with caution.")
+
+
 def sen_slope(x: np.ndarray, y: np.ndarray) -> float:
     """Median of the slopes between every pair of points (robust to outliers)."""
     ok = ~np.isnan(y)
@@ -167,6 +183,7 @@ def _empty_result(df, anomaly, n_missing):
         "band_low": [None] * n, "band_high": [None] * n,
         "years_to_significance": None, "method": METHOD,
         "sen_slope_per_decade": None, "lag1_autocorrelation": None, "effective_n": None,
+        "reliability": None, "reliability_note": None,
     }
 
 
@@ -237,6 +254,8 @@ def analyze(df: pd.DataFrame) -> dict:
     t_value = slope / se_slope if se_slope > 0 else 0.0
     horizon = years_to_significance(slope, noise_sd, r1, x.max() - x.min(), t_value, verdict)
 
+    quality, quality_note = reliability(n_eff)
+
     valid_dates = df["date"][valid]
     return {
         "slope_per_decade": _clean(slope * 10),
@@ -261,4 +280,6 @@ def analyze(df: pd.DataFrame) -> dict:
         "sen_slope_per_decade": _clean(sen * 10),
         "lag1_autocorrelation": _clean(r1),
         "effective_n": _clean(n_eff),
+        "reliability": quality,
+        "reliability_note": quality_note,
     }
