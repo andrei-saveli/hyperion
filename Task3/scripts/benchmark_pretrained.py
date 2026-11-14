@@ -29,8 +29,8 @@ def check_coverage(engine):
     return {f"{doc['place_id']}:{doc['code']}" for doc in indexed.values()}
 
 
-def load_splits(questions, known):
-    splits = {"calibration": [], "test": []}
+def load_splits(questions, known, split_names=("calibration", "test")):
+    splits = {split: [] for split in split_names}
     concepts = set()
     with questions.open(encoding="utf-8") as file:
         for line in file:
