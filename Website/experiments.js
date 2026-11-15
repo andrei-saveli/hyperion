@@ -2,6 +2,11 @@
 // The sign says whether the long-term slopes should point in the same (+1)
 // or opposite (-1) directions under the stated hypothesis.
 const ByteMeExperiments = (function (stats, investigation) {
+  const evaporationRival = {
+    kind: "evaporation", from: "GWETROOT", to: "EVLAND", expectedSign: 1,
+    targetName: "Precipitation minus evaporation",
+    prediction: "If evaporation helps explain the change in root-zone wetness, precipitation minus evaporation should trend in the same direction as soil wetness.",
+  };
   const hypotheses = [
     {
       from: "T2M", to: "SNODP", label: "Check snow depth", expectedSign: -1,
@@ -28,12 +33,14 @@ const ByteMeExperiments = (function (stats, investigation) {
       from: "PRECTOTCORR", to: "GWETROOT", label: "Check root-zone wetness", expectedSign: 1,
       prediction: "If changing precipitation is driving soil wetness, the two measures should generally move in the same direction.",
       alternative: "Water losses could dominate the rainfall change. More evaporation or runoff can leave the root zone drier during a wetter period.",
+      rival: evaporationRival,
       nextEvidence: "Check evaporation and runoff during the months in which the two records diverge.",
     },
     {
       from: "GWETROOT", to: "PRECTOTCORR", label: "Test the precipitation explanation", expectedSign: 1,
       prediction: "If changes in precipitation account for changes in soil moisture, their trends should generally point in the same direction.",
       alternative: "Evaporation or drainage could explain soil drying during a wetter period. Irrigation or reduced losses could explain wetter soil during a drier period.",
+      rival: evaporationRival,
       nextEvidence: "Check evaporation and local water management over the same period.",
     },
     {
@@ -65,23 +72,42 @@ const ByteMeExperiments = (function (stats, investigation) {
   function rivalLead(lead, records) {
     if (!lead.rival) return null;
     const { from, to } = lead.rival;
-    if (![from, to].every((code) => records[code]?.values.some(Number.isFinite))) return null;
+    const required = lead.rival.kind === "evaporation" ? [from, to, "PRECTOTCORR"] : [from, to];
+    if (!required.every((code) => records[code]?.values.some(Number.isFinite))) return null;
+    if (lead.rival.kind === "evaporation") return lead.rival;
     return hypotheses.find((candidate) => candidate.from === from && candidate.to === to) ?? null;
   }
 
   // Keep the rival check inside the original comparison's observed months.
   // Missing data in a third measurement can shorten the overlap further.
   function assessRival(rival, originalPair, records) {
-    const observedMonths = new Set(originalPair.dates
-      .filter((_, index) => Number.isFinite(originalPair.values[0][index])).map(investigation.monthText));
-    const restricted = [rival.from, rival.to].map((code) => {
-      const record = records[code];
+    const { dates, values } = originalPair;
+    function onOriginalCalendar({ dates: recordDates, values: recordValues }) {
+      const byMonth = new Map(recordDates.map((date, index) => [investigation.monthText(date), recordValues[index]]));
       return {
-        dates: record.dates,
-        values: record.values.map((value, index) => observedMonths.has(investigation.monthText(record.dates[index])) ? value : null),
+        dates,
+        values: dates.map((date, index) => Number.isFinite(values[0][index])
+          ? byMonth.get(investigation.monthText(date)) ?? null
+          : null),
       };
+    }
+    const first = onOriginalCalendar(records[rival.from]);
+    const second = onOriginalCalendar(records[rival.to]);
+    if (rival.kind !== "evaporation") return assessLead(rival, first, second);
+
+    const precipitation = onOriginalCalendar(records.PRECTOTCORR);
+    const balance = precipitation.values.map((rain, index) => {
+      const evaporation = second.values[index];
+      return Number.isFinite(rain) && Number.isFinite(evaporation) ? rain - evaporation : null;
     });
-    return assessLead(rival, restricted[0], restricted[1]);
+    const assessment = assessLead(rival, first, { dates, values: balance });
+    if (!assessment.paired?.count) return assessment;
+
+    const matchedWetness = assessment.paired.values[0];
+    const componentFits = [precipitation, second].map((series) => stats.analyze(
+      dates, series.values.map((value, index) => matchedWetness[index] === null ? null : value),
+    ));
+    return { ...assessment, componentFits };
   }
 
   function policyTest(study, { postWeeks, omitLargestDonor = false, adjustBaseline = false } = {}) {

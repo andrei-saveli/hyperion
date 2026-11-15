@@ -38,6 +38,31 @@ test("a weakened snow lead can test a rival on the original observed months", ()
   assert.equal(rivalLead(precipitation, { ...records, T2M: null }), null);
 });
 
+test("the soil-wetness rival tests precipitation minus evaporation over three-way overlaps", () => {
+  const records = { GWETROOT: record(-3), PRECTOTCORR: record(2), EVLAND: record(5) };
+  const [lead] = relatedLeads("GWETROOT", records);
+  records.PRECTOTCORR.values[24] = null;
+  records.EVLAND.values[35] = null;
+  const original = assessLead(lead, records.GWETROOT, records.PRECTOTCORR);
+  const rival = rivalLead(lead, records);
+  assert.equal(original.verdict, "weakened");
+  assert.equal(rival.kind, "evaporation");
+  assert.equal(rivalLead(lead, { ...records, EVLAND: null }), null);
+
+  const followUp = assessRival(rival, original.paired, records);
+  assert.equal(followUp.verdict, "consistent");
+  assert.equal(followUp.paired.count, original.paired.count - 1);
+  assert.equal(followUp.paired.values[1][24], null);
+  assert.equal(followUp.paired.values[1][35], null);
+  const [precipitation, evaporation] = followUp.componentFits;
+  assert.ok(evaporation.slope_per_decade > precipitation.slope_per_decade);
+  assert.ok(Math.abs(followUp.fits[1].slope_per_decade
+    - (precipitation.slope_per_decade - evaporation.slope_per_decade)) < 1e-9);
+
+  assert.equal(assessRival(rival, original.paired, { ...records, EVLAND: record(1) }).verdict, "weakened");
+  assert.equal(assessRival(rival, original.paired, { ...records, EVLAND: record(2) }).verdict, "insufficient");
+});
+
 test("the data and checks reproduce the London policy experiment", () => {
   const initial = policyTest(london, { postWeeks: 13 });
   assert.equal(initial.weeks[initial.intervention].date, "2019-04-08");

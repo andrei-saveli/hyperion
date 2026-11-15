@@ -785,25 +785,37 @@ function renderLeadEvidence(panel, lead) {
 }
 
 function leadCounterEvidence(lead, fits) {
-  const [first, second] = [lead.from, lead.to].map((code, index) => {
+  const names = [variable(lead.from).name, lead.targetName ?? variable(lead.to).name];
+  const [first, second] = names.map((name, index) => {
     const verb = fits[index].direction === "increase" ? "rose" : "fell";
-    return `${variable(code).name} ${verb}`;
+    return `${name} ${verb}`;
   });
   const prediction = lead.expectedSign === 1 ? "the same direction" : "opposite directions";
   return `${first}, while ${second}. The prediction called for ${prediction}.`;
 }
 
 function renderRivalResult(panel, rival, originalPair) {
-  const { paired, fits, verdict } = ByteMeExperiments.assessRival(rival, originalPair, state.analysis.series);
+  const { paired, fits, verdict, componentFits } = ByteMeExperiments.assessRival(rival, originalPair, state.analysis.series);
   const findings = {
     consistent: "The trends fit this rival prediction. The mechanism still needs a more direct test.",
     weakened: "The trends also weaken this rival explanation.",
     insufficient: "The observations leave this rival explanation open.",
   };
   const evidence = verdict === "weakened" ? ` ${leadCounterEvidence(rival, fits)}` : "";
+  const waterEvidence = componentFits?.every((fit) => Number.isFinite(fit.slope_per_decade))
+    ? `<p>Change per decade over those months</p>
+      <ul>
+        <li>Precipitation ${num(componentFits[0].slope_per_decade)} mm/day</li>
+        <li>Evaporation ${num(componentFits[1].slope_per_decade)} mm/day</li>
+        <li>Precipitation minus evaporation ${num(fits[1].slope_per_decade)} mm/day</li>
+        <li>Root-zone wetness ${num(fits[0].slope_per_decade)} percentage points</li>
+      </ul>
+      <p>Runoff, irrigation, and changes in water storage can still affect root-zone wetness.</p>`
+    : "";
   panel.innerHTML = `<p>${escapeHTML(rival.prediction)}</p>
     <p><strong>${findings[verdict]}</strong>${escapeHTML(evidence)}</p>
-    <p class="meta">${paired?.count ?? 0} of the original ${originalPair.count} observed months could be used.</p>`;
+    <p class="meta">${paired?.count ?? 0} of the original ${originalPair.count} observed months could be used.</p>
+    ${waterEvidence}`;
 }
 
 // ------------------------------------------------------------------ charts

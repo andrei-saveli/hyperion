@@ -83,6 +83,10 @@ have reliable directions and the direction combination disagrees with the stated
 The finding then shows the contrary observations, proposes a rival mechanism, and suggests
 which evidence could separate the two. When the rival has a runnable check, it uses observations
 shared with the original test and reports how many of those months it could use.
+For a weakened root-zone wetness and precipitation prediction, **Test rival with evaporation**
+compares soil wetness with the trend in monthly precipitation minus evaporation. The result
+shows each rate on the three-way overlap. This check leaves questions about runoff, irrigation,
+and water storage open.
 The ordinary Explore results help screen hypotheses. The London case uses a control design
 to estimate a policy effect.
 
