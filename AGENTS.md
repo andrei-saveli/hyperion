@@ -272,11 +272,11 @@ Non-significant ≠ "no change". Never state causes (Investigate says how much a
 - 🧭 **Places changing like this one** (`Website/similar.js`, check: `node Website/tests/test_similar.js`): nearest
   neighbours over 5° "trend fingerprints" (18 POWER trends vs the planet, weighted cosine), land with land, 5 matches
   ≥ 1,500 km apart, shared significant trends listed, outlined on the map. Says nothing about causes.
-- 🧠 **Search by meaning, fully local** (`Website/meaning.js`): when the keyword rules find no measurement, a sentence
-  transformer (all-MiniLM-L6-v2, as Searchlight, in-browser ONNX in `Website/models/` + `Website/vendor/transformers/`,
-  fetched and SHA-256 checked by `python3 Website/get_search_model.py`) matches the question to each measurement's
-  `examples`. No API, no key, never numbers. Held out: 8/13 rule misses read right, 0 wrong, 0/8 off-topic answered.
-  Check: `node Website/tests/test_meaning.js` (Playwright).
+- 🧠 **Website search** (`Website/app.js`, `Website/meaning.js`): extract place names before scoring topic words.
+  Clear keyword matches take the fast path. Ambiguous questions can combine keyword and semantic ranks.
+  The local all-MiniLM-L6-v2 model loads on demand and embeds only the query during search.
+  Rebuild the catalog index with `node Website/scripts/build_meaning_index.js` after editing its text.
+  Compare search strategies with `node Website/tests/test_meaning.js` (Playwright).
 - 🗺️ **52 measurements, half of them for particular terrains** (ocean, ice and snow, land water, deserts and
   fires, cities, levels of the atmosphere). 17 more from NASA POWER, asked live (sea ice, snow cover, snowfall,
   frost days, soil temperatures, deep soil wetness, albedo, day–night range, cooling/heating need, dew point,
