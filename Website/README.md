@@ -10,9 +10,9 @@ and it can be uploaded to any web hosting (e.g. the free Space Apps domain hosti
 ## How it works
 ```
 visitor picks a place ─► NASA POWER (live, no login) ─► stats.js ─► list of trends + chart + verdict
-                         monthly data since 1981        (same math as Task4/stats.py, tested)
+                         monthly data since 1981        (same math as stats.py, tested)  
 
-build_world.py (run once, Python, Task4/stats.py) ─► data/world.json ─► coloured squares on the map
+build_world.py (run once, Python, stats.py) ─► data/world.json ─► coloured squares on the map
 ```
 - **Data:** [NASA POWER](https://power.larc.nasa.gov/) monthly values (MERRA-2 and CERES) for the
   grid square, about 50 km wide, around the chosen point. 35 measurements, listed with
@@ -40,7 +40,7 @@ build_world.py (run once, Python, Task4/stats.py) ─► data/world.json ─► 
 - **Trend math:** seasons removed (the 12 monthly averages are estimated together with the trend
   line), straight-line trend, significance corrected for month-to-month memory, seasonal
   Mann-Kendall as a second test. `stats.js` is a line-by-line copy of the project's Python code
-  (`Task4/stats.py`). `tests/test_stats.js` checks that both give the same numbers on 105 real
+  (`Website/stats.py`). `tests/test_stats.js` checks that both give the same numbers on 105 real
   series. If you change one, change the other and re-run the test.
 - **Search:** understands a place ("Bucharest"), a question ("is Romania getting warmer?"), a
   famous region ("Sahel") or coordinates ("44.4, 26.1"). Clear matches use keyword rules:
@@ -129,7 +129,7 @@ build_world.py (run once, Python, Task4/stats.py) ─► data/world.json ─► 
     numbers describe the square near its centre;
   - adds the second-source result and a few related measurements to check (`related` in
     `variables.json`). These are suggestions to look at, never claims about causes.
-- **How good is the search?** Checked on Task3's search benchmark questions (agent-written drafts,
+- **How good is the search?** Checked on Task3's search benchmark questions (`archive/Task3/`, agent-written drafts,
   not real students yet). Rules were tuned on the 144 draft questions and then tested once on the
   48 fresh questions, which were kept aside:
 
@@ -242,7 +242,7 @@ node Website/tests/test_nasa.js
 (OPeNDAP) for one variable per file, so whole files are never downloaded. Finished months are
 kept in `Website/.nasa_cache/` (not in git): the command can be stopped and started again.
 Set `EARTHDATA_TOKEN` to your token (Earthdata profile → Generate Token) when running it on your
-own computer. `build` runs `Task4/stats.py` for the map and writes the tiles; `test_nasa.js` checks
+own computer. `build` runs `stats.py` for the map and writes the tiles; `test_nasa.js` checks
 that the website reads them back correctly. Needs `numpy`, `h5py`, `pandas`, `scipy`.
 
 The tiles add up to about 440 MB. Commit a rebuild only when it matters: every rebuild adds that
@@ -254,7 +254,9 @@ much to the repository's history.
 | `index.html` | Page structure: hero + demo cases, explore (search, answer, map, scrollable list of trends, evidence, investigate), one-line footer |
 | `style.css` | The look: colours, fonts, outlines, phone layout |
 | `app.js` | Live data download, search, answer card, map (MapLibre), charts (Plotly), investigate |
-| `stats.js` | Trend and significance math (copy of `Task4/stats.py`) |
+| `stats.py` | Trend and significance math in Python: the reference, used by the build scripts (tests: `tests/test_stats_py.py`) |
+| `stats.js` | The same math in JavaScript for the browser (a tested copy of `stats.py`) |
+| `requirements.txt` | Python packages for the build scripts and tests (`h5py` too for `build_nasa_grids.py`) |
 | `nasa.js` | Reads one square's monthly series from a NASA tile file |
 | `investigation.js` | Time periods: read periods from questions, cut records, match months at two places, A − B trend with a Newey–West range |
 | `decompose.js` | Investigate (Trend Decomposer): joint seasonal regression on wiggles, contributions, block bootstrap, alibi (shift) test, across-the-planet check |
@@ -272,8 +274,6 @@ much to the repository's history.
 | `tests/` | `make_reference.py` + `test_stats.js` (website math = Python math); `test_nasa.js` + `nasa_reference.json` (tiles read back correctly); `test_area.js` (outlines and area averages); `test_investigation.js` (periods and matched comparisons); `test_decompose.js` (Trend Decomposer: known contributions, spurious trends, seasons, real Svalbard data); `test_search.js` + `search_questions.json` (search picks the right measurement; needs Playwright); `test_meaning.js` + `meaning_questions.json` (search by meaning; Playwright + model files); `test_similar.js` (places changing like this one) |
 | `data/land.geojson` | World land outline (Natural Earth, public domain): the fallback map |
 | `vendor/maplibre-gl.css` | The map library's stylesheet (kept locally) |
-| `build_data.py`, `data/results.json` | The earlier version (3 Giovanni regions). No longer read by the page; kept for reference |
-| `design/` | Screenshots |
 
 ## Run it locally (from the repository root)
 ```bash
@@ -286,7 +286,7 @@ reading the data files from a file). Nothing to build first.
 ```bash
 node Website/tests/test_stats.js
 ```
-To refresh the expected answers after changing `Task4/stats.py`:
+To refresh the expected answers after changing `stats.py`:
 ```bash
 python3 Website/tests/make_reference.py
 ```

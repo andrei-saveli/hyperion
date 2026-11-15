@@ -31,7 +31,7 @@ How it works
 4. Every finished month is saved in Website/.nasa_cache/ (not in git). Stopping and restarting is
    safe: finished months are skipped.
 
-Then `python3 Website/build_nasa_grids.py build` runs the project's trend code (Task4/stats.py)
+Then `python3 Website/build_nasa_grids.py build` runs the project's trend code (Website/stats.py)
 on every square and writes the files the website reads (Website/data/nasa/).
 
 Login: an Earthdata token is needed. This script sends no token itself: in our cloud session the

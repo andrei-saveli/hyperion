@@ -1,6 +1,6 @@
 """Tests for stats.py: fake series where we know the right answer.
 
-Run from the Task4 folder:  python -m pytest -q
+Run from the repository root:  python3 -m pytest -q Website/tests/test_stats_py.py
 """
 import json
 import os

@@ -1,5 +1,5 @@
 // Checks that the website's trend math (stats.js) gives the same numbers as the project's Python
-// code (Task4/stats.py) on real NASA series. Run:  node Website/tests/test_stats.js
+// code (Website/stats.py) on real NASA series. Run:  node Website/tests/test_stats.js
 // The expected answers are in reference.json (made by make_reference.py).
 const fs = require("fs");
 const path = require("path");

@@ -1,6 +1,6 @@
 // ByteMe trend and significance math, in JavaScript, so the website can analyse ANY place live.
 //
-// This is a line-by-line translation of the project's Python code (Task4/stats.py). The two are
+// This is a line-by-line translation of the project's Python code (stats.py, in this folder). The two are
 // kept identical on purpose: Website/tests/test_stats.js checks that this file gives the same
 // numbers as the Python code on real NASA series. If you change one, change the other.
 //
