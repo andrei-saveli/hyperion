@@ -54,6 +54,14 @@
     </div>
     <label class="var-pick"><span>Measurement</span><select id="var-select" aria-label="Measurement"></select></label>
   </div>
+  <form class="period-controls" id="explore-period" aria-label="Explore analysis period">
+    <label>From <input name="from" type="month" placeholder="YYYY-MM" aria-label="Explore from month"></label>
+    <label>To <input name="to" type="month" placeholder="YYYY-MM" aria-label="Explore to month"></label>
+    <button class="pill on" type="submit">Apply period</button>
+    <button class="pill" type="button" data-reset>Full record</button>
+    <p class="meta" data-coverage></p>
+    <p class="meta period-error" data-error role="alert"></p>
+  </form>
   <div class="explore">
     <div class="box map-wrap">
       <div id="map"></div>
@@ -80,8 +88,8 @@
 <section id="compare">
   <div class="section-head">
     <div><span class="tag">Compare</span><h2>Same measurement, two places</h2></div>
-    <p class="muted" style="max-width:440px;margin:0">Same data source, same method and the same scale,
-      so the only difference is the place.</p>
+    <p class="muted" style="max-width:440px;margin:0">We use the same source and the same months at both places
+      to estimate how much their rates differ.</p>
   </div>
   <div class="compare-controls">
     <label>Measurement<select id="cmp-var"></select></label>
@@ -89,12 +97,19 @@
     <label>Place B<span class="search"><input id="cmp-b" type="search" autocomplete="off" placeholder="Search a place"><span class="suggestions" id="cmp-b-list"></span></span></label>
     <button class="pill" id="cmp-use">Use my map place as A</button>
   </div>
+  <form class="period-controls" id="compare-period" aria-label="Compare analysis period">
+    <label>From <input name="from" type="month" placeholder="YYYY-MM" aria-label="Compare from month"></label>
+    <label>To <input name="to" type="month" placeholder="YYYY-MM" aria-label="Compare to month"></label>
+    <button class="pill on" type="submit">Apply period</button>
+    <button class="pill" type="button" data-reset>Shared record</button>
+    <p class="meta" data-coverage></p>
+    <p class="meta period-error" data-error role="alert"></p>
+  </form>
+  <div id="compare-finding" class="box compare-finding" aria-live="polite"></div>
   <div class="compare">
     <div class="box" id="cmp-panel-a"></div>
     <div class="box" id="cmp-panel-b"></div>
   </div>
-  <p class="insight">Trends depend on the place: the same measurement can rise in one place and stay flat,
-    or fall, in another. A trend shows <em>what</em> changed, not <em>why</em>.</p>
 </section>
 
 <!-- 4. Method -->
@@ -141,6 +156,7 @@
 <script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.35.2/plotly.min.js"></script>
 <script src="stats.js"></script>
 <script src="nasa.js"></script>
+<script src="investigation.js"></script>
 <script src="app.js"></script>
 <script src="globe.js"></script>
 </body>

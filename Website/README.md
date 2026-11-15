@@ -49,6 +49,22 @@ build_world.py (run once, Python, Task4/stats.py) ─► data/world.json ─► 
 - **World overview:** the coloured squares on the map show where the chosen measurement is rising
   or falling (every 5 degrees). They come from `data/world.json`.
 
+## Investigate a period
+
+- **Explore:** change the From and To months and choose **Apply period**. The trend list and the
+  evidence panel rerun from the cached records. Search also accepts dates such as
+  “Manaus rainfall from 2001 to 2015” or “temperature in Bucharest since 2010.” The address
+  includes the selected period. The world map shows its precomputed overview period.
+- **Compare:** choose two places and one measurement. The default uses the full shared record.
+  Both charts use exactly the months in which both places have values. The finding reports how
+  the rates differ by fitting the series of paired monthly differences, with an approximate 95%
+  Newey–West interval using 12 calendar-month lags when there is enough usable data.
+- Short windows still show the observations against a seasonal baseline from the full record.
+  After a comparison, **Check the latest 15 years** lets you test how sensitive the finding is to
+  the period. A narrower comparison shows the estimated difference for the full shared record
+  as a reference. **Share comparison** opens a link containing both places, the measurement, and
+  the selected dates.
+
 ## NASA satellite and model data (GPM, GLDAS, MODIS, OMI, AIRS)
 Eight more measurements come from the NASA datasets the challenge names. They need an Earthdata
 login, so they are **prepared once** and saved with the site (`data/nasa/`), instead of being
@@ -102,6 +118,7 @@ much to the repository's history.
 | `style.css` | The look: colours, fonts, outlines, phone layout |
 | `app.js` | Live data download, search, map (MapLibre), charts (Plotly), compare |
 | `stats.js` | Trend and significance math (copy of `Task4/stats.py`) |
+| `investigation.js` | Date selection, matched monthly records, and uncertainty for the difference in trends |
 | `nasa.js` | Reads one square's monthly series from a NASA tile file |
 | `build_nasa_grids.py`, `build_nasa_tiles.py` | Download the NASA datasets to 1° grids; then trends, tiles and map layers (`data/nasa/`) |
 | `globe.js` | Hero art: rotating globe of teal "satellite pixels", demo cases in coral (decoration only) |
@@ -124,6 +141,7 @@ reading the data files from a file). Nothing to build first.
 ## Check the math
 ```bash
 node Website/tests/test_stats.js
+node Website/tests/test_investigation.js
 ```
 To refresh the expected answers after changing `Task4/stats.py`:
 ```bash
