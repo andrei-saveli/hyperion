@@ -40,10 +40,11 @@ build_world.py (run once, Python, Task4/stats.py) ─► data/world.json ─► 
 
   | Question set | Right measurement | Right place and measurement (first suggestion) | "Not available" requests answered without a note |
   |---|---|---|---|
-  | 144 draft (used for tuning) | 112/114 | 95/114 | 1/30 |
-  | 48 fresh (held out) | 36/36 | 32/36 | 1/12 |
+  | 144 draft (used for tuning) | 110/114 | 94/114 | 1/24 |
+  | 48 fresh (held out) | 36/36 | 33/36 | 1/12 |
 
-  Most misses are riddle-style places ("Niger's capital", "the Nevada reservoir"). Questions that
+  (Re-run after adding the 8 satellite/model measurements; greenness, NO₂ and runoff questions now
+  count as answerable.) Most misses are riddle-style places ("Niger's capital", "the Nevada reservoir"). Questions that
   ask for several measurements get one suggestion; the "What is changing here" list shows the rest.
 - **World overview:** the coloured squares on the map show where the chosen measurement is rising
   or falling (every 5 degrees). They come from `data/world.json`.
@@ -70,6 +71,9 @@ asked for live like NASA POWER.
   years they share and says whether they agree. A significant trend that an independent
   satellite or model confirms gets "confirmed by ..." in the list.
 - **Map:** the coloured squares for these measurements are 2 x 2 degrees (`data/nasa/<CODE>_map.json`).
+- **NO₂ caution:** over clean areas (average below 1 × 10¹⁵ molecules/cm², e.g. oceans) OMI is near its
+  detection limit and small trends can come from the instrument. Those squares are left blank on
+  the map, and the evidence panel shows a caution note there (`low_level` in `variables.json`).
 
 ### Rebuild (needs an Earthdata token)
 ```bash
