@@ -1,5 +1,5 @@
 {
- "note": "The measurements ByteMe offers. One shared list: the website (app.js) and the Python scripts (build_world.py, tests) both read it. 'code' is the NASA POWER parameter name. 'scale' multiplies the raw value (soil wetness 0-1 becomes percent). 'percent' says whether a percent change makes sense (zero means 'none of it'). Search: 'phrases' (several words, strong match) and 'keywords' (single words) link a question to a measurement. Avoid very general words such as water, air or ground: they appear in questions about many measurements. 'not_available' lists things people ask for that this data set does not have, with what to say and the closest measurement we do have. Measurements with \"dataset\": \"nasa\" come from data/nasa/ (built by build_nasa_grids.py); 'pair' names the NASA POWER measurement they double-check. 'related' lists measurements worth checking next (shown under an answer; never a claim about causes).",
+ "note": "The measurements ByteMe offers. One shared list: the website (app.js) and the Python scripts (build_world.py, tests) both read it. 'code' is the NASA POWER parameter name. 'scale' multiplies the raw value (soil wetness 0-1 becomes percent). 'percent' says whether a percent change makes sense (zero means 'none of it'). Search: 'phrases' (several words, strong match) and 'keywords' (single words) link a question to a measurement. Avoid very general words such as water, air or ground: they appear in questions about many measurements. 'not_available' lists things people ask for that this data set does not have, with what to say and the closest measurement we do have. Measurements with \"dataset\": \"nasa\" come from data/nasa/ (built by build_nasa_grids.py); 'pair' names the NASA POWER measurement they double-check. 'related' lists measurements worth checking next (shown under an answer; never a claim about causes). 'explanations' lists physically sensible ideas to test for a measurement's trend (Investigate): driver, expected sign (+1 same way, -1 opposite), season ('falling'/'rising' = months when the measurement usually falls/builds up, from the data) and a one-line mechanism. They are ideas to test, never claims.",
  "groups": [
   "Temperature",
   "Water",
@@ -22,6 +22,26 @@
     "T2M_MAX",
     "T2M_MIN",
     "AIRS_T2M"
+   ],
+   "explanations": [
+    {
+     "driver": "ALLSKY_SFC_SW_DWN",
+     "sign": 1,
+     "season": null,
+     "how": "More sunshine reaching the ground warms the air above it."
+    },
+    {
+     "driver": "CLOUD_AMT",
+     "sign": -1,
+     "season": null,
+     "how": "Clouds block sunshine during the day."
+    },
+    {
+     "driver": "AOD_55",
+     "sign": -1,
+     "season": null,
+     "how": "Haze and dust dim the sunlight."
+    }
    ]
   },
   {
@@ -37,6 +57,20 @@
    "related": [
     "T2M",
     "T2M_MIN"
+   ],
+   "explanations": [
+    {
+     "driver": "ALLSKY_SFC_SW_DWN",
+     "sign": 1,
+     "season": null,
+     "how": "Sunny days get hotter."
+    },
+    {
+     "driver": "GWETROOT",
+     "sign": -1,
+     "season": null,
+     "how": "Dry soil can't cool itself by evaporating water, so hot days get hotter."
+    }
    ]
   },
   {
@@ -53,6 +87,20 @@
     "T2M",
     "T2M_MAX",
     "SNODP"
+   ],
+   "explanations": [
+    {
+     "driver": "CLOUD_AMT",
+     "sign": 1,
+     "season": null,
+     "how": "Clouds act like a blanket and keep nights warmer."
+    },
+    {
+     "driver": "QV2M",
+     "sign": 1,
+     "season": null,
+     "how": "Water vapour traps heat, so nights cool less."
+    }
    ]
   },
   {
@@ -68,6 +116,20 @@
    "related": [
     "MODIS_LST",
     "T2M"
+   ],
+   "explanations": [
+    {
+     "driver": "ALLSKY_SFC_SW_DWN",
+     "sign": 1,
+     "season": null,
+     "how": "More sunshine heats the surface."
+    },
+    {
+     "driver": "CLOUD_AMT",
+     "sign": -1,
+     "season": null,
+     "how": "Clouds shade the surface."
+    }
    ]
   },
   {
@@ -87,6 +149,20 @@
    "related": [
     "T2M",
     "MODIS_LST"
+   ],
+   "explanations": [
+    {
+     "driver": "ALLSKY_SFC_SW_DWN",
+     "sign": 1,
+     "season": null,
+     "how": "More sunshine reaching the ground warms the air above it."
+    },
+    {
+     "driver": "CLOUD_AMT",
+     "sign": -1,
+     "season": null,
+     "how": "Clouds block sunshine during the day."
+    }
    ]
   },
   {
@@ -106,6 +182,26 @@
    "related": [
     "TS",
     "MODIS_NDVI"
+   ],
+   "explanations": [
+    {
+     "driver": "ALLSKY_SFC_SW_DWN",
+     "sign": 1,
+     "season": null,
+     "how": "More sunshine heats the land surface."
+    },
+    {
+     "driver": "MODIS_NDVI",
+     "sign": -1,
+     "season": null,
+     "how": "Green plants cool the surface by evaporating water."
+    },
+    {
+     "driver": "GWETROOT",
+     "sign": -1,
+     "season": null,
+     "how": "Wet soil cools the surface by evaporating water."
+    }
    ]
   },
   {
@@ -122,6 +218,20 @@
     "GPM_RAIN",
     "GWETROOT",
     "EVLAND"
+   ],
+   "explanations": [
+    {
+     "driver": "PW",
+     "sign": 1,
+     "season": null,
+     "how": "More water vapour in the air can fall as rain."
+    },
+    {
+     "driver": "CLOUD_AMT",
+     "sign": 1,
+     "season": null,
+     "how": "Rain falls from clouds."
+    }
    ]
   },
   {
@@ -138,6 +248,26 @@
     "GLDAS_EVAP",
     "PRECTOTCORR",
     "GWETROOT"
+   ],
+   "explanations": [
+    {
+     "driver": "GWETROOT",
+     "sign": 1,
+     "season": null,
+     "how": "Wetter soil has more water to evaporate."
+    },
+    {
+     "driver": "ALLSKY_SFC_SW_DWN",
+     "sign": 1,
+     "season": null,
+     "how": "Sunshine supplies the energy to evaporate water."
+    },
+    {
+     "driver": "T2M",
+     "sign": 1,
+     "season": null,
+     "how": "Warmer air takes up water faster."
+    }
    ]
   },
   {
@@ -153,6 +283,20 @@
    "related": [
     "QV2M",
     "T2M"
+   ],
+   "explanations": [
+    {
+     "driver": "T2M",
+     "sign": -1,
+     "season": null,
+     "how": "Warmer air can hold more water, so the same water makes it relatively drier."
+    },
+    {
+     "driver": "QV2M",
+     "sign": 1,
+     "season": null,
+     "how": "More water vapour in the air raises the humidity."
+    }
    ]
   },
   {
@@ -168,6 +312,20 @@
    "related": [
     "RH2M",
     "PW"
+   ],
+   "explanations": [
+    {
+     "driver": "T2M",
+     "sign": 1,
+     "season": null,
+     "how": "Warmer air can hold more water vapour."
+    },
+    {
+     "driver": "EVLAND",
+     "sign": 1,
+     "season": null,
+     "how": "Evaporation puts water vapour into the air."
+    }
    ]
   },
   {
@@ -183,6 +341,14 @@
    "related": [
     "QV2M",
     "PRECTOTCORR"
+   ],
+   "explanations": [
+    {
+     "driver": "T2M",
+     "sign": 1,
+     "season": null,
+     "how": "Warmer air can hold more water vapour."
+    }
    ]
   },
   {
@@ -202,6 +368,14 @@
    "related": [
     "PRECTOTCORR",
     "GLDAS_RUNOFF"
+   ],
+   "explanations": [
+    {
+     "driver": "PW",
+     "sign": 1,
+     "season": null,
+     "how": "More water vapour in the air can fall as rain."
+    }
    ]
   },
   {
@@ -221,6 +395,20 @@
    "related": [
     "EVLAND",
     "GLDAS_SOILM"
+   ],
+   "explanations": [
+    {
+     "driver": "GLDAS_SOILM",
+     "sign": 1,
+     "season": null,
+     "how": "Wetter soil has more water to evaporate."
+    },
+    {
+     "driver": "ALLSKY_SFC_SW_DWN",
+     "sign": 1,
+     "season": null,
+     "how": "Sunshine supplies the energy to evaporate water."
+    }
    ]
   },
   {
@@ -239,6 +427,20 @@
    "related": [
     "GPM_RAIN",
     "GLDAS_SOILM"
+   ],
+   "explanations": [
+    {
+     "driver": "GPM_RAIN",
+     "sign": 1,
+     "season": null,
+     "how": "More rain means more water draining off the land."
+    },
+    {
+     "driver": "GLDAS_SOILM",
+     "sign": 1,
+     "season": null,
+     "how": "Soaked soil can't take in more water, so it runs off."
+    }
    ]
   },
   {
@@ -255,6 +457,20 @@
    "related": [
     "GWETROOT",
     "PRECTOTCORR"
+   ],
+   "explanations": [
+    {
+     "driver": "PRECTOTCORR",
+     "sign": 1,
+     "season": null,
+     "how": "Rain wets the topsoil first."
+    },
+    {
+     "driver": "T2M",
+     "sign": -1,
+     "season": null,
+     "how": "Warmer air dries the topsoil out faster."
+    }
    ]
   },
   {
@@ -272,6 +488,26 @@
     "GLDAS_SOILM",
     "PRECTOTCORR",
     "EVLAND"
+   ],
+   "explanations": [
+    {
+     "driver": "PRECTOTCORR",
+     "sign": 1,
+     "season": null,
+     "how": "Rain refills the soil."
+    },
+    {
+     "driver": "EVLAND",
+     "sign": -1,
+     "season": null,
+     "how": "Evaporation takes water out of the soil."
+    },
+    {
+     "driver": "T2M",
+     "sign": -1,
+     "season": null,
+     "how": "Warmer air dries the soil out faster."
+    }
    ]
   },
   {
@@ -287,6 +523,26 @@
    "related": [
     "T2M_MIN",
     "PRECTOTCORR"
+   ],
+   "explanations": [
+    {
+     "driver": "T2M",
+     "sign": -1,
+     "season": "falling",
+     "how": "Warmer air melts snow faster in the melt season."
+    },
+    {
+     "driver": "PRECTOTCORR",
+     "sign": 1,
+     "season": "rising",
+     "how": "More rain and snow while the snowpack builds up adds snow."
+    },
+    {
+     "driver": "T2M",
+     "sign": -1,
+     "season": "rising",
+     "how": "Warmer air turns snowfall into rain while the snowpack builds up."
+    }
    ]
   },
   {
@@ -306,6 +562,26 @@
    "related": [
     "GWETROOT",
     "MODIS_NDVI"
+   ],
+   "explanations": [
+    {
+     "driver": "GPM_RAIN",
+     "sign": 1,
+     "season": null,
+     "how": "Rain refills the soil."
+    },
+    {
+     "driver": "GLDAS_EVAP",
+     "sign": -1,
+     "season": null,
+     "how": "Evaporation takes water out of the soil."
+    },
+    {
+     "driver": "AIRS_T2M",
+     "sign": -1,
+     "season": null,
+     "how": "Warmer air dries the soil out faster."
+    }
    ]
   },
   {
@@ -325,6 +601,26 @@
     "GWETROOT",
     "PRECTOTCORR",
     "MODIS_LST"
+   ],
+   "explanations": [
+    {
+     "driver": "GWETROOT",
+     "sign": 1,
+     "season": null,
+     "how": "Where water limits plant growth, wetter soil makes the land greener."
+    },
+    {
+     "driver": "PRECTOTCORR",
+     "sign": 1,
+     "season": null,
+     "how": "Where water limits plant growth, more rain makes the land greener."
+    },
+    {
+     "driver": "T2M",
+     "sign": 1,
+     "season": null,
+     "how": "Where cold limits plant growth, warmer air makes the land greener."
+    }
    ]
   },
   {
@@ -339,7 +635,8 @@
    "phrases": "wind speed",
    "related": [
     "PS"
-   ]
+   ],
+   "explanations": []
   },
   {
    "code": "PS",
@@ -353,7 +650,8 @@
    "phrases": "air pressure, surface pressure",
    "related": [
     "WS10M"
-   ]
+   ],
+   "explanations": []
   },
   {
    "code": "TO3",
@@ -367,7 +665,8 @@
    "phrases": "ozone layer, ozone hole",
    "related": [
     "ALLSKY_SFC_SW_DWN"
-   ]
+   ],
+   "explanations": []
   },
   {
    "code": "AOD_55",
@@ -382,6 +681,20 @@
    "related": [
     "OMI_NO2",
     "ALLSKY_SFC_SW_DWN"
+   ],
+   "explanations": [
+    {
+     "driver": "PRECTOTCORR",
+     "sign": -1,
+     "season": null,
+     "how": "Rain washes particles out of the air."
+    },
+    {
+     "driver": "WS10M",
+     "sign": 1,
+     "season": null,
+     "how": "Wind lifts dust into the air."
+    }
    ]
   },
   {
@@ -401,7 +714,8 @@
    "low_note": "Here the air has very little NO₂ (on average below 1 × 10¹⁵ molecules/cm²), close to what OMI can detect. Small trends at such low levels can come from slow changes in the instrument rather than in the air, so this result is not reliable. NO₂ trends are most meaningful over cities and industry.",
    "related": [
     "AOD_55"
-   ]
+   ],
+   "explanations": []
   },
   {
    "code": "ALLSKY_SFC_SW_DWN",
@@ -416,6 +730,20 @@
    "related": [
     "CLOUD_AMT",
     "AOD_55"
+   ],
+   "explanations": [
+    {
+     "driver": "CLOUD_AMT",
+     "sign": -1,
+     "season": null,
+     "how": "Clouds reflect sunlight back to space."
+    },
+    {
+     "driver": "AOD_55",
+     "sign": -1,
+     "season": null,
+     "how": "Haze and dust dim the sunlight."
+    }
    ]
   },
   {
@@ -431,6 +759,14 @@
    "related": [
     "ALLSKY_SFC_SW_DWN",
     "PRECTOTCORR"
+   ],
+   "explanations": [
+    {
+     "driver": "RH2M",
+     "sign": 1,
+     "season": null,
+     "how": "Clouds form when the air is close to saturated."
+    }
    ]
   }
  ],

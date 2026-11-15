@@ -202,7 +202,7 @@ correction) as second checks. Verdict: 🟢 p<0.05 · 🟡 p<0.10 · ⚪ otherwi
 or 24 valid months. Flags: `reliability` (low if < 30 effective months), `tests_agree`,
 `band_meaning`. `percent_change` only for RAIN/SOILM/EVAP and never-negative data.
 "Years until significant" = record × (1.96/|t|)^(2/3) − record; labelled planning estimate.
-Non-significant ≠ "no change". Never state causes.
+Non-significant ≠ "no change". Never state causes (Investigate grades how well an idea fits the data; it never says "cause").
 
 ## Current status / handover (update this when you finish something)
 - ✅ Planning done: `docs/PLAN.md`, `docs/HANDSHAKES.md`.
@@ -249,6 +249,11 @@ Non-significant ≠ "no change". Never state causes.
 - ⏱️ **Time periods** (from `codex/trend-detective`, `Website/investigation.js`): From/To in Explore and
   Compare, periods in questions and links, whole-record result always shown next to a window. Compare
   matches months at both places and reports A − B with a Newey–West range.
+- 🔍 **Investigate: what might explain this?** (`Website/evidence.js`): ideas per measurement in
+  `variables.json` (`explanations`) or the student's own, graded on an evidence ladder (month-to-month
+  link with effective-n range → share of the trend explained → independent data). Never claims causes;
+  shows a "shared drivers" box and counts tries. Replaces the sign-matching workspace of
+  `codex/trend-detective` (review: `docs/CAUSALITY_REVIEW.md`). Check: `node Website/tests/test_evidence.js`.
 - 🖥️ **Website first version** in `FrontEnd_claude/` (built for P1 on the real Task2/3/4 parts):
   `app.py`, `charts.py` (H5), theme, 6 passing app tests, mock-ups + screenshots in `design/`.
   Run: `streamlit run FrontEnd_claude/app.py`. Combine with `--frontend FrontEnd_claude`.
