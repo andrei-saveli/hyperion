@@ -29,7 +29,7 @@ const CASES = [
 ];
 window.BYTEME_CASES = CASES;
 
-let VARS = [], POWER_VARS = [], NASA = null, NOT_AVAILABLE = [], WORLD = null, LAND = null, map = null, marker = null;
+let VARS = [], POWER_VARS = [], NASA = null, NOT_AVAILABLE = [], FAMILIES = {}, WORLD = null, LAND = null, map = null, marker = null;
 // state.full: every measurement's whole record for the chosen place or area.
 // state.place: the same, cut to the chosen period (state.period, null = whole record) and re-tested.
 const state = { lat: null, lon: null, name: "", code: "T2M", raw: false, loading: false, error: null, place: null, full: null, period: null, layer: true };
@@ -358,7 +358,7 @@ Promise.all([
   // measurements from the satellite grids are only offered when those grids are present
   catalogue.variables = catalogue.variables.filter((v) => v.dataset !== "nasa" || (nasa && nasa.variables[v.code]));
   POWER_VARS = catalogue.variables.filter((v) => v.dataset !== "nasa");
-  VARS = catalogue.variables; NOT_AVAILABLE = catalogue.not_available || []; LAND = land; WORLD = world;
+  VARS = catalogue.variables; NOT_AVAILABLE = catalogue.not_available || []; FAMILIES = catalogue.families || {}; LAND = land; WORLD = world;
   if (world) $("built").textContent = `World overview built ${world.built}`;
   buildVariableSelect(catalogue.groups);
   buildCases();
@@ -823,8 +823,19 @@ function drawChart(el, r, s, v, raw, yRange) {
 // Lower case, hyphens become spaces ("root-zone" = "root zone"), punctuation dropped
 const TEXT = (s) => " " + (s || "").toLowerCase().replace(/[’`]/g, "'").replace(/[^a-z0-9à-ž']+/g, " ").replace(/'s\b/g, "").trim() + " ";
 function words(text) { return TEXT(text).trim().split(" ").filter(Boolean); }
+// A word's stem, so different forms match: warmer/warming/warm, hazier/hazy/haze, rains/raining/rain.
+// Simple suffix rules (good enough for search words, not a full English stemmer).
+function stem(word) {
+  for (const suffix of ["iest", "ier", "ies", "ied", "ing", "est", "ers", "er", "ed", "es", "s", "y", "e"]) {
+    if (word.endsWith(suffix) && word.length - suffix.length >= 3) {
+      word = word.slice(0, -suffix.length);
+      break;
+    }
+  }
+  return /([^lsz])\1$/.test(word) ? word.slice(0, -1) : word;   // hott(er) -> hot, sunn(y) -> sun
+}
 function matches(token, word) {
-  return token === word || (word.length >= 4 && token.startsWith(word)) || (token.length >= 4 && word.startsWith(token));
+  return token === word || (token.length >= 3 && word.length >= 3 && stem(token) === stem(word));
 }
 const listOf = (s) => (s || "").split(",").map((x) => TEXT(x).trim()).filter(Boolean);
 
@@ -868,35 +879,59 @@ function understand(text) {
   const take = (piece) => { rest = rest.split(` ${piece} `).join("  "); };
   const tokens = words(text);
 
-  // 1) measurement: phrases count 6, keywords 3, words of the measurement's name 2
-  const scores = VARS.map((v) => {
-    let score = 0, own = t;                      // own: the question minus this measurement's phrases
-    listOf(v.phrases).forEach((p) => {
-      if (own.includes(` ${p} `)) { score += 6; own = own.split(` ${p} `).join("  "); p.split(" ").forEach(take); }
-    });
-    const keys = words(v.keywords), name = words(v.name).filter((w) => !FILLER.has(w));
-    words(own).forEach((tok) => {               // a word inside a phrase that already counted isn't counted again
-      if (FILLER.has(tok)) return;
-      if (keys.some((k) => matches(tok, k))) { score += 3; take(tok); }
-      else if (name.some((k) => matches(tok, k))) { score += 2; take(tok); }
-    });
-    return score;
-  });
-  const best = Math.max(...scores);
-  let variable = best > 0 ? VARS[scores.indexOf(best)] : null;
-
-  // 2) things we don't have
-  let missing = null;
+  // 0) things we don't have ("sea ice", "floods"): found first, and their words are set aside so
+  //    they can't pull the search towards a measurement ("sea" -> sea surface temperature)
+  let missing = null, scoreText = t;
   for (const n of NOT_AVAILABLE) {
-    const hit = listOf(n.phrases).some((p) => t.includes(` ${p} `)) || tokens.some((tok) => words(n.words).includes(tok));
-    if (hit) {
+    const phrase = listOf(n.phrases).find((p) => t.includes(` ${p} `));
+    const word = tokens.find((tok) => words(n.words).includes(tok));
+    if (phrase || word) {
       missing = n;
-      listOf(n.phrases).forEach((p) => p.split(" ").forEach(take));
-      words(n.words).forEach(take);
-      if (!variable && n.closest) variable = variable || VARS.find((v) => v.code === n.closest);
+      [...listOf(n.phrases), ...words(n.words)].forEach((p) => { scoreText = scoreText.split(` ${p} `).join(" " + " ".repeat(p.length + 1)); take(p.split(" ")[0]); p.split(" ").forEach(take); });
       break;
     }
   }
+
+  // 1) measurement. Phrases count 6: all phrases of all measurements are found first and the
+  //    longest wins where two overlap ("land surface temperature" beats "surface temperature").
+  //    Then each remaining word counts once per measurement: a keyword 3; a weak keyword, a word
+  //    of the measurement's name, or a word of its family (e.g. "warmer" for night temperature) 2.
+  //    So "nights getting warmer" -> nights (3) + warmer (2) beats plain air temperature (3).
+  const hits = [];
+  VARS.forEach((v, i) => listOf(v.phrases).forEach((p) => {
+    for (let at = scoreText.indexOf(` ${p} `); at >= 0; at = scoreText.indexOf(` ${p} `, at + 1)) hits.push({ i, p, start: at, end: at + p.length + 1 });
+  }));
+  hits.sort((x, y) => y.p.length - x.p.length);
+  const scores = VARS.map(() => 0), covered = [], familyCredit = VARS.map(() => 0);
+  hits.forEach((h) => {
+    if (covered.some(([s0, e0]) => h.start < e0 && s0 < h.end)) return;   // a longer phrase already covers these words
+    covered.push([h.start, h.end]); scores[h.i] += 6; h.p.split(" ").forEach(take);
+    const fam = VARS[h.i].family;               // the family's other members may get part of the credit (below)
+    if (fam) VARS.forEach((v, j) => { if (j !== h.i && v.family === fam) familyCredit[j] = Math.max(familyCredit[j], 4); });
+  });
+  let free = scoreText;
+  covered.forEach(([s0, e0]) => { free = free.slice(0, s0) + " ".repeat(e0 - s0) + free.slice(e0); });
+  const freeWords = words(free);
+  VARS.forEach((v, i) => {
+    const keys = words(v.keywords), weak = words(v.weak || ""), name = words(v.name).filter((w) => !FILLER.has(w));
+    const family = v.family && FAMILIES[v.family] && FAMILIES[v.family].head !== v.code ? words(FAMILIES[v.family].words) : [];
+    let ownKeyword = false;
+    freeWords.forEach((tok) => {
+      // ordinary words ("air", "ground") only count when a list holds exactly that word
+      const same = FILLER.has(tok) ? (k) => k === tok : (k) => matches(tok, k);
+      if (keys.some(same)) { scores[i] += 3; ownKeyword = true; take(tok); return; }
+      if (weak.some(same)) { scores[i] += 2; take(tok); return; }
+      if (FILLER.has(tok)) return;
+      if ([...name, ...family].some(same)) { scores[i] += 2; take(tok); }
+    });
+    // "GLDAS soil moisture": a family phrase counts for a member only when the question also names
+    // that member specifically (here "gldas")
+    if (ownKeyword) scores[i] += familyCredit[i];
+  });
+  const best = Math.max(...scores);
+  let variable = best > 0 ? VARS[scores.indexOf(best)] : null;
+  if (!variable && missing && missing.closest) variable = VARS.find((v) => v.code === missing.closest) || null;   // closest we have
+
   const years = (t.match(/\b(1[89]\d\d|20\d\d)\b/g) || []).map(Number);
   if (!missing && years.some((y) => y < START_YEAR)) missing = { say: `Our records start in ${START_YEAR} (haze in 2001), so earlier years aren't available.` };
   if (!missing && years.some((y) => y > END_YEAR)) missing = { say: `Our records run to ${END_YEAR}. ByteMe measures past change; it doesn't forecast.` };
