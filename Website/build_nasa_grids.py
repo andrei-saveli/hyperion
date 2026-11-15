@@ -52,7 +52,7 @@ import sys
 import time
 import urllib.parse
 import urllib.request
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 
 import numpy as np
@@ -370,7 +370,9 @@ def download(names, workers=8):
     # Daily OMI months take longest: start them first so everything ends at about the same time.
     jobs.sort(key=lambda j: -len(j[2]))
     done = failed = 0
-    with ThreadPoolExecutor(workers) as pool:
+    # Separate processes, not threads: reading the files keeps the processor busy, and Python threads
+    # can only use one processor core at a time.
+    with ProcessPoolExecutor(workers) as pool:
         futures = {pool.submit(do_month, *job): job for job in jobs}
         for future in as_completed(futures):
             name, month, _ = futures[future]
