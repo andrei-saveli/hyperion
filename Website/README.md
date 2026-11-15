@@ -141,8 +141,12 @@ build_world.py (run once, Python, stats.py) ─► data/world.json ─► colour
 
   | | Before | After |
   |---|---|---|
-  | Tuning: right measurement and place | 17/30 | (being measured) |
-  | Held out: right measurement and place | 25/30 | (being measured) |
+  | Tuning: right measurement and place | 17/30 | 27/30 |
+  | Held out: right measurement and place | 25/30 | 29/30 |
+
+  Still missed: "snow dept" (4-letter words aren't corrected; snowfall is chosen), "Amazon rainforest
+  getting drier" (greenness wins over soil), "how much water fell near Niger's capital" (no measurement:
+  the meaning model isn't sure enough) and "rain in sao paulo" (the state, 247 km from the city).
 - **Direct answer:** a question gets an answer card right under the search box, for example
   "**Yes.** Air temperature in Romania is rising: +0.57 °C per decade since 1981". It checks the
   direction asked ("warmer", "drier", "cleaner"...) and answers *Yes*, *No, the opposite*, *Maybe*
