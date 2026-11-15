@@ -17,9 +17,9 @@ build_world.py (run once, Python, stats.py) ─► data/world.json ─► colour
 - **Data:** [NASA POWER](https://power.larc.nasa.gov/) monthly values (MERRA-2 and CERES) for the
   grid square, about 50 km wide, around the chosen point. 35 measurements, listed with
   plain-language definitions in `data/variables.json`. Most start in 1981, sunlight and clouds in
-  1984, haze, surface brightness and UV in 2001. Another 27 come from prepared satellite and model
-  grids (see below), 62 in all.
-- **Measurements for particular kinds of places:** half of the 62 only make sense in some
+  1984, haze, surface brightness and UV in 2001. Another 21 come from prepared satellite and model
+  grids (see below), 56 in all.
+- **Measurements for particular kinds of places:** half of the 56 only make sense in some
   terrains, so a visitor can investigate the sea, the ice, the mountains, a desert, a city or the
   upper air:
 
@@ -29,7 +29,7 @@ build_world.py (run once, Python, stats.py) ─► data/world.json ─► colour
   | Ice, snow and mountains | Snow cover, snowfall, frost days, snow depth, ice-sheet meltwater runoff, surface brightness (albedo) |
   | Land and its water | Soil temperature, deep soil temperature (permafrost), deep soil wetness, water stored on land (soil + snow + groundwater) |
   | Deserts, fires and industry | Desert dust, smoke and soot, sulfate haze, carbon monoxide, methane |
-  | Pollution in the air we breathe | Fine particles (PM2.5, with the WHO guideline), soot, organic smoke particles, sulfate particles and fine dust at ground level, sulfur dioxide (OMI satellite and MERRA-2 at the ground, checked against each other), carbon monoxide at ground level, formaldehyde (OMI), smoke and dust index (OMI), plus haze and NO₂ |
+  | Pollution in the air we breathe | Fine particles (PM2.5, with the WHO guideline), organic smoke particles and fine dust at ground level, sulfur dioxide (OMI satellite), plus haze and NO₂ |
   | Cities and people | Cooling need and heating need (degree days), day–night temperature range, dew point, UV index |
   | Levels of the atmosphere | Tropopause temperature and pressure (top of the weather layer), stratosphere temperature at 50 hPa, heat radiation from the sky |
 
@@ -203,11 +203,15 @@ asked for live like NASA POWER.
 | Water stored on land (GLDAS) | GLDAS Catchment `GLDAS_CLSM10_M` 2.1 (`TWS_inst`: soil, snow, canopy and shallow groundwater) | 2000 | – |
 | Ice-sheet meltwater runoff | MERRA-2 `M2TMNXGLC` (`RUNOFF` over glaciated land) | 1980 | – |
 | Desert dust · Smoke and soot · Sulfate haze | MERRA-2 `M2TMNXAER` (`DUEXTTAU`, `BCEXTTAU` + `OCEXTTAU`, `SUEXTTAU`), 2° squares | 2003 (the model has MODIS aerosol measurements to lean on from then; earlier years would show the observing system changing) | – |
-| Fine particles (PM2.5) · soot · organic particles · sulfate particles · fine dust · sulfur dioxide, all at ground level | MERRA-2 `M2TMNXAER` surface masses (PM2.5 = dust + sea salt + soot + 1.4 × organic carbon + 1.375 × sulfate, as in Buchard et al. 2016; no nitrate, so city values are on the low side). PM2.5 on 1° squares, the rest on 2° | 2003 |
-| Carbon monoxide at ground level | MERRA-2 `M2TMNXCHM` (`COSC`), 2° squares. Calculated from emission inventories, not assimilated CO measurements | 1980 |
-| Sulfur dioxide (OMI) | OMI `OMSO2e` v003, daily maps averaged by month, 2° squares. Pairs with MERRA-2 SO₂ (second source); caution below 0.15 DU | 2004 |
-| Formaldehyde (OMI) | OMI `OMHCHOd` v003, every 5th 0.1° pixel of the daily maps, averaged by month, 2° squares; caution below 2 × 10¹⁵ molecules/cm² | 2004 |
-| Smoke and dust index (OMI) | OMI `OMAERUVd` v003 UV aerosol index, daily maps averaged by month, 2° squares | 2004 |
+| Fine particles (PM2.5) · organic particles · fine dust, at ground level | MERRA-2 `M2TMNXAER` surface masses (PM2.5 = dust + sea salt + soot + 1.4 × organic carbon + 1.375 × sulfate, as in Buchard et al. 2016; no nitrate, so city values are on the low side). PM2.5 on 1° squares, the others on 2° | 2003 |
+| Sulfur dioxide (OMI) | OMI `OMSO2e` v003, daily maps averaged by month, 2° squares; caution below 0.15 DU | 2004 |
+
+**Downloaded but left out, because their trends can't be trusted:** MERRA-2 soot, sulfate, SO₂ and CO at
+ground level. The model's factory and traffic emission estimates stop being updated around 2010, so
+Beijing's SO₂ "rises" 29 → 46 µg/m³ while OMI sees it collapse (0.41 → 0.09 DU). OMI formaldehyde and
+UV aerosol index drift with the instrument (the aerosol index rises in every significant square on
+Earth). MERRA-2's PM2.5, organic particles, smoke and sulfate haze carry a caution in their definition:
+the total amount of particles is kept close to satellite measurements, but the split by source isn't.
 | Methane · Carbon monoxide · Stratosphere temperature (AIRS) | AIRS `AIRS3STM` v7.0 at 400, 500 and 50 hPa, day/night average, 2° squares | 2002 | – |
 
 - **Grid:** every dataset is averaged into 1 x 1 degree squares (about 110 km). A square needs data
@@ -245,7 +249,7 @@ Set `EARTHDATA_TOKEN` to your token (Earthdata profile → Generate Token) when 
 own computer. `build` runs `stats.py` for the map and writes the tiles; `test_nasa.js` checks
 that the website reads them back correctly. Needs `numpy`, `h5py`, `pandas`, `scipy`.
 
-The tiles add up to about 440 MB. Commit a rebuild only when it matters: every rebuild adds that
+The tiles add up to about 410 MB. Commit a rebuild only when it matters: every rebuild adds that
 much to the repository's history.
 
 ## Files
@@ -268,7 +272,7 @@ much to the repository's history.
 | `area.js` | Area averages: squares inside a country's or region's outline, weighted average of their records |
 | `build_nasa_grids.py`, `build_nasa_tiles.py` | Download the NASA datasets to 1° grids; then trends, tiles and map layers (`data/nasa/`) |
 | `globe.js` | Hero art: rotating globe of teal "satellite pixels", demo cases in coral (decoration only) |
-| `data/variables.json` | The 62 measurements (35 NASA POWER + 27 satellite/model): code, name, units, definition, search words, second-source pairs |
+| `data/variables.json` | The 56 measurements (35 NASA POWER + 21 satellite/model): code, name, units, definition, search words, second-source pairs |
 | `data/world.json` | World overview: trend of every measurement on a 5 degree grid (made by `build_world.py`) |
 | `build_world.py` | Rebuilds `data/world.json` with the Python trend code (about 25 minutes, can be stopped and restarted) |
 | `tests/` | `make_reference.py` + `test_stats.js` (website math = Python math); `test_nasa.js` + `nasa_reference.json` (tiles read back correctly); `test_area.js` (outlines and area averages); `test_investigation.js` (periods and matched comparisons); `test_decompose.js` (Trend Decomposer: known contributions, spurious trends, seasons, real Svalbard data); `test_search.js` + `search_questions.json` (search picks the right measurement; needs Playwright); `test_meaning.js` + `meaning_questions.json` (search by meaning; Playwright + model files); `test_similar.js` (places changing like this one) |
