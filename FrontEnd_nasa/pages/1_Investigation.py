@@ -1,5 +1,6 @@
 """Byte Me Analitics: investigate NASA trends with a plain-language query."""
 
+import re
 from pathlib import Path
 
 import pandas as pd
@@ -11,7 +12,6 @@ from data_io import load_places, load_series, load_variables
 from explain import explain
 from investigation import fit_period, period_in_question, slice_period
 from investigation_view import select_analysis_period, set_analysis_period, show_matched_comparison
-from search import explore
 from stats import analyze
 from ui_navigation import render_top_navigation
 
@@ -120,6 +120,63 @@ st.markdown(
             background: rgba(5, 28, 53, 0.76);
         }
 
+        .query-guide {
+            margin: 1.25rem 0 1.5rem;
+            padding: 1.2rem;
+            border-left: 2px solid var(--query-cyan);
+            background: rgba(6, 24, 44, 0.72);
+        }
+
+        .query-guide-label {
+            color: #7896b4;
+            font-size: 0.68rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+
+        .query-pattern {
+            margin: 0.55rem 0 0.85rem;
+            color: #e8f8ff;
+            font-size: clamp(0.85rem, 2vw, 1.05rem);
+        }
+
+        .query-pattern span {
+            color: var(--query-cyan);
+        }
+
+        .query-guide-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+
+        .query-guide h4 {
+            margin: 0 0 0.45rem;
+            color: #dcefff;
+            font-size: 0.75rem;
+        }
+
+        .query-guide ul {
+            margin: 0;
+            padding-left: 1.1rem;
+            color: #83a0bd;
+            font-size: 0.72rem;
+            line-height: 1.75;
+        }
+
+        .query-example {
+            color: #83a0bd;
+            font-size: 0.72rem;
+            line-height: 1.75;
+        }
+
+        .query-example code {
+            color: #dff8ff;
+            background: #020e1d;
+            padding: 0.15rem 0.3rem;
+            border-radius: 0.15rem;
+        }
+
         .st-key-top_navigation {
             padding-bottom: 0.8rem;
             margin-bottom: 1.2rem;
@@ -157,6 +214,10 @@ st.markdown(
             .block-container {
                 padding: 1rem 1rem 2.5rem;
             }
+            .query-guide-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
         }
     </style>
     """,
@@ -177,15 +238,15 @@ def get_variables():
 
 @st.cache_data
 def get_record(place_id, variable_code):
-    """Load the full series and cache its fixed seasonal baseline."""
+    """Cache the full record and its seasonal baseline."""
     series = load_series(place_id, variable_code)
-    return series, analyze(series, code=variable_code)
+    return series, analyze(series, code=variable_code) if not series.empty else None
 
 
-def get_period_analysis(place_id, variable_code, period):
-    full, full_fit = get_record(place_id, variable_code)
+def get_period_analysis(place_id, code, period):
+    full, full_fit = get_record(place_id, code)
     series = slice_period(full, period)
-    return series, None if series.empty else fit_period(series, variable_code, full, full_fit)
+    return series, None if series.empty else fit_period(series, code, full, full_fit)
 
 
 def safe_number(value, suffix="", signed=False):
@@ -201,43 +262,82 @@ def row_as_dict(frame, column, value):
     return frame.loc[frame[column] == value].iloc[0].to_dict()
 
 
-def open_dataset(place_id, code, period=None):
-    """Open a dataset and include the starting investigation in its link."""
-    st.session_state.active_query = {"place_id": place_id, "code": code}
-    st.query_params.update({"place": place_id, "measurement": code})
-    st.query_params.pop("compare", None)
-    st.session_state.pop("comparison_place", None)
-    set_analysis_period(period)
-    st.session_state.query_form_visible = False
+def place_aliases(place):
+    """Return simple names a user might type for a repository place."""
+    visible_name = str(place["name"]).lower()
+    return {
+        visible_name,
+        visible_name.split("(")[0].strip(),
+        visible_name.split(",")[0].strip(),
+        str(place["id"]).lower().replace("_", " "),
+    }
 
 
-def render_suggestions(suggestions, places, variables, period):
-    """Display Searchlight's ranked cards and the confidence interval of each series."""
-    if not suggestions:
-        st.info("Searchlight returned no suggestions. You can browse the available data below.")
-        return
-    if suggestions[0]["match_label"] != "Possible match":
-        st.caption("Searchlight couldn’t confirm a match. You can explore the dataset below.")
-    for suggestion in suggestions:
-        place_id, code = suggestion["place_id"], suggestion["code"]
-        place = row_as_dict(places, "id", place_id)
-        variable = row_as_dict(variables, "code", code)
-        st.button(
-            f"{suggestion['match_label']} · {variable['name']} · {place['name']}",
-            key=f"search_result_{place_id}_{code}",
-            on_click=open_dataset,
-            args=(place_id, code, period),
-            width="stretch",
+def parse_query(text, places):
+    """Find a repository place and two four-digit years in a user query."""
+    cleaned = " ".join(text.lower().split())
+    years = [int(year) for year in re.findall(r"\b(?:19|20)\d{2}\b", cleaned)]
+
+    if len(years) < 2:
+        return None, None, None, "Include a start and end year, such as 2005 to 2020."
+
+    start_year, end_year = years[0], years[1]
+    if start_year > end_year:
+        return None, None, None, "The start year must come before the end year."
+    if start_year < 2001 or end_year > 2024:
+        return None, None, None, "Choose years from 2001 through 2024."
+
+    matched_place_id = None
+    matched_alias_length = 0
+    for _, place in places.iterrows():
+        for alias in place_aliases(place):
+            if alias and re.search(rf"\b{re.escape(alias)}(?!\w)", cleaned) and len(alias) > matched_alias_length:
+                matched_place_id = place["id"]
+                matched_alias_length = len(alias)
+
+    if matched_place_id is None:
+        available = ", ".join(places["name"].tolist())
+        return None, None, None, f"Place not found. Available places: {available}."
+
+    return matched_place_id, start_year, end_year, None
+
+
+def render_comparison(place, places, variables, period):
+    """Let the reader compare one measurement over the selected months."""
+    with st.expander("Compare with another place", expanded=bool(st.query_params.get("compare"))):
+        names = places.set_index("id")["name"]
+        options = [pid for pid in names.index if pid != place["id"]]
+        saved_place = st.query_params.get("compare")
+        reference_id = st.selectbox(
+            "Comparison place", options, format_func=names.__getitem__,
+            index=options.index(saved_place) if saved_place in options else None,
+            key=f"compare_place_{place['id']}",
         )
-        st.caption(suggestion["reason"])
-        if period:
-            continue  # The selected range gets its own fit when opened.
-        _, result = get_record(place_id, code)
-        if result["ci_low"] is not None and result["ci_high"] is not None:
-            low = safe_number(result["ci_low"], signed=True)
-            high = safe_number(result["ci_high"], signed=True)
-            st.caption(f"95% confidence interval ({result['start']} to {result['end']}) · "
-                       f"{low} to {high} {variable['units']} per decade")
+        if reference_id is None:
+            st.query_params.pop("compare", None)
+            return
+        if saved_place != reference_id:
+            st.query_params["compare"] = reference_id
+
+        measurements = variables.set_index("code")["name"]
+        codes = list(measurements.index)
+        saved_code = st.query_params.get("measurement")
+        code = st.selectbox(
+            "Measurement to compare", codes, format_func=measurements.__getitem__,
+            index=codes.index(saved_code) if saved_code in codes else 0,
+            key=f"compare_measurement_{place['id']}",
+        )
+        if saved_code != code:
+            st.query_params["measurement"] = code
+
+        try:
+            primary, _ = get_record(place["id"], code)
+            reference, _ = get_record(reference_id, code)
+        except FileNotFoundError:
+            st.info("This measurement needs a record at both places. Choose another measurement.")
+            return
+        variable = row_as_dict(variables, "code", code)
+        show_matched_comparison(primary, reference, place["name"], names[reference_id], variable, period)
 
 
 def verdict_label(verdict):
@@ -444,83 +544,121 @@ st.image(Path(__file__).resolve().parents[1] / "assets" / "byte-me-analytics.png
 render_top_navigation("search")
 
 if "query_form_visible" not in st.session_state:
-    linked_place, linked_code = st.query_params.get("place"), st.query_params.get("measurement")
-    if linked_place in set(places["id"]) and linked_code in set(variables["code"]):
-        st.session_state.active_query = {"place_id": linked_place, "code": linked_code}
+    linked_place = st.query_params.get("place")
+    if linked_place in set(places["id"]):
+        st.session_state.active_query = {
+            "place_id": linked_place, "text": row_as_dict(places, "id", linked_place)["name"],
+        }
     st.session_state.query_form_visible = "active_query" not in st.session_state
 
 if st.session_state.query_form_visible:
-    st.title("Search Earth trends")
-    st.write("Ask a question and Searchlight will suggest datasets you can investigate.")
+    st.title("Explore a place")
+    st.write(
+        "Ask about an available place and a period of time. Byte Me Analitics will locate it "
+        "and investigate every Earth-system variable currently supplied by the project."
+    )
+    st.markdown(
+        """
+        <div class="query-guide">
+            <div class="query-guide-label">Query format</div>
+            <div class="query-pattern">
+                <span>[place name]</span> from <span>[start year]</span> to <span>[end year]</span>
+            </div>
+            <div class="query-guide-grid">
+                <div>
+                    <h4>Requirements</h4>
+                    <ul>
+                        <li>Use a place listed under “Places currently available.”</li>
+                        <li>Write both years with four digits.</li>
+                        <li>Put the earlier year first.</li>
+                        <li>Choose years from 2001 through 2024.</li>
+                        <li>The trend test requires a record spanning at least 10 years.</li>
+                    </ul>
+                </div>
+                <div>
+                    <h4>Examples</h4>
+                    <div class="query-example">
+                        <code>Lake Mead from 2005 to 2020</code><br>
+                        <code>Show me Svalbard between 2010 and 2022</code><br>
+                        Extra words are fine; the place and two years are what matter.
+                    </div>
+                </div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    example_place = places.iloc[0]["name"].split("(")[0].strip()
     with st.form("investigation_query"):
-        query = st.text_input("Ask a question", placeholder="Is the Arctic warming?")
-        submitted = st.form_submit_button("Find datasets", type="primary", width="stretch")
+        query = st.text_input(
+            "What place and time period do you want to investigate?",
+            placeholder=f"Example: Show me {example_place} from 2005 to 2020",
+            key="query_text",
+        )
+        submitted = st.form_submit_button("Investigate", type="primary", width="stretch")
 
-    if submitted:
-        if query.strip():
-            with st.spinner("Searching datasets…"):
-                st.session_state.search_results = explore(query.strip())
-                st.session_state.search_period = period_in_question(query)
-        else:
-            st.session_state.pop("search_results", None)
-            st.warning("Enter a question first.")
+    with st.expander("Places currently available"):
+        for _, available_place in places.iterrows():
+            st.markdown(
+                f"- **{available_place['name']}** — {available_place['story']} "
+                f"({available_place['lat']:.3g}, {available_place['lon']:.3g})"
+            )
 
-    if "search_results" in st.session_state:
-        render_suggestions(st.session_state.search_results, places, variables, st.session_state.get("search_period"))
+    if not submitted:
+        st.info("Enter a place and two years to begin.")
+        st.stop()
 
-    with st.expander("Browse available data"):
-        place_name = st.selectbox("Place", places["name"])
-        measurement = st.selectbox("Measurement", variables["name"])
-        place_id = row_as_dict(places, "name", place_name)["id"]
-        code = row_as_dict(variables, "name", measurement)["code"]
-        st.button("Open dataset", on_click=open_dataset, args=(place_id, code, period_in_question(query)))
-    st.stop()
+    if not query.strip():
+        st.warning("Enter a place and a time period first.")
+        st.stop()
+    place_id, start_year, end_year, query_error = parse_query(query, places)
+    if query_error:
+        st.warning(query_error)
+        st.stop()
+    st.session_state.active_query = {
+        "text": query,
+        "place_id": place_id,
+    }
+    st.query_params["place"] = place_id
+    precise_period = period_in_question(query)
+    year_period = (f"{start_year}-01", f"{end_year}-12")
+    set_analysis_period(precise_period if precise_period and precise_period[1] else year_period)
+    st.session_state.query_form_visible = False
+    st.rerun()
 
 active_query = st.session_state.active_query
-place = row_as_dict(places, "id", active_query["place_id"])
-selected_variable = row_as_dict(variables, "code", active_query["code"])
 summary_column, action_column = st.columns([5, 1], vertical_alignment="center")
 with summary_column:
-    st.caption("SELECTED DATASET")
-    st.markdown(f"**{selected_variable['name']} · {place['name']}**")
+    st.caption("RESULTS FOR")
+    st.markdown(f"**{active_query['text']}**")
 with action_column:
     if st.button("NEW QUERY", width="stretch"):
         st.session_state.query_form_visible = True
-        for parameter in ("place", "measurement", "from", "to", "compare"):
-            st.query_params.pop(parameter, None)
+        for key in ("place", "from", "to", "compare", "measurement"):
+            st.query_params.pop(key, None)
         st.rerun()
 
-try:
-    selected_record, _ = get_record(place["id"], selected_variable["code"])
-except FileNotFoundError:
-    st.info("This dataset has no record yet. Open New Query to choose another measurement.")
-    st.stop()
-if selected_record.empty:
-    st.info("This dataset has no observations yet.")
-    st.stop()
-period = select_analysis_period(selected_record)
-period_label = f"{period[0]} to {period[1]}"
+place = row_as_dict(places, "id", active_query["place_id"])
+if st.query_params.get("place") != place["id"]:
+    st.query_params["place"] = place["id"]
+    if "start_year" in active_query:
+        set_analysis_period((f"{active_query['start_year']}-01", f"{active_query['end_year']}-12"))
 
-with st.expander("Compare with another place", expanded=bool(st.query_params.get("compare"))):
-    st.caption(f"Compare {selected_variable['name'].lower()} in the months observed at both places.")
-    choices = places.loc[places["id"] != place["id"], "id"].tolist()
-    names = places.set_index("id")["name"]
-    saved = st.query_params.get("compare")
-    reference_id = st.selectbox("Comparison place", choices, format_func=names.__getitem__,
-                                index=choices.index(saved) if saved in choices else None,
-                                key="comparison_place")
-    if reference_id is None:
-        st.query_params.pop("compare", None)
-    else:
-        if saved != reference_id:
-            st.query_params["compare"] = reference_id
-        try:
-            reference, _ = get_record(reference_id, selected_variable["code"])
-        except FileNotFoundError:
-            st.info("This measurement has no record at the comparison place.")
-        else:
-            show_matched_comparison(selected_record, reference, place["name"], names[reference_id],
-                                    selected_variable, period)
+# The Giovanni datasets share the monthly calendar. Use the first available record for its bounds.
+for code in variables["code"]:
+    try:
+        calendar, _ = get_record(place["id"], code)
+    except FileNotFoundError:
+        continue
+    if not calendar.empty:
+        break
+else:
+    st.info("There are no records for this place yet.")
+    st.stop()
+period = select_analysis_period(calendar)
+period_label = f"{period[0]} to {period[1]}"
+render_comparison(place, places, variables, period)
 
 st.divider()
 st.caption(f"INVESTIGATION · {period_label}")
@@ -546,7 +684,7 @@ remove_seasons = st.toggle(
     help="Subtract the usual pattern for each calendar month so the long-term signal is easier to see.",
 )
 
-variable_tabs = st.tabs(variables["name"].tolist(), default=selected_variable["name"])
+variable_tabs = st.tabs(variables["name"].tolist())
 for tab, (_, variable_row) in zip(variable_tabs, variables.iterrows()):
     variable = variable_row.to_dict()
     with tab:

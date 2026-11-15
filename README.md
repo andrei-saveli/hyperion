@@ -79,11 +79,11 @@ pip install -r requirements.txt
 streamlit run app.py
 ```
 
-Open [localhost:8501](http://localhost:8501). Choose **Start**, then open a dataset. Use
-**Months to analyze** to change the period and **Compare with another place** to compare both
-locations over the same observed months. The Query URL preserves the dataset, dates, and
-comparison place. **Browse available data** works with the base requirements. For model setup, see
-[Searchlight and the Streamlit frontend](FrontEnd_nasa/README.md).
+Open [localhost:8501](http://localhost:8501). Choose **Start** and enter a query such as
+`Lake Mead from 2005 to 2020`. Byte Me matches the place name or alias and extracts the years.
+Use **Months to analyze** to change the period and **Compare with another place** to compare
+locations over the same observed months. The Query URL preserves the place, dates, and
+comparison. See the [Byte Me frontend README](FrontEnd_nasa/README.md).
 
 ## Repository
 

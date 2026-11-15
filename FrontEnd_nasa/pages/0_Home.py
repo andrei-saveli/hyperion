@@ -527,7 +527,7 @@ with hero_copy:
             <div class="eyebrow">NASA GIOVANNI · 2001–2024</div>
             <h1 class="hero-title">Explore <span>Earth trends.</span></h1>
             <p class="hero-subtitle">
-                Ask a question or choose a dataset. See the monthly record, a linear trend,
+                Choose a place and date range. See the monthly record, a linear trend,
                 and how certain that trend is.
             </p>
             <p class="hero-note">For students, teachers, and anyone curious about Earth data.</p>
@@ -587,8 +587,8 @@ feature_columns = st.columns(3)
 features = [
     (
         "01 · ASK",
-        "Ask about a trend",
-        "Try a question such as “Is the Arctic warming?”",
+        "Choose a place and period",
+        "Enter a request such as “Show me Svalbard from 2005 to 2020.”",
     ),
     (
         "02 · INSPECT",
@@ -628,6 +628,7 @@ if available_places.empty:
 else:
     example_columns = st.columns(min(3, len(available_places)))
     for index, (_, example_place) in enumerate(available_places.head(3).iterrows()):
+        example_query = f"{example_place['name']} from 2001 to 2024"
         with example_columns[index]:
             if st.button(
                 f"{example_place['name']} · 2001–2024",
@@ -635,10 +636,11 @@ else:
                 width="stretch",
             ):
                 st.session_state.active_query = {
+                    "text": example_query,
                     "place_id": example_place["id"],
-                    "code": "TEMP",
+                    "start_year": 2001,
+                    "end_year": 2024,
                 }
-                st.session_state.pop("investigation_years", None)
                 st.session_state.query_form_visible = False
                 st.switch_page("pages/1_Investigation.py")
 
