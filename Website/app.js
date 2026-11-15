@@ -15,6 +15,7 @@ const POWER = "https://power.larc.nasa.gov/api/temporal/monthly/point";
 const MAP_STYLE = "https://tiles.openfreemap.org/styles/positron";
 const GEOCODER = "https://geocoding-api.open-meteo.com/v1/search";
 const GEOCODER_2 = "https://photon.komoot.io/api/";
+const NOMINATIM = "https://nominatim.openstreetmap.org";   // outlines of countries and regions
 const REVERSE = "https://api.bigdatacloud.net/data/reverse-geocode-client";
 const REVERSE_2 = "https://nominatim.openstreetmap.org/reverse";
 const CELL = { lat: 0.5, lon: 0.625 };                  // size of one MERRA-2 grid square
@@ -76,21 +77,40 @@ function snap(lat, lon) {
 
 const placeCache = new Map();   // "lat,lon" -> promise of { series, results }
 
+// NASA POWER records for one grid square: { code: {dates, values} }. Shared by single places
+// and area averages, so a square is only downloaded once.
+const powerCache = new Map();
+function powerSeries(lat, lon) {
+  const key = `${lat},${lon}`;
+  if (!powerCache.has(key)) {
+    const job = downloadPower(lat, lon, END_YEAR)
+      .catch(() => downloadPower(lat, lon, END_YEAR - 1))   // early in a year, last year may not be ready yet
+      .then((raw) => Object.fromEntries(POWER_VARS.map((v) => [v.code, toSeries(raw[v.code], v.scale || 1)])));
+    job.catch(() => powerCache.delete(key));
+    powerCache.set(key, job);
+  }
+  return powerCache.get(key);
+}
+
+// Run the trend analysis on every measurement's record
+function analyzeAll(series) {
+  const results = {};
+  VARS.forEach((v) => {
+    results[v.code] = series[v.code] ? ByteMeStats.analyze(series[v.code].dates, series[v.code].values, v.percent) : null;
+  });
+  return results;
+}
+
 // Download every measurement for one grid square and run the trend analysis on each.
 // Two sources: NASA POWER (asked live) and the NASA satellite/model grids we prepared (data/nasa/).
 function loadPlace(lat, lon) {
   const key = `${lat},${lon}`;
   if (!placeCache.has(key)) {
-    const power = downloadPower(lat, lon, END_YEAR)
-      .catch(() => downloadPower(lat, lon, END_YEAR - 1));   // early in a year, last year may not be ready yet
     const grids = loadNasaCell(lat, lon).catch(() => ({}));   // optional: the site works without them
-    const job = Promise.all([power, grids]).then(([raw, nasa]) => {
-        const series = {}, results = {};
-        VARS.forEach((v) => {
-          series[v.code] = v.dataset === "nasa" ? nasa[v.code] || null : toSeries(raw[v.code], v.scale || 1);
-          results[v.code] = series[v.code] ? ByteMeStats.analyze(series[v.code].dates, series[v.code].values, v.percent) : null;
-        });
-        return { series, results };
+    const job = Promise.all([powerSeries(lat, lon), grids]).then(([power, nasa]) => {
+        const series = {};
+        VARS.forEach((v) => { series[v.code] = (v.dataset === "nasa" ? nasa[v.code] : power[v.code]) || null; });
+        return { series, results: analyzeAll(series) };
       });
     job.catch(() => placeCache.delete(key));   // a failed download can be tried again
     placeCache.set(key, job);
@@ -141,6 +161,84 @@ async function loadNasaCell(lat, lon) {
     if (series) out[code] = series;
   }));
   return out;
+}
+
+// ------------------------------------------------------------------ area averages (countries and regions)
+// The outline comes from OpenStreetMap (Nominatim). area.js picks the squares inside it and averages them.
+const shapeCache = new Map();
+function shapeFor(hit) {
+  const key = hit.box ? `region:${hit.regionKey}` : hit.osm ? hit.osm : `country:${hit.name.split(",")[0]}`;
+  if (!shapeCache.has(key)) {
+    let job;
+    if (hit.box) {
+      const [w, s, e, n] = hit.box;
+      job = Promise.resolve({ type: "Polygon", coordinates: [[[w, s], [e, s], [e, n], [w, n], [w, s]]] });
+    } else {
+      const url = hit.osm
+        ? `${NOMINATIM}/lookup?osm_ids=${hit.osm}&format=geojson&polygon_geojson=1&polygon_threshold=0.02`
+        : `${NOMINATIM}/search?q=${encodeURIComponent(hit.name.split(",")[0])}&featureType=country&limit=1&format=geojson&polygon_geojson=1&polygon_threshold=0.02`;
+      job = fetch(url).then((r) => r.json()).then((j) => {
+        const g = j.features && j.features[0] && j.features[0].geometry;
+        return g && (g.type === "Polygon" || g.type === "MultiPolygon") ? g : null;
+      }).catch(() => null);
+    }
+    shapeCache.set(key, job.then((geometry) => (geometry ? { key, geometry, name: hit.name || hit.label } : null)));
+  }
+  return shapeCache.get(key);
+}
+
+// Run `task` on every item, at most `limit` at a time (to be gentle with NASA's servers)
+async function inBatches(items, limit, task) {
+  const out = new Array(items.length);
+  let next = 0;
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (next < items.length) { const i = next++; out[i] = await task(items[i]).catch(() => null); }
+  }));
+  return out;
+}
+
+// Average every measurement over an area and run the trend analysis on the averages
+function loadArea(area) {
+  const key = `area:${area.key}`;
+  if (!placeCache.has(key)) {
+    const job = (async () => {
+      // NASA POWER: evenly spaced points (snapped to their grid squares, without repeats)
+      const points = [...new Map(ByteMeArea.samplePoints(area.geometry).map((p) => {
+        const c = snap(p.lat, p.lon); return [`${c.lat},${c.lon}`, c];
+      })).values()];
+      const power = await inBatches(points, 4, (p) => powerSeries(p.lat, p.lon));
+      const okPoints = points.map((p, i) => ({ ...p, data: power[i] })).filter((p) => p.data);
+      if (okPoints.length < Math.max(1, points.length / 2)) throw new Error("NASA POWER did not answer");
+      // satellite and model grids: the 1-degree squares inside the outline
+      const squares = NASA ? ByteMeArea.squaresInside(area.geometry, NASA.tile) : { squares: [], total: 0, sampled: false };
+      const series = {};
+      for (const v of VARS) {
+        if (v.dataset !== "nasa") {
+          series[v.code] = ByteMeArea.average(okPoints.map((p) => ({ series: p.data[v.code], lat: p.lat })));
+          continue;
+        }
+        const info = NASA.variables[v.code];
+        const members = await Promise.all(squares.squares.map(async (q) => {
+          const { tile, square } = ByteMeNasa.locate(q.lat, q.lon, NASA.tile);
+          if (!info.tiles.includes(tile)) return null;
+          const buffer = await nasaTile(v.code, tile);
+          return { series: buffer && ByteMeNasa.decode(buffer, square, info, NASA.missing), lat: q.lat };
+        }));
+        series[v.code] = ByteMeArea.average(members.filter(Boolean));
+      }
+      return { series, results: analyzeAll(series),
+               info: { points: okPoints.length, squares: squares.squares.length, total: squares.total, sampled: squares.sampled } };
+    })();
+    job.catch(() => placeCache.delete(key));
+    placeCache.set(key, job);
+  }
+  return placeCache.get(key);
+}
+
+// A sentence describing what an area average is made of
+function areaText(area, info) {
+  return `Average over ${escapeHTML(area.name)}: ${info.points} evenly spaced NASA POWER point${info.points === 1 ? "" : "s"}` +
+    (info.squares ? ` and ${info.squares}${info.sampled ? ` of its ${info.total}` : ""} one-degree squares of satellite and model data` : "") + ".";
 }
 
 // ------------------------------------------------------------------ second source
@@ -222,17 +320,29 @@ Promise.all([
   const fromLink = readHash();
   const first = fromLink || CASES[0];
   if (fromLink) state.code = fromLink.code;
-  selectPlace(first.lat, first.lon, first.name, first.code, true);
+  if (fromLink && fromLink.hit) goTo(fromLink.hit, fromLink.code);   // a shared link to a country or region
+  else selectPlace(first.lat, first.lon, first.name, first.code, true);
 });
 
 // Shareable links look like  #44.5,26.25,T2M,Bucharest
 function readHash() {
-  const [lat, lon, code, ...name] = decodeURIComponent(location.hash.slice(1)).split(",");
+  const text = decodeURIComponent(location.hash.slice(1));
+  if (text.startsWith("area=")) {               // e.g. #area=R90689,T2M,Romania  or  #area=region:sahel,PRECTOTCORR,Sahel
+    const [key, code, ...name] = text.slice(5).split(",");
+    if (!variable(code)) return null;
+    const region = key.startsWith("region:") && REGIONS.find((r) => r[0] === key.slice(7));
+    const hit = region ? regionHit(region) : key.startsWith("country:") ? { name: key.slice(8), kind: "large" } : { osm: key, name: name.join(","), kind: "large" };
+    hit.name = hit.name || name.join(",");
+    return { hit, code, name: hit.name };
+  }
+  const [lat, lon, code, ...name] = text.split(",");
   if (!Number.isFinite(parseFloat(lat)) || !Number.isFinite(parseFloat(lon)) || !variable(code)) return null;
   return { lat: +lat, lon: +lon, code, name: name.join(",") };
 }
 function writeHash() {
-  try { history.replaceState(null, "", `#${state.lat},${state.lon},${state.code},${encodeURIComponent(state.name)}`); } catch (e) { /* fine without */ }
+  const link = state.area ? `#area=${state.area.key},${state.code},${encodeURIComponent(state.name)}`
+                          : `#${state.lat},${state.lon},${state.code},${encodeURIComponent(state.name)}`;
+  try { history.replaceState(null, "", link); } catch (e) { /* fine without */ }
 }
 
 // ------------------------------------------------------------------ choosing a measurement
@@ -261,10 +371,42 @@ function buildCases() {
   }));
 }
 
+// ------------------------------------------------------------------ choosing an area (country or region)
+async function selectArea(area, code) {
+  const [w, s, e, n] = ByteMeArea.bbox(area.geometry);
+  const middle = { lat: (s + n) / 2, lon: (w + e) / 2 };
+  const centre = ByteMeArea.inside(middle.lon, middle.lat, area.geometry) ? middle : ByteMeArea.samplePoints(area.geometry)[0];
+  Object.assign(state, { area, lastArea: area, lat: centre.lat, lon: centre.lon, name: area.name, loading: true, error: null, place: null });
+  if (code) { state.code = code; $("var-select").value = code; }
+  writeHash(); refreshWorldLayer(); placeMarker(); showAreaOutline(); renderScan(); renderDetail(); renderAnswer();
+  if (map) {
+    if (e - w > 300) map.flyTo({ center: [centre.lon, centre.lat], zoom: 1.2, duration: 1200 });   // wraps round the globe
+    else map.fitBounds([[w, s], [e, n]], { padding: 50, maxZoom: 6, duration: 1200 });
+  }
+  try {
+    const place = await loadArea(area);
+    if (state.area !== area) return;               // the visitor already moved on
+    state.place = place;
+  } catch (err) {
+    if (state.area !== area) return;
+    state.error = "We couldn't reach NASA's data service for enough points in this area.";
+  }
+  state.loading = false;
+  renderScan(); renderDetail(); renderAnswer();
+}
+
+// The outline of the chosen area on the map (empty for a single place)
+function showAreaOutline() {
+  if (!map || !map.getSource("area")) return;
+  map.getSource("area").setData(state.area ? { type: "Feature", geometry: state.area.geometry, properties: {} } : { type: "FeatureCollection", features: [] });
+  placeBrackets();
+}
+
 // ------------------------------------------------------------------ choosing a place
 async function selectPlace(lat, lon, name, code, fly) {
   const cell = snap(lat, lon);
-  Object.assign(state, { lat: cell.lat, lon: cell.lon, name: name || coordText(cell.lat, cell.lon), loading: true, error: null, place: null });
+  Object.assign(state, { area: null, lat: cell.lat, lon: cell.lon, name: name || coordText(cell.lat, cell.lon), loading: true, error: null, place: null });
+  showAreaOutline();
   if (code) { state.code = code; $("var-select").value = code; }
   writeHash(); refreshWorldLayer(); placeMarker(); renderScan(); renderDetail(); renderAnswer();
   if (fly && map) map.flyTo({ center: [cell.lon, cell.lat], zoom: Math.max(map.getZoom(), 2.6), duration: 1200 });
@@ -331,9 +473,12 @@ function buildMap(detailedStyle) {
     map.addLayer({ id: "world-fill", type: "fill", source: "world",
       paint: { "fill-color": ["get", "colour"], "fill-opacity": ["get", "opacity"] } },
       (map.getStyle().layers.find((l) => l.type === "symbol") || {}).id);   // squares go under the place labels
-    placeMarker();
+    map.addSource("area", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+    map.addLayer({ id: "area-fill", type: "fill", source: "area", paint: { "fill-color": COLOURS.deep, "fill-opacity": 0.06 } });
+    map.addLayer({ id: "area-line", type: "line", source: "area", paint: { "line-color": COLOURS.deep, "line-width": 2 } });
+    placeMarker(); showAreaOutline();
   });
-  map.on("click", (e) => { state.question = null; selectPlace(e.lngLat.lat, e.lngLat.wrap().lng, null, null, false); });
+  map.on("click", (e) => { state.question = null; state.lastArea = null; selectPlace(e.lngLat.lat, e.lngLat.wrap().lng, null, null, false); });
   map.on("move", placeBrackets);
   map.on("mousemove", showTip);
   map.on("mouseout", () => ($("map-tip").style.display = "none"));
@@ -424,6 +569,7 @@ function placeMarker() {
 // focus brackets: four corners drawn around the NASA grid square that the data describes
 function placeBrackets() {
   const b = $("brackets");
+  if (state.area) { b.style.display = "none"; return; }   // an area shows its outline instead
   if (!map || state.lat === null) return;
   const nw = map.project([state.lon - CELL.lon / 2, state.lat + CELL.lat / 2]);
   const se = map.project([state.lon + CELL.lon / 2, state.lat - CELL.lat / 2]);
@@ -439,10 +585,25 @@ const VERDICT_ORDER = { significant: 0, possible: 1, none: 2, insufficient: 3 };
 function renderScan() {
   const el = $("scan");
   placeMarker();
+  const switcher = state.area
+    ? `<button class="pill small" id="to-centre">Show only the grid square at its centre</button>`
+    : state.lastArea ? `<button class="pill small" id="to-area">Show the whole of ${escapeHTML(state.lastArea.name)} again</button>` : "";
+  const meta = state.area
+    ? (state.place && state.place.info ? areaText(state.area, state.place.info) : `Averaging NASA data over ${escapeHTML(state.area.name)}…`)
+    : `${coordText(state.lat, state.lon)} · NASA grid square about ${Math.round(111 * CELL.lat)} km tall`;
   const head = `<div><span class="tag">What is changing here</span>
     <h3>${escapeHTML(state.name)}</h3>
-    <p class="meta">${coordText(state.lat, state.lon)} · NASA grid square about ${Math.round(111 * CELL.lat)} km tall</p></div>`;
-  if (state.loading) { el.innerHTML = head + `<div class="loading"><span class="spinner"></span>Reading up to ${END_YEAR - START_YEAR + 1} years of NASA data for this place…</div>`; return; }
+    <p class="meta">${meta}</p>${switcher}</div>`;
+  const wireSwitcher = () => {
+    if ($("to-centre")) $("to-centre").addEventListener("click", () => selectPlace(state.lat, state.lon, `Centre of ${state.area.name}`, null, true));
+    if ($("to-area")) $("to-area").addEventListener("click", () => selectArea(state.lastArea, null));
+  };
+  if (state.loading) {
+    el.innerHTML = head + `<div class="loading"><span class="spinner"></span>${state.area
+      ? `Averaging up to ${END_YEAR - START_YEAR + 1} years of NASA data over ${escapeHTML(state.area.name)} (this can take half a minute)…`
+      : `Reading up to ${END_YEAR - START_YEAR + 1} years of NASA data for this place…`}</div>`;
+    wireSwitcher(); return;
+  }
   if (state.error) {
     el.innerHTML = head + `<div class="note warn"><b>Problem</b><span>${state.error} Check your internet connection and try again.</span></div>
       <button class="pill" id="retry">Try again</button>`;
@@ -472,6 +633,7 @@ function renderScan() {
         <span class="rate">${r && r.slope_per_decade !== null ? `${num(r.slope_per_decade)} <small>${v.units} / decade</small>` : "–"}</span>
       </button>`).join("")}</div>`;
   el.querySelectorAll(".row").forEach((b) => b.addEventListener("click", () => selectVariable(b.dataset.code)));
+  wireSwitcher();
 }
 
 // ------------------------------------------------------------------ the evidence for one measurement
@@ -486,7 +648,8 @@ function renderDetail() {
   const r = state.place.results[v.code], s = state.place.series[v.code];
   const text = explain(r, v, state.name);
   const nasaGrid = v.dataset === "nasa";
-  const sourceLine = nasaGrid ? `${v.source} · ${v.product} · monthly · 1° square` : `${v.source} via NASA POWER · ${v.code} · monthly`;
+  const sourceLine = (nasaGrid ? `${v.source} · ${v.product} · monthly` : `${v.source} via NASA POWER · ${v.code} · monthly`) +
+    (state.area ? " · area average" : nasaGrid ? " · 1° square" : "");
   if (!r || r.verdict === "insufficient") {
     el.innerHTML = `<div class="detail-text"><span class="tag">${escapeHTML(state.name)} · ${v.name}</span>
       <p class="meta">${sourceLine}</p><h3>${escapeHTML(text.headline)}</h3>
@@ -524,14 +687,17 @@ function renderDetail() {
       ${notes.join("")}
       <details><summary>What does this mean?</summary><p>${text.details}</p><p class="muted">${text.caveat}</p></details>
       <details><summary>Data and method</summary><ul>
-        <li>${nasaGrid
+        ${state.area && state.place.info ? `<li>${areaText(state.area, state.place.info)} Squares nearer the poles count less, because they cover less ground.</li>` : ""}
+        <li>${state.area
+          ? `NASA ${nasaGrid ? `${v.source} (<code>${v.product}</code>)` : `POWER (<code>${v.code}</code>, from ${v.source})`} monthly values in ${v.units}, averaged over the area as described above.`
+          : nasaGrid
           ? `NASA ${v.source} monthly values (<code>${v.product}</code>, ${v.units}), averaged over the 1° square (about 110 km) that contains this place.`
           : `NASA POWER monthly values, parameter <code>${v.code}</code> (${v.units}), from ${v.source}, for the grid square centred on ${coordText(state.lat, state.lon)}.`}</li>
         <li>${r.start} to ${r.end} · ${r.n_months} months · ${r.n_missing} missing.</li>
         <li>${r.method}</li>
         <li>Seasonal Mann-Kendall p-value: ${pText(r.mk_p_value)} · Sen's slope: ${num(r.sen_slope_per_decade)} ${v.units} per decade.</li>
-        <li>${nasaGrid
-          ? `<a href="${v.landing}">About this NASA dataset</a> (downloads need a free Earthdata login)`
+        <li>${nasaGrid || state.area
+          ? `<a href="${v.landing || "https://power.larc.nasa.gov/"}">About this NASA dataset</a>${nasaGrid ? " (downloads need a free Earthdata login)" : ""}`
           : `<a href="${POWER}?parameters=${v.code}&community=AG&longitude=${state.lon}&latitude=${state.lat}&start=${START_YEAR}&end=${r.end.slice(0, 4)}&format=CSV">Download this record from NASA (CSV)</a>`}</li>
       </ul></details>
     </div>
@@ -608,21 +774,23 @@ const FILLER = new Set(("is are was were the a an of in on at to and or does do 
   "measured measure model output report reports land air ground water sky plants plant " +
   "summer summers summertime winter winters wintertime spring springs autumn autumns season seasons").split(" "));
 
-// Well-known regions that a place-name search doesn't find well
+// Well-known regions that a place-name search doesn't find well. With a box [west, south, east,
+// north] the region is averaged over that box; without one it is a single place.
 const REGIONS = [
-  ["sahel", "Niamey, Sahel (Niger)", 13.5, 1.875], ["sahara", "Sahara (Algeria)", 24.0, 5.0],
-  ["amazon", "Manaus, Amazon (Brazil)", -3.0, -60.0], ["arctic", "Svalbard (Arctic)", 78.25, 15.625],
-  ["svalbard", "Svalbard (Arctic)", 78.25, 15.625], ["antarctica", "Antarctica (Vostok)", -78.5, 106.875],
-  ["antarctic", "Antarctica (Vostok)", -78.5, 106.875], ["north pole", "North Pole", 89.5, 0],
-  ["south pole", "South Pole", -89.5, 0], ["greenland", "Greenland ice sheet", 72.0, -40.0],
-  ["himalaya", "Himalaya (Everest region)", 28.0, 86.875], ["siberia", "Siberia (Yakutsk)", 62.0, 129.375],
-  ["alps", "Alps (Switzerland)", 46.5, 10.0], ["lake mead", "Lake Mead (USA)", 36.0, -114.375],
+  ["sahel", "Sahel", 13.5, 1.875, [-17, 11, 38, 17]], ["sahara", "Sahara", 24.0, 5.0, [-15, 18, 32, 31]],
+  ["amazon", "Amazon rainforest", -3.0, -60.0, [-74, -15, -48, 4]], ["arctic", "Svalbard (Arctic)", 78.25, 15.625],
+  ["svalbard", "Svalbard (Arctic)", 78.25, 15.625], ["antarctica", "Antarctica", -78.5, 106.875, [-180, -85, 180, -66]],
+  ["antarctic", "Antarctica", -78.5, 106.875, [-180, -85, 180, -66]], ["north pole", "North Pole", 89.5, 0],
+  ["south pole", "South Pole", -89.5, 0], ["greenland", "Greenland ice sheet", 72.0, -40.0, [-52, 61, -22, 81]],
+  ["himalaya", "Himalaya", 28.0, 86.875, [74, 27, 95, 36]], ["siberia", "Siberia", 62.0, 129.375, [60, 50, 140, 72]],
+  ["alps", "Alps", 46.5, 10.0, [5.5, 44, 16, 48]], ["lake mead", "Lake Mead (USA)", 36.0, -114.375],
   ["aral sea", "Aral Sea", 45.0, 60.0], ["great barrier reef", "Great Barrier Reef (Australia)", -18.0, 147.5],
   ["pacific", "Pacific Ocean (equator)", 0, -140.0], ["atlantic", "Atlantic Ocean", 30.0, -40.0],
-  ["indian ocean", "Indian Ocean", -10.0, 80.0], ["mediterranean", "Mediterranean Sea", 35.0, 18.125],
-  ["gobi", "Gobi Desert (Mongolia)", 43.0, 105.0], ["congo", "Congo rainforest", 0, 21.25],
-  ["outback", "Australian outback", -25.0, 133.75],
+  ["indian ocean", "Indian Ocean", -10.0, 80.0], ["mediterranean", "Mediterranean Sea", 35.0, 18.125, [-5, 31, 35, 44]],
+  ["gobi", "Gobi Desert", 43.0, 105.0, [95, 38, 115, 46]], ["congo", "Congo rainforest", 0, 21.25, [12, -6, 30, 5]],
+  ["outback", "Australian outback", -25.0, 133.75, [120, -32, 146, -20]],
 ];
+const regionHit = ([key, name, lat, lon, box]) => ({ name, lat, lon, box, regionKey: key, kind: box ? "large" : "region" });
 
 // Read a question: which measurement, what we don't have, which words might name a place
 function understand(text) {
@@ -701,7 +869,7 @@ async function geocode(name) {
     if (!p.name || SKIP_KINDS.has(p.osm_key)) return;
     found.push({ name: [p.name, p.state !== p.name ? p.state : null, p.country !== p.name ? p.country : null].filter(Boolean).join(", "),
                  lat: f.geometry.coordinates[1], lon: f.geometry.coordinates[0],
-                 kind: isLarge(p) ? "large" : "place" });
+                 kind: isLarge(p) ? "large" : "place", osm: p.osm_type && p.osm_id ? `${p.osm_type}${p.osm_id}` : null });
   });
   ((meteo && meteo.results) || []).forEach((p) => found.push({
     name: [p.name, p.admin1 !== p.name ? p.admin1 : null, p.country !== p.name ? p.country : null].filter(Boolean).join(", "),
@@ -717,14 +885,14 @@ async function findPlaces(text) {
   if (direct && Math.abs(+direct[1]) <= 90 && Math.abs(+direct[2]) <= 180) {
     return [{ name: null, label: coordText(+direct[1], +direct[2]), lat: +direct[1], lon: +direct[2] }];   // name is looked up after picking
   }
-  const found = REGIONS.filter(([key]) => TEXT(text).includes(` ${key}`)).map(([, name, lat, lon]) => ({ name, lat, lon, kind: "region" }));
+  const found = REGIONS.filter(([key]) => TEXT(text).includes(` ${key}`)).map(regionHit);
   found.push(...(await geocode(text)));
   return found.filter((p, i) => found.findIndex((q) => q.name === p.name) === i).slice(0, 6);
 }
 
 // Places for a whole question: famous regions in it, then each candidate name, then single words
 async function placesForQuestion(question, q) {
-  const regions = REGIONS.filter(([key]) => TEXT(question).includes(` ${key}`)).map(([, name, lat, lon]) => ({ name, lat, lon, kind: "region" }));
+  const regions = REGIONS.filter(([key]) => TEXT(question).includes(` ${key}`)).map(regionHit);
   if (regions.length) return regions.filter((p, i) => regions.findIndex((r) => r.name === p.name) === i);
   for (const candidate of q.placeCandidates) {
     const places = await findPlaces(candidate);
@@ -782,9 +950,19 @@ function buildSearch() {
   placePicker($("search"), $("suggestions"), (hit, text, q) => {
     state.question = { text, code: hit.variable ? hit.variable.code : null, intent: intentOf(text), season: seasonOf(text),
                        kind: hit.kind || "place", asksWhy: q.asksWhy, missing: q.missing };
-    selectPlace(hit.lat, hit.lon, hit.name, state.question.code, true);
+    state.lastArea = null;
+    goTo(hit, state.question.code);
     setTimeout(() => $("answer").scrollIntoView({ behavior: "smooth", block: "center" }), 50);
   }, true);
+}
+
+// A search result: countries and regions are averaged over their outline, other places are one square
+async function goTo(hit, code) {
+  if (hit.kind !== "large") { selectPlace(hit.lat, hit.lon, hit.name || hit.label, code, true); return; }
+  Object.assign(state, { area: null, name: hit.name, loading: true, place: null });
+  renderAnswer(); renderScan();
+  const area = await shapeFor(hit);
+  if (area) selectArea(area, code); else selectPlace(hit.lat, hit.lon, hit.name, code, true);
 }
 
 // ------------------------------------------------------------------ answering the question
@@ -830,15 +1008,16 @@ function renderAnswer() {
   el.style.display = "flex";
   if (state.loading || !state.place) {
     el.innerHTML = `<span class="tag">Your question</span><p class="asked">“${escapeHTML(q.text)}”</p>
-      <div class="loading"><span class="spinner"></span>Reading NASA data for ${escapeHTML(state.name)}…</div>`;
+      <div class="loading"><span class="spinner"></span>${state.area ? `Averaging NASA data over ${escapeHTML(state.name)}…` : `Reading NASA data for ${escapeHTML(state.name)}…`}</div>`;
     return;
   }
   const v = q.code && variable(q.code);
   const notes = [];
   if (q.missing) notes.push(escapeHTML(q.missing.say));
   if (q.asksWhy) notes.push("ByteMe shows what changed and how sure we are, not why: finding the cause needs a separate investigation.");
-  if (q.kind === "large") {
-    notes.push(`${escapeHTML(state.name)} is a large area: these numbers are for one NASA grid square near its centre ` +
+  if (state.area && state.place.info) notes.push(areaText(state.area, state.place.info));
+  else if (q.kind === "large") {
+    notes.push(`We couldn't get the outline of ${escapeHTML(state.name)}, so these numbers are for one NASA grid square near its centre ` +
       `(about ${v && v.dataset === "nasa" ? 110 : 55} km wide). Click the map to check other parts.`);
   }
 
@@ -889,14 +1068,15 @@ function buildCompare(groups) {
   $("cmp-var").addEventListener("change", (e) => { compare.code = e.target.value; renderCompare(); });
   ["a", "b"].forEach((side) => {
     $(`cmp-${side}`).value = compare[side].name;
-    placePicker($(`cmp-${side}`), $(`cmp-${side}-list`), (hit) => {
-      compare[side] = { name: hit.name || hit.label, lat: hit.lat, lon: hit.lon };
+    placePicker($(`cmp-${side}`), $(`cmp-${side}-list`), async (hit) => {
+      const area = hit.kind === "large" ? await shapeFor(hit) : null;   // countries and regions: area average
+      compare[side] = { name: hit.name || hit.label, lat: hit.lat, lon: hit.lon, area };
       $(`cmp-${side}`).value = compare[side].name;
       renderCompare();
     }, false);
   });
   $("cmp-use").addEventListener("click", () => {
-    compare.a = { name: state.name, lat: state.lat, lon: state.lon };
+    compare.a = { name: state.name, lat: state.lat, lon: state.lon, area: state.area };
     compare.code = state.code;
     $("cmp-a").value = state.name; $("cmp-var").value = state.code;
     renderCompare();
@@ -909,7 +1089,7 @@ async function renderCompare() {
   const v = variable(compare.code), mine = ++compareTicket;
   const sides = ["a", "b"].map((side) => ({ ...compare[side], ...snap(compare[side].lat, compare[side].lon), el: $(`cmp-panel-${side}`), id: `cmp-panel-${side}` }));
   sides.forEach((p) => (p.el.innerHTML = `<span class="tag">${escapeHTML(p.name)}</span><div class="loading"><span class="spinner"></span>Reading NASA data…</div>`));
-  const places = await Promise.all(sides.map((p) => loadPlace(p.lat, p.lon).catch(() => null)));
+  const places = await Promise.all(sides.map((p) => (p.area ? loadArea(p.area) : loadPlace(p.lat, p.lon)).catch(() => null)));
   if (mine !== compareTicket) return;
   const rs = places.map((pl) => pl && pl.results[v.code]);
   const all = rs.filter((r) => r && r.verdict !== "insufficient").flatMap((r) => [...r.anomaly, ...r.band_low, ...r.band_high]).filter((n) => n !== null);
@@ -922,7 +1102,7 @@ async function renderCompare() {
       <h3>${num(r.slope_per_decade)} ${v.units} per decade</h3>
       <div class="verdict">${dotHTML(r)}${verdictText(r)}</div>
       <div class="chart" id="${p.id}-chart"></div>
-      <p class="caption">Total since ${r.start.slice(0, 4)}: ${num(r.total_change)} ${v.units}${r.percent_change !== null ? ` (${num(r.percent_change)}%)` : ""} · p-value ${pText(r.p_value)}</p>`;
+      <p class="caption">Total since ${r.start.slice(0, 4)}: ${num(r.total_change)} ${v.units}${r.percent_change !== null ? ` (${num(r.percent_change)}%)` : ""} · p-value ${pText(r.p_value)}${p.area ? ` · ${areaText(p.area, places[i].info)}` : ""}</p>`;
     drawChart(`${p.id}-chart`, r, places[i].series[v.code], v, false, yRange);
   });
 }

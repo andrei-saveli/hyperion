@@ -243,7 +243,9 @@ Non-significant ≠ "no change". Never state causes.
   On Task3's 48 fresh benchmark questions (held out): right measurement 36/36, right place and
   measurement 33/36, 1/12 unavailable requests answered without a note. Details: `Website/README.md`.
   Questions get a direct answer card (Yes / No, the opposite / Maybe / No clear change yet) that
-  respects the direction asked, a named season, and warns when a country is reduced to one grid square.
+  respects the direction asked and a named season. Countries and regions are **averaged over their
+  outline** (`Website/area.js`: up to 16 NASA POWER points + every 1° satellite/model square, cos-latitude
+  weighted; check: `node Website/tests/test_area.js`).
 - 🖥️ **Website first version** in `FrontEnd_claude/` (built for P1 on the real Task2/3/4 parts):
   `app.py`, `charts.py` (H5), theme, 6 passing app tests, mock-ups + screenshots in `design/`.
   Run: `streamlit run FrontEnd_claude/app.py`. Combine with `--frontend FrontEnd_claude`.
