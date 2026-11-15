@@ -121,6 +121,38 @@ build_world.py (run once, Python, Task4/stats.py) ─► data/world.json ─► 
   (Re-run after adding the 8 satellite/model measurements; greenness, NO₂ and runoff questions now
   count as answerable.) Most misses are riddle-style places ("Niger's capital", "the Nevada reservoir"). Questions that
   ask for several measurements get one suggestion; the "What is changing here" list shows the rest.
+- **Search by meaning (local language model):** when no keyword matches ("Is the white stuff on
+  the mountains thinning in the Alps?"), the browser compares the question with each measurement's
+  name, definition and everyday `examples` (in `variables.json`) using a small sentence transformer,
+  all-MiniLM-L6-v2 (the same model as the team's Searchlight, in its in-browser ONNX version), in
+  `meaning.js`. It runs on the visitor's own computer: no account, no key, nothing sent anywhere,
+  and it never produces numbers, it only picks the measurement (or a "we don't have that" note).
+  It answers only when the best match is close enough (similarity ≥ 0.42) and clearly ahead of any
+  unrelated measurement (margin ≥ 0.03), and the answer card says that the question was read by
+  meaning and which description matched. Thresholds and examples were chosen on the tuning half of
+  `tests/meaning_questions.json` and checked once on the held-out half (agent-written questions):
+
+  | Question set | Answerable questions the keyword rules miss | Read right by meaning | Wrong | Off-topic questions given a measurement |
+  |---|---|---|---|---|
+  | tuning | 20 | 12 | 2 | 0/8 |
+  | held out | 13 | 8 | 0 | 0/8 |
+
+  The keyword results above are unchanged (the model is only asked when the rules find nothing).
+  It doesn't help with riddle-style places: a sentence model compares meanings, it doesn't know
+  facts. The model files (about 46 MB, pinned versions, SHA-256 checked) come from
+  `python3 Website/get_search_model.py` and are committed; without them the search works with its
+  rules alone. The model loads when the visitor first clicks the search box (about 2 seconds).
+- **Places changing like this one:** below Investigate, the five parts of the planet whose trends
+  follow the closest pattern to the chosen place (nearest-neighbour search, `similar.js`). Each 5°
+  square of `data/world.json` has a "fingerprint": its 18 NASA POWER trends, each compared with the
+  whole planet ((trend − planet average) / planet spread, capped at ±3). The four temperatures, the
+  three humidities and the two soil layers share one vote each, so temperature doesn't count four
+  times. Similarity is the weighted cosine of two fingerprints (+1 same pattern, 0 unrelated, −1
+  opposite), shown next to what a typical square scores. Land is compared with land and sea with
+  sea; squares within 1,500 km (or inside the chosen country) are skipped and the five matches are
+  at least 1,500 km apart. Each match lists up to three trends it shares (significant at both, same
+  direction), is outlined on the map and opens with a click. It finds places that changed alike; it
+  says nothing about why.
 - **World overview:** the coloured squares on the map show where the chosen measurement is rising
   or falling (every 5 degrees). They come from `data/world.json`.
 
@@ -180,13 +212,18 @@ much to the repository's history.
 | `nasa.js` | Reads one square's monthly series from a NASA tile file |
 | `investigation.js` | Time periods: read periods from questions, cut records, match months at two places, A − B trend with a Newey–West range |
 | `decompose.js` | Investigate (Trend Decomposer): joint seasonal regression on wiggles, contributions, block bootstrap, alibi (shift) test, across-the-planet check |
+| `similar.js` | Places changing like this one: trend fingerprints, weighted cosine similarity, nearest squares far apart |
+| `meaning.js` | Search by meaning: loads the local sentence transformer and matches a question to the measurement descriptions |
+| `get_search_model.py` | Downloads the pinned model (`models/`) and its browser runtime (`vendor/transformers/`) and checks their SHA-256 |
+| `models/all-MiniLM-L6-v2/` | The sentence transformer (Apache-2.0, from huggingface.co/Xenova/all-MiniLM-L6-v2, revision `751bff3`) |
+| `vendor/transformers/` | Transformers.js 3.7.5 (Apache-2.0) with ONNX Runtime Web (MIT): runs the model in the browser |
 | `area.js` | Area averages: squares inside a country's or region's outline, weighted average of their records |
 | `build_nasa_grids.py`, `build_nasa_tiles.py` | Download the NASA datasets to 1° grids; then trends, tiles and map layers (`data/nasa/`) |
 | `globe.js` | Hero art: rotating globe of teal "satellite pixels", demo cases in coral (decoration only) |
 | `data/variables.json` | The 26 measurements (18 NASA POWER + 8 satellite/model): code, name, units, definition, search words, second-source pairs |
 | `data/world.json` | World overview: trend of every measurement on a 5 degree grid (made by `build_world.py`) |
 | `build_world.py` | Rebuilds `data/world.json` with the Python trend code (about 25 minutes, can be stopped and restarted) |
-| `tests/` | `make_reference.py` + `test_stats.js` (website math = Python math); `test_nasa.js` + `nasa_reference.json` (tiles read back correctly); `test_area.js` (outlines and area averages); `test_investigation.js` (periods and matched comparisons); `test_decompose.js` (Trend Decomposer: known contributions, spurious trends, seasons, real Svalbard data); `test_search.js` + `search_questions.json` (search picks the right measurement; needs Playwright) |
+| `tests/` | `make_reference.py` + `test_stats.js` (website math = Python math); `test_nasa.js` + `nasa_reference.json` (tiles read back correctly); `test_area.js` (outlines and area averages); `test_investigation.js` (periods and matched comparisons); `test_decompose.js` (Trend Decomposer: known contributions, spurious trends, seasons, real Svalbard data); `test_search.js` + `search_questions.json` (search picks the right measurement; needs Playwright); `test_meaning.js` + `meaning_questions.json` (search by meaning; Playwright + model files); `test_similar.js` (places changing like this one) |
 | `data/land.geojson` | World land outline (Natural Earth, public domain): the fallback map |
 | `vendor/maplibre-gl.css` | The map library's stylesheet (kept locally) |
 | `build_data.py`, `data/results.json` | The earlier version (3 Giovanni regions). No longer read by the page; kept for reference |

@@ -37,7 +37,8 @@
      "driver": "AOD_55",
      "how": "Haze and dust dim the sunlight."
     }
-   ]
+   ],
+   "examples": "how warm or cold the weather feels outdoors, mild or chilly weather, warm days and warm years, the climate heating up, balmy or bitterly cold weather"
   },
   {
    "code": "T2M_MAX",
@@ -63,7 +64,8 @@
      "driver": "GWETROOT",
      "how": "Dry soil can't cool itself by evaporating water, so hot days get hotter."
     }
-   ]
+   ],
+   "examples": "the hottest afternoons of the year, extreme heat and very hot days, scorching summer heat"
   },
   {
    "code": "T2M_MIN",
@@ -90,7 +92,8 @@
      "driver": "QV2M",
      "how": "Water vapour traps heat, so nights cool less."
     }
-   ]
+   ],
+   "examples": "the coldest nights and early mornings, frosty mornings and freezing nights, how cold it gets at night"
   },
   {
    "code": "TS",
@@ -117,7 +120,8 @@
      "driver": "CLOUD_AMT",
      "how": "Clouds shade the surface."
     }
-   ]
+   ],
+   "examples": "how hot the ground or the sea surface gets, the temperature of the ocean surface, warm seawater"
   },
   {
    "code": "AIRS_T2M",
@@ -147,7 +151,8 @@
      "driver": "CLOUD_AMT",
      "how": "Clouds block sunshine during the day."
     }
-   ]
+   ],
+   "examples": "air temperature measured by the AIRS instrument on a satellite"
   },
   {
    "code": "MODIS_LST",
@@ -182,7 +187,8 @@
      "driver": "GWETROOT",
      "how": "Wet soil cools the surface by evaporating water."
     }
-   ]
+   ],
+   "examples": "how hot the land surface gets as seen by satellite, hot pavement and baking ground"
   },
   {
    "code": "PRECTOTCORR",
@@ -209,7 +215,8 @@
      "driver": "CLOUD_AMT",
      "how": "Rain falls from clouds."
     }
-   ]
+   ],
+   "examples": "how much rain and snow falls, wet weather and showers, rainy seasons and dry spells, heavy storms bringing water, heavy downpours and torrential rain, light drizzle"
   },
   {
    "code": "EVLAND",
@@ -240,7 +247,8 @@
      "driver": "T2M",
      "how": "Warmer air takes up water faster."
     }
-   ]
+   ],
+   "examples": "water evaporating from soil and plants into the air, plants giving off water vapour"
   },
   {
    "code": "RH2M",
@@ -266,7 +274,8 @@
      "driver": "QV2M",
      "how": "More water vapour in the air raises the humidity."
     }
-   ]
+   ],
+   "examples": "how damp or sticky the air feels, humid and muggy weather, sweaty air"
   },
   {
    "code": "QV2M",
@@ -292,7 +301,8 @@
      "driver": "EVLAND",
      "how": "Evaporation puts water vapour into the air."
     }
-   ]
+   ],
+   "examples": "how much water vapour is in the air, moist air"
   },
   {
    "code": "PW",
@@ -314,7 +324,8 @@
      "driver": "T2M",
      "how": "Warmer air can hold more water vapour."
     }
-   ]
+   ],
+   "examples": "the total water vapour in the atmosphere above a place"
   },
   {
    "code": "GPM_RAIN",
@@ -340,7 +351,8 @@
      "driver": "PW",
      "how": "More water vapour in the air can fall as rain."
     }
-   ]
+   ],
+   "examples": "rainfall measured by satellites"
   },
   {
    "code": "GLDAS_EVAP",
@@ -370,7 +382,8 @@
      "driver": "ALLSKY_SFC_SW_DWN",
      "how": "Sunshine supplies the energy to evaporate water."
     }
-   ]
+   ],
+   "examples": "evaporation from the land calculated by the GLDAS land model"
   },
   {
    "code": "GLDAS_RUNOFF",
@@ -398,7 +411,8 @@
      "driver": "GLDAS_SOILM",
      "how": "Soaked soil can't take in more water, so it runs off."
     }
-   ]
+   ],
+   "examples": "water flowing off the land into streams and rivers, rainwater running off hillsides"
   },
   {
    "code": "GWETTOP",
@@ -425,7 +439,8 @@
      "driver": "T2M",
      "how": "Warmer air dries the topsoil out faster."
     }
-   ]
+   ],
+   "examples": "how wet or dry the very top of the soil is, dry dusty dirt at the surface"
   },
   {
    "code": "GWETROOT",
@@ -457,7 +472,8 @@
      "driver": "T2M",
      "how": "Warmer air dries the soil out faster."
     }
-   ]
+   ],
+   "examples": "how much water the soil holds for plant roots and crops, dry or wet fields, parched farmland"
   },
   {
    "code": "SNODP",
@@ -482,7 +498,8 @@
      "driver": "PRECTOTCORR",
      "how": "More rain and snow while the snowpack builds up adds snow."
     }
-   ]
+   ],
+   "examples": "how deep the snow on the ground is, snow-covered mountains, snowstorms and blizzards leaving snow"
   },
   {
    "code": "GLDAS_SOILM",
@@ -516,7 +533,8 @@
      "driver": "AIRS_T2M",
      "how": "Warmer air dries the soil out faster."
     }
-   ]
+   ],
+   "examples": "water stored in the soil, from the GLDAS land model"
   },
   {
    "code": "MODIS_NDVI",
@@ -549,7 +567,8 @@
      "driver": "T2M",
      "how": "Where cold limits plant growth, warmer air makes the land greener."
     }
-   ]
+   ],
+   "examples": "how green and healthy the plants and forests look from space, lush vegetation or bare brown land, plants and forests growing back or dying off"
   },
   {
    "code": "WS10M",
@@ -564,7 +583,8 @@
    "related": [
     "PS"
    ],
-   "drivers": []
+   "drivers": [],
+   "examples": "how strong the wind blows, windy and gusty weather, calm or stormy winds"
   },
   {
    "code": "PS",
@@ -579,7 +599,8 @@
    "related": [
     "WS10M"
    ],
-   "drivers": []
+   "drivers": [],
+   "examples": "the weight of the air pressing down, barometer readings"
   },
   {
    "code": "TO3",
@@ -594,7 +615,8 @@
    "related": [
     "ALLSKY_SFC_SW_DWN"
    ],
-   "drivers": []
+   "drivers": [],
+   "examples": "the ozone layer high in the sky that protects us from the sun's ultraviolet rays"
   },
   {
    "code": "AOD_55",
@@ -620,7 +642,8 @@
      "driver": "WS10M",
      "how": "Wind lifts dust into the air."
     }
-   ]
+   ],
+   "examples": "dust, smoke and haze making the air murky, polluted dirty air from fires and dust storms, smoggy air that is hard to breathe"
   },
   {
    "code": "OMI_NO2",
@@ -641,7 +664,8 @@
     "AOD_55"
    ],
    "family": "pollution",
-   "drivers": []
+   "drivers": [],
+   "examples": "nitrogen dioxide gas from car exhaust, traffic, power plants and factories"
   },
   {
    "code": "ALLSKY_SFC_SW_DWN",
@@ -666,7 +690,8 @@
      "driver": "AOD_55",
      "how": "Haze and dust dim the sunlight."
     }
-   ]
+   ],
+   "examples": "how much sunshine reaches the ground, bright sunny days or dim cloudy ones"
   },
   {
    "code": "CLOUD_AMT",
@@ -687,7 +712,8 @@
      "driver": "RH2M",
      "how": "Clouds form when the air is close to saturated."
     }
-   ]
+   ],
+   "examples": "how much of the sky is covered by clouds, grey overcast days or clear skies"
   }
  ],
  "not_available": [
@@ -695,7 +721,8 @@
    "words": "",
    "phrases": "sea level, sea levels, sea-level, rising seas, rising sea",
    "say": "Sea level isn't in our data set (NASA measures it with satellite altimeters, which ByteMe doesn't use yet).",
-   "closest": "TS"
+   "closest": "TS",
+   "examples": "the ocean rising onto the coast, higher tides flooding beaches and coastal towns"
   },
   {
    "words": "forecast forecasts predict prediction projected projection projections",
@@ -713,61 +740,71 @@
    "words": "groundwater aquifer aquifers wells pumping withdrawals",
    "say": "Groundwater use isn't in our data set.",
    "closest": "GLDAS_SOILM",
-   "phrases": ""
+   "phrases": "",
+   "examples": "water stored deep underground that people pump from wells"
   },
   {
    "words": "discharge flood floods flooding",
    "say": "River flow and floods aren't in our data set; 'Runoff (GLDAS)' shows the water draining off the land.",
    "closest": "GLDAS_RUNOFF",
-   "phrases": "river flow, flow in the, flow of the, flows down the river, river discharge"
+   "phrases": "river flow, flow in the, flow of the, flows down the river, river discharge",
+   "examples": "rivers overflowing and flooding towns, how much water flows down a river"
   },
   {
    "words": "yield yields harvest harvests millet wheat maize",
    "say": "Crop yields aren't in our data set.",
    "closest": "MODIS_NDVI",
-   "phrases": ""
+   "phrases": "",
+   "examples": "how much food farmers harvest, crop production and failed harvests"
   },
   {
    "words": "glacier glaciers",
    "say": "Glacier mass isn't in our data set.",
    "closest": "SNODP",
-   "phrases": "ice mass"
+   "phrases": "ice mass",
+   "examples": "glaciers and ice sheets melting and retreating"
   },
   {
    "words": "",
    "phrases": "sea ice, floating ice, sea ice",
    "say": "Sea-ice extent isn't in our data set.",
-   "closest": "TS"
+   "closest": "TS",
+   "examples": "floating ice on the polar oceans melting"
   },
   {
    "words": "volume",
    "phrases": "water level, surface area, square kilometres, square kilometers, footprint, how high the reservoir",
    "say": "Water levels and the size of lakes, rivers and reservoirs aren't in our data set. 'Runoff (GLDAS)' shows how much water drains off the land into rivers, and rain shows how much falls.",
-   "closest": "GLDAS_RUNOFF"
+   "closest": "GLDAS_RUNOFF",
+   "examples": "how full a lake or reservoir is, a lake shrinking or the water level dropping"
   },
   {
    "words": "chill",
    "phrases": "wind chill, feels-like, feels like, feel colder",
    "say": "'Feels-like' temperature (wind chill) isn't in our data set; we have air temperature and wind speed separately.",
-   "closest": "T2M"
+   "closest": "T2M",
+   "examples": "how cold the wind makes it feel"
   },
   {
    "phrases": "soil temperature, below the surface, buried layers, underground temperature",
    "words": "permafrost",
    "say": "Temperature below the ground isn't in our data set.",
-   "closest": "TS"
+   "closest": "TS",
+   "examples": "permanently frozen ground thawing, the temperature of the soil underground"
   },
   {
    "words": "snowfall snowflakes",
    "phrases": "fell as snow, snow-only",
    "say": "Snowfall on its own isn't in our data set; 'Rain and snowfall' counts both together.",
-   "closest": "PRECTOTCORR"
+   "closest": "PRECTOTCORR",
+   "examples": "how much snow falls from the sky"
   },
   {
    "phrases": "over the lake surface, off the reservoir, from the water surface, open-water",
    "say": "Evaporation from a lake's own water surface isn't in our data set; 'Evaporation from land' covers the land around it.",
    "closest": "EVLAND",
-   "words": ""
+   "words": "",
+   "examples": "water evaporating from the surface of a lake or reservoir"
   }
  ],
  "families": {
