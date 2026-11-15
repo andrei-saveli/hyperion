@@ -1,18 +1,18 @@
 {
- "note": "Everyday questions and the measurement(s) that count as right. tuning: used while improving the search. heldout: written before changing it and never tuned on. Run: node Website/tests/test_search.js The questions about the 26 terrain-specific measurements (sea level, sea ice, snowfall, dust...) were added with them; their held-out half was written before any keyword was changed in response to it. Three of the new held-out questions were missed at first (48/52 with them); keywords were then added for them, so they were moved to tuning. The 22 pollution questions (fine particles, soot, SO2, formaldehyde...) were added with those measurements; the held-out half was written before any keyword was changed in response to it. Two of the pollution held-out questions were missed at first (8/10); keywords were then added for them, so they were moved to tuning.",
+ "note": "Everyday questions and the measurement(s) that count as right. tuning: used while improving the search. heldout: written before changing it and never tuned on. Run: node Website/tests/test_search.js The questions about the 26 terrain-specific measurements (sea level, sea ice, snowfall, dust...) were added with them; their held-out half was written before any keyword was changed in response to it. Three of the new held-out questions were missed at first (48/52 with them); keywords were then added for them, so they were moved to tuning. The 22 pollution questions (fine particles, soot, SO2, formaldehyde...) were added with those measurements; the held-out half was written before any keyword was changed in response to it. Two of the pollution held-out questions were missed at first (8/10); keywords were then added for them, so they were moved to tuning. Six pollution measurements were later withdrawn as untrustworthy (MERRA-2 soot, sulfate, SO2 and CO at ground level; OMI formaldehyde and aerosol index); their questions now expect the closest measurement we show (smoke, sulfate haze, OMI SO2, AIRS CO, and organic particles or haze).",
  "tuning": [
   [
    "Is Romania getting warmer?",
    [
-    "T2M",
-    "AIRS_T2M"
+    "AIRS_T2M",
+    "T2M"
    ]
   ],
   [
    "temperature in Paris",
    [
-    "T2M",
-    "AIRS_T2M"
+    "AIRS_T2M",
+    "T2M"
    ]
   ],
   [
@@ -80,22 +80,22 @@
   [
    "Is it raining less in Kenya?",
    [
-    "PRECTOTCORR",
-    "GPM_RAIN"
+    "GPM_RAIN",
+    "PRECTOTCORR"
    ]
   ],
   [
    "Is it raining more in Bangladesh?",
    [
-    "PRECTOTCORR",
-    "GPM_RAIN"
+    "GPM_RAIN",
+    "PRECTOTCORR"
    ]
   ],
   [
    "Is the monsoon getting weaker in India?",
    [
-    "PRECTOTCORR",
-    "GPM_RAIN"
+    "GPM_RAIN",
+    "PRECTOTCORR"
    ]
   ],
   [
@@ -113,26 +113,26 @@
   [
    "Is California getting more droughts?",
    [
-    "PRECTOTCORR",
+    "GLDAS_SOILM",
     "GPM_RAIN",
     "GWETROOT",
-    "GLDAS_SOILM",
-    "GWETTOP"
+    "GWETTOP",
+    "PRECTOTCORR"
    ]
   ],
   [
    "Is the soil drying out in Australia?",
    [
-    "GWETROOT",
     "GLDAS_SOILM",
+    "GWETROOT",
     "GWETTOP"
    ]
   ],
   [
    "soil moisture in Ukraine",
    [
-    "GWETROOT",
-    "GLDAS_SOILM"
+    "GLDAS_SOILM",
+    "GWETROOT"
    ]
   ],
   [
@@ -188,29 +188,29 @@
   [
    "Is it getting more humid in Florida?",
    [
-    "RH2M",
-    "QV2M"
+    "QV2M",
+    "RH2M"
    ]
   ],
   [
    "Is the air getting more muggy in Singapore?",
    [
-    "RH2M",
-    "QV2M"
+    "QV2M",
+    "RH2M"
    ]
   ],
   [
    "water vapour over the Amazon",
    [
-    "QV2M",
-    "PW"
+    "PW",
+    "QV2M"
    ]
   ],
   [
    "Is there more moisture in the air over India?",
    [
-    "QV2M",
     "PW",
+    "QV2M",
     "RH2M"
    ]
   ],
@@ -285,15 +285,15 @@
   [
    "Is air pollution getting worse in Delhi?",
    [
-    "OMI_NO2",
-    "AOD_55"
+    "AOD_55",
+    "OMI_NO2"
    ]
   ],
   [
    "Is pollution falling in Los Angeles?",
    [
-    "OMI_NO2",
-    "AOD_55"
+    "AOD_55",
+    "OMI_NO2"
    ]
   ],
   [
@@ -371,22 +371,22 @@
   [
    "Are crops doing better in Ukraine?",
    [
-    "MODIS_NDVI",
-    "GWETROOT"
+    "GWETROOT",
+    "MODIS_NDVI"
    ]
   ],
   [
    "Is it getting colder in Moscow?",
    [
-    "T2M",
-    "AIRS_T2M"
+    "AIRS_T2M",
+    "T2M"
    ]
   ],
   [
    "climate change in Bucharest",
    [
-    "T2M",
-    "AIRS_T2M"
+    "AIRS_T2M",
+    "T2M"
    ]
   ],
   [
@@ -578,13 +578,13 @@
   [
    "Is there less black carbon over Europe?",
    [
-    "MERRA2_BC"
+    "MERRA2_SMOKE"
    ]
   ],
   [
    "Is diesel soot decreasing in London?",
    [
-    "MERRA2_BC"
+    "MERRA2_SMOKE"
    ]
   ],
   [
@@ -596,7 +596,7 @@
   [
    "Are sulfate particles at ground level falling in Germany?",
    [
-    "MERRA2_SO4"
+    "MERRA2_SULFATE"
    ]
   ],
   [
@@ -608,32 +608,31 @@
   [
    "Is sulfur dioxide at ground level dropping in the United States?",
    [
-    "MERRA2_SO2"
+    "OMI_SO2"
    ]
   ],
   [
    "Is carbon monoxide at ground level falling in Mexico City?",
    [
-    "MERRA2_CO"
+    "AIRS_CO"
    ]
   ],
   [
    "Is sulfur dioxide decreasing over China?",
    [
-    "OMI_SO2",
-    "MERRA2_SO2"
+    "OMI_SO2"
    ]
   ],
   [
    "Is formaldehyde increasing over the Amazon?",
    [
-    "OMI_HCHO"
+    "MERRA2_OC"
    ]
   ],
   [
    "Is the aerosol index rising over Siberia?",
    [
-    "OMI_UVAI"
+    "AOD_55"
    ]
   ],
   [
@@ -653,8 +652,8 @@
   [
    "Has it become hotter in Athens over the years?",
    [
-    "T2M",
-    "AIRS_T2M"
+    "AIRS_T2M",
+    "T2M"
    ]
   ],
   [
@@ -696,15 +695,15 @@
   [
    "Are rainy seasons getting wetter in Nigeria?",
    [
-    "PRECTOTCORR",
-    "GPM_RAIN"
+    "GPM_RAIN",
+    "PRECTOTCORR"
    ]
   ],
   [
    "Is precipitation declining in Morocco?",
    [
-    "PRECTOTCORR",
-    "GPM_RAIN"
+    "GPM_RAIN",
+    "PRECTOTCORR"
    ]
   ],
   [
@@ -716,9 +715,9 @@
   [
    "Are the fields getting drier in Argentina?",
    [
+    "GLDAS_SOILM",
     "GWETROOT",
-    "GWETTOP",
-    "GLDAS_SOILM"
+    "GWETTOP"
    ]
   ],
   [
@@ -730,8 +729,8 @@
   [
    "How much water is in the root zone in Iran?",
    [
-    "GWETROOT",
-    "GLDAS_SOILM"
+    "GLDAS_SOILM",
+    "GWETROOT"
    ]
   ],
   [
@@ -750,8 +749,8 @@
   [
    "Is the air in Houston becoming more humid?",
    [
-    "RH2M",
-    "QV2M"
+    "QV2M",
+    "RH2M"
    ]
   ],
   [
@@ -836,8 +835,8 @@
   [
    "Is it getting cooler in Antarctica?",
    [
-    "T2M",
-    "AIRS_T2M"
+    "AIRS_T2M",
+    "T2M"
    ]
   ],
   [
@@ -964,7 +963,7 @@
   [
    "Is there more soot in the air in Lagos?",
    [
-    "MERRA2_BC"
+    "MERRA2_SMOKE"
    ]
   ],
   [
@@ -976,33 +975,32 @@
   [
    "Is SO2 from smelters falling in Norilsk?",
    [
-    "OMI_SO2",
-    "MERRA2_SO2"
+    "OMI_SO2"
    ]
   ],
   [
    "Are VOCs rising over Houston?",
    [
-    "OMI_HCHO"
+    "MERRA2_OC"
    ]
   ],
   [
    "Is dusty air getting worse in Riyadh?",
    [
-    "MERRA2_DUST25",
-    "MERRA2_DUST"
+    "MERRA2_DUST",
+    "MERRA2_DUST25"
    ]
   ],
   [
    "Is there more smoke and dust seen from space over Australia?",
    [
-    "OMI_UVAI"
+    "AOD_55"
    ]
   ],
   [
    "Are car fumes at street level decreasing in Paris?",
    [
-    "MERRA2_CO",
+    "AIRS_CO",
     "OMI_NO2"
    ]
   ]

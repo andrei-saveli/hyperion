@@ -1,5 +1,5 @@
 {
- "note": "Questions worded without our keywords, for the search-by-meaning fallback (meaning.js). Right answers: measurement codes, 'NA:<word>' for a topic we don't have (matched against variables.json not_available), or [] for off-topic questions that must get no measurement. tuning: used to choose the examples and thresholds. heldout: written at the same time and never tuned on. Run: node Website/tests/test_meaning.js Sea level, sea ice, glaciers, groundwater and frozen ground became measurable later, so those questions now expect the new measurements instead of a 'not available' note. 'Car fumes' over Shanghai also accepts carbon monoxide at ground level since that measurement was added.",
+ "note": "Questions worded without our keywords, for the search-by-meaning fallback (meaning.js). Right answers: measurement codes, 'NA:<word>' for a topic we don't have (matched against variables.json not_available), or [] for off-topic questions that must get no measurement. tuning: used to choose the examples and thresholds. heldout: written at the same time and never tuned on. Run: node Website/tests/test_meaning.js Sea level, sea ice, glaciers, groundwater and frozen ground became measurable later, so those questions now expect the new measurements instead of a 'not available' note. 'Car fumes' over Shanghai also accepts carbon monoxide at ground level since that measurement was added. Six pollution measurements were later withdrawn as untrustworthy (MERRA-2 soot, sulfate, SO2 and CO at ground level; OMI formaldehyde and aerosol index); their questions now expect the closest measurement we show (smoke, sulfate haze, OMI SO2, AIRS CO, and organic particles or haze).",
  "tuning": [
   [
    "Is the white stuff on the mountains thinning in the Alps?",
@@ -10,22 +10,22 @@
   [
    "is it getting stickier in Bangkok",
    [
-    "RH2M",
-    "QV2M"
+    "QV2M",
+    "RH2M"
    ]
   ],
   [
    "Are summers in Madrid becoming more scorching?",
    [
-    "T2M_MAX",
-    "T2M"
+    "T2M",
+    "T2M_MAX"
    ]
   ],
   [
    "Is Mumbai getting more torrential downpours?",
    [
-    "PRECTOTCORR",
-    "GPM_RAIN"
+    "GPM_RAIN",
+    "PRECTOTCORR"
    ]
   ],
   [
@@ -38,9 +38,9 @@
   [
    "Are the fields in Kansas parched more often?",
    [
+    "GLDAS_SOILM",
     "GWETROOT",
-    "GWETTOP",
-    "GLDAS_SOILM"
+    "GWETTOP"
    ]
   ],
   [
@@ -54,31 +54,31 @@
   [
    "Is Lagos more sweltering than before?",
    [
+    "RH2M",
     "T2M",
-    "T2M_MAX",
-    "RH2M"
+    "T2M_MAX"
    ]
   ],
   [
    "Has it become gloomier in London?",
    [
-    "CLOUD_AMT",
-    "ALLSKY_SFC_SW_DWN"
+    "ALLSKY_SFC_SW_DWN",
+    "CLOUD_AMT"
    ]
   ],
   [
    "Do farmers in Kenya get enough moisture in the ground?",
    [
-    "GWETROOT",
     "GLDAS_SOILM",
+    "GWETROOT",
     "GWETTOP"
    ]
   ],
   [
    "Are there more blizzards in Minnesota?",
    [
-    "SNODP",
-    "PRECTOTCORR"
+    "PRECTOTCORR",
+    "SNODP"
    ]
   ],
   [
@@ -139,16 +139,16 @@
   [
    "Is the sky over Arizona clearer?",
    [
-    "CLOUD_AMT",
+    "ALLSKY_SFC_SW_DWN",
     "AOD_55",
-    "ALLSKY_SFC_SW_DWN"
+    "CLOUD_AMT"
    ]
   ],
   [
    "Is Seattle drizzlier?",
    [
-    "PRECTOTCORR",
-    "GPM_RAIN"
+    "GPM_RAIN",
+    "PRECTOTCORR"
    ]
   ],
   [
@@ -166,8 +166,8 @@
   [
    "Is the ground in Texas baking hotter?",
    [
-    "TS",
-    "MODIS_LST"
+    "MODIS_LST",
+    "TS"
    ]
   ],
   [
@@ -209,8 +209,8 @@
   [
    "Is the frozen ground thawing in Siberia?",
    [
-    "TSOIL5",
-    "TSOIL1"
+    "TSOIL1",
+    "TSOIL5"
    ]
   ],
   [
@@ -262,17 +262,17 @@
   [
    "Is Singapore getting more muggy and steamy?",
    [
-    "RH2M",
-    "QV2M"
+    "QV2M",
+    "RH2M"
    ]
   ],
   [
    "Has Cape Town become parched?",
    [
-    "PRECTOTCORR",
+    "GLDAS_SOILM",
     "GWETROOT",
     "GWETTOP",
-    "GLDAS_SOILM"
+    "PRECTOTCORR"
    ]
   ],
   [
@@ -303,9 +303,9 @@
   [
    "Is the soil in Ukraine holding less water?",
    [
+    "GLDAS_SOILM",
     "GWETROOT",
-    "GWETTOP",
-    "GLDAS_SOILM"
+    "GWETTOP"
    ]
   ],
   [
@@ -330,38 +330,38 @@
   [
    "Do the mountains of Nepal get less white powder?",
    [
-    "SNODP",
-    "PRECTOTCORR"
+    "PRECTOTCORR",
+    "SNODP"
    ]
   ],
   [
    "Is the air over Shanghai full of car fumes?",
    [
+    "AIRS_CO",
     "AOD_55",
-    "MERRA2_CO",
     "OMI_NO2"
    ]
   ],
   [
    "Are thunderstorms dumping more water on Bangladesh?",
    [
-    "PRECTOTCORR",
-    "GPM_RAIN"
+    "GPM_RAIN",
+    "PRECTOTCORR"
    ]
   ],
   [
    "Is there more moisture in the air above Brazil?",
    [
-    "QV2M",
     "PW",
+    "QV2M",
     "RH2M"
    ]
   ],
   [
    "Is the land surface in Australia heating up?",
    [
-    "TS",
-    "MODIS_LST"
+    "MODIS_LST",
+    "TS"
    ]
   ],
   [
@@ -391,16 +391,16 @@
   [
    "Is the weather in Dubai becoming more stifling?",
    [
+    "RH2M",
     "T2M",
-    "T2M_MAX",
-    "RH2M"
+    "T2M_MAX"
    ]
   ],
   [
    "Does Kenya get less wet season rain?",
    [
-    "PRECTOTCORR",
-    "GPM_RAIN"
+    "GPM_RAIN",
+    "PRECTOTCORR"
    ]
   ],
   [

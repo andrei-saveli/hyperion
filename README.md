@@ -23,14 +23,14 @@ To put it online, upload the `Website/` folder to any static hosting.
 | **Ask** | A search box that understands places (cities, countries, rivers, seas) and questions. Keyword rules first, then a small language model that runs in the browser for questions worded without keywords. |
 | **Answer** | A direct answer (*Yes* / *No, the opposite* / *Maybe* / *No clear change yet*) with the change per decade, total change and p-value. |
 | **Evidence** | The monthly record with seasons removed, the trend line and its 95% band; a second test (seasonal Mann-Kendall); a second data source where one exists. |
-| **What is changing here** | Every one of the 62 measurements tested for the chosen place, strongest evidence first. |
+| **What is changing here** | Every one of the 56 measurements tested for the chosen place, strongest evidence first. |
 | **Investigate** | How much of a trend possible drivers statistically account for, and what's left (never a claim about causes). |
 | **Places changing like this one** | The five regions of the planet whose pattern of change is most similar. |
 
-**62 measurements** from NASA POWER (MERRA-2 and CERES, asked live, no login) and prepared NASA
-satellite and model grids: GPM rain, GLDAS soil water, MODIS greenness and land temperature, OMI NO₂,
-SO₂ and formaldehyde, AIRS methane and carbon monoxide, sea level from satellite altimeters, MERRA-2
-fine particles (PM2.5), dust, smoke and more. Countries and regions are averaged over their outline.
+**56 measurements** from NASA POWER (MERRA-2 and CERES, asked live, no login) and prepared NASA
+satellite and model grids: GPM rain, GLDAS soil water, MODIS greenness and land temperature, OMI NO₂
+and SO₂, AIRS methane and carbon monoxide, sea level from satellite altimeters, MERRA-2
+fine particles (PM2.5), dust, smoke and more. Six pollution products we downloaded were left out because their trends can't be trusted (see `Website/README.md`). Countries and regions are averaged over their outline.
 
 **Statistics:** each calendar month's average is estimated together with the trend line (removing the
 seasons), the slope's 95% interval and t-test are corrected for month-to-month memory, and the seasonal

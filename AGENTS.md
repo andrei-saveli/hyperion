@@ -145,9 +145,8 @@ cases are chosen from real results, not assumed.
 ### Data
 - **NASA POWER** monthly point data (MERRA-2 + CERES, 1981 onwards, any place, no login), asked live:
   35 measurements.
-- **Prepared NASA grids** (Earthdata token, `Website/build_nasa_grids.py` download → build): 27
-  measurements from GPM, GLDAS, MODIS, OMI, AIRS, NASA-SSH sea level and MERRA-2 (aerosols, chemistry,
-  glaciers). Tiles in `Website/data/nasa/` (~440 MB): rebuild and commit them rarely, each rebuild
+- **Prepared NASA grids** (Earthdata token, `Website/build_nasa_grids.py` download → build): 21
+  measurements from GPM, GLDAS, MODIS, OMI, AIRS, NASA-SSH sea level and MERRA-2 (aerosols, glaciers). Tiles in `Website/data/nasa/` (~410 MB): rebuild and commit them rarely, each rebuild
   adds that much to git history.
 - Where a measurement exists twice the site tests both over shared years ("second source").
 - Giovanni (3 regions, Streamlit version) is in `archive/`; it needed manual downloads, which made
@@ -185,7 +184,7 @@ accounts for; it never says "cause").
 
 ## Current status (update this when you finish something)
 - 🌐 **Site:** `Website/` ("ByteMe", logo `B/ ByteMe`). Run: `python3 -m http.server 8000 --directory Website`.
-  62 measurements in `Website/data/variables.json`, grouped by terrain (ocean, ice and snow, land water,
+  56 measurements in `Website/data/variables.json`, grouped by terrain (ocean, ice and snow, land water,
   pollution, upper air...). `absent_if_constant` = "Not found here" instead of "no trend"; `nearest` =
   nearest sea square within 200 km for coastal towns; `where` = says where a measurement exists.
 - 🔎 **Search:** keyword rules (phrases, keywords, families, `not_available` notes with the closest
@@ -201,9 +200,11 @@ accounts for; it never says "cause").
   across-the-planet check; satellite-data swap. Never claims causes.
 - 🧭 **Places changing like this one** (`Website/similar.js`): nearest neighbours over 5° trend
   fingerprints (18 core POWER trends vs the planet, weighted cosine), 5 matches ≥ 1,500 km apart.
-- 🏭 **Pollution:** PM2.5 (MERRA-2, compared with the WHO guideline), soot, organic particles, sulfate
-  particles, fine dust, SO₂ and CO at ground level (MERRA-2), OMI SO₂ (second source for MERRA-2 SO₂),
-  formaldehyde and UV aerosol index, plus haze, NO₂, dust, smoke, sulfate haze, AIRS CO and methane.
+- 🏭 **Pollution:** PM2.5 (MERRA-2, compared with the WHO guideline), organic particles and fine dust at
+  ground level (MERRA-2), OMI SO₂, plus haze, NO₂, dust, smoke, sulfate haze, AIRS CO and methane.
+  **Left out on purpose:** MERRA-2 soot, sulfate, SO₂ and CO at ground level (its factory and traffic
+  emissions stop being updated around 2010: Beijing's SO₂ "rises" while OMI sees it collapse) and OMI
+  formaldehyde and UV aerosol index (instrument drift). MERRA-2 particle measurements carry that caveat.
 - 🎤 **Presentation:** `docs/presentation/` (deck + Romanian speaker script). Branch reviews:
   `docs/CAUSALITY_REVIEW.md`, `docs/TREND_DETECTIVE_HANDOVER.md`.
 - 🗄️ **Archive:** the Streamlit versions, Giovanni data (still used as test data by
