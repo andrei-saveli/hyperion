@@ -50,16 +50,16 @@ build_world.py (run once, Python, Task4/stats.py) ─► data/world.json ─► 
     averaged record, exactly as for one place.
   - The map shows the outline, the panel says what the average is made of, and a button switches
     to the single grid square at the centre. Links keep the area: `#area=R90689,T2M,Romania`.
-  - It takes about 5–10 seconds (Russia about 25). Compare also averages countries and regions.
+  - It takes about 5–10 seconds (Russia about 25).
 - **Time periods** (`investigation.js`, from the `codex/trend-detective` branch): a From/To form in
-  Explore and in Compare cuts every record to the chosen months and runs the trend test again.
+  Explore cuts every record to the chosen months and runs the trend test again.
   Questions can name a period ("since 2005", "2001 to 2015"), and links keep it
   (`#78.25,15.625,T2M,Svalbard?from=2001-01&to=2015-12`). The evidence panel always shows the
   whole-record result next to a chosen window, and warns that short windows are uncertain and easy
   to cherry-pick.
-- **Compare uses the same months at both places.** Each place gets its own trend, and the finding is
-  about the difference A − B (its 95% range uses a Newey–West adjustment over 12 months, because
-  neighbouring months are not independent). A button checks the latest 15 years.
+- **Compare was removed** (the two-place section, the Method section and the big footer): the page
+  ends after Investigate with a one-line copyright. `investigation.js` still holds the matched-month
+  and A − B functions (`matchMonths`, `fitComparison`) with their tests, if Compare comes back.
 - **Investigate: what might explain this?** (`evidence.js`, below the evidence panel and from the
   answer card). For a measurement with a trend, it offers physically sensible ideas
   (`explanations` in `variables.json`) and lets students test their own, stating the prediction
@@ -153,9 +153,9 @@ much to the repository's history.
 ## Files
 | File | What it is |
 |---|---|
-| `index.html` | Page structure: hero + demo cases, explore (search, map, list of trends, evidence), compare, method, footer |
+| `index.html` | Page structure: hero + demo cases, explore (search, answer, map, scrollable list of trends, evidence, investigate), one-line footer |
 | `style.css` | The look: colours, fonts, outlines, phone layout |
-| `app.js` | Live data download, search, map (MapLibre), charts (Plotly), compare |
+| `app.js` | Live data download, search, answer card, map (MapLibre), charts (Plotly), investigate |
 | `stats.js` | Trend and significance math (copy of `Task4/stats.py`) |
 | `nasa.js` | Reads one square's monthly series from a NASA tile file |
 | `investigation.js` | Time periods: read periods from questions, cut records, match months at two places, A − B trend with a Newey–West range |
