@@ -1,9 +1,9 @@
 """Make the reference answers for test_stats.js using the project's Python trend code.
 
 1. Downloads a few real NASA POWER monthly series (first run only; saved in fixtures/).
-2. Adds the project's 12 Giovanni series (Task2/cleaned) and a few awkward made-up cases
+2. Adds the project's 12 Giovanni series (archive/Task2/cleaned) and a few awkward made-up cases
    (gaps, too short, constant).
-3. Runs Task4/stats.py on every series and saves series + answers to reference.json.
+3. Runs Website/stats.py on every series and saves series + answers to reference.json.
 
 Run:  python3 Website/tests/make_reference.py     then:  node Website/tests/test_stats.js
 """
@@ -17,7 +17,7 @@ import pandas as pd
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent.parent
-sys.path.insert(0, str(ROOT / "Task4"))
+sys.path.insert(0, str(ROOT / "Website"))
 from stats import analyze  # noqa: E402
 
 POINTS = {"bucharest": (44.25, 26.25), "svalbard": (78.25, 15.625), "niamey": (13.5, 1.875),
@@ -74,7 +74,7 @@ for place, (lat, lon) in POINTS.items():
             add(f"power {place} {v['code']}", dates, values, v["percent"])
 
 # the project's Giovanni series
-for file in sorted((ROOT / "Task2" / "cleaned").glob("*.csv")):
+for file in sorted((ROOT / "archive" / "Task2" / "cleaned").glob("*.csv")):
     df = pd.read_csv(file)
     code = file.stem.split("_")[-1]
     values = [None if pd.isna(x) else float(x) for x in df["value"]]

@@ -55,7 +55,7 @@ const ByteMeMeaning = (function () {
   function documents(vars, notAvailable) {
     const docs = [];
     vars.forEach((v) => {
-      const topic = { kind: "variable", code: v.code, family: v.family || v.code, pair: v.pair || null };
+      const topic = { kind: "variable", code: v.code, family: v.family || v.code, pair: v.pair || null, related: v.related || [] };
       docs.push({ topic, text: v.name });
       docs.push({ topic, text: `${v.name}: ${v.definition}` });
       list(v.examples).forEach((p) => docs.push({ topic, text: p }));
@@ -109,9 +109,10 @@ const ByteMeMeaning = (function () {
     return [...best.values()].sort((a, b) => b.score - a.score);
   }
 
-  // Two topics that say nearly the same (a family, or a measurement and its satellite twin) don't
-  // compete for the margin
-  const related = (a, b) => a.family === b.family || (a.code && (a.code === b.pair || b.code === a.pair));
+  // Two topics that say nearly the same (a family, a measurement and its satellite twin, or two
+  // measurements listed as related, like snow depth and snow cover) don't compete for the margin
+  const related = (a, b) => a.family === b.family || (a.code && (a.code === b.pair || b.code === a.pair)) ||
+    (a.code && b.code && ((a.related || []).includes(b.code) || (b.related || []).includes(a.code)));
 
   // The question (place names already removed) -> { accepted, topic, score, margin, nearest, ranked }
   // or null when the model isn't available. Only an accepted match should be used.

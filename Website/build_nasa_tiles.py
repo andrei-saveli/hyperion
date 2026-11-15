@@ -27,7 +27,6 @@ import pandas as pd
 HERE = Path(__file__).resolve().parent
 CACHE = HERE / ".nasa_cache"
 OUT = HERE / "data" / "nasa"
-sys.path.insert(0, str(HERE.parent / "Task4"))
 from stats import analyze  # noqa: E402  (the project's real trend code)
 
 TILE = 10                       # tile size in degrees

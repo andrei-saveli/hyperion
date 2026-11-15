@@ -2,7 +2,7 @@
 
 For every point of a coarse world grid (default: every 5 degrees), this script downloads the
 monthly NASA POWER record for every measurement in data/variables.json and runs the project's
-real trend code (Task4/stats.py) on it. The website draws the result as coloured squares, so a
+real trend code (Website/stats.py) on it. The website draws the result as coloured squares, so a
 visitor sees at a glance WHERE each measurement is rising or falling.
 
 Measurements that are already in data/world.json are kept as they are; only new ones are
@@ -12,7 +12,7 @@ Run (takes roughly 15-30 minutes, safe to stop and restart: finished points are 
     python3 Website/build_world.py            # 5 degree grid
     python3 Website/build_world.py --step 10  # quicker, coarser
 
-No login is needed. Needs numpy, scipy and pandas (same as Task4).
+No login is needed. Needs numpy, scipy and pandas (see Website/requirements.txt).
 """
 import argparse
 import json
@@ -26,7 +26,6 @@ from pathlib import Path
 import pandas as pd
 
 HERE = Path(__file__).resolve().parent
-sys.path.insert(0, str(HERE.parent / "Task4"))
 from stats import analyze  # noqa: E402  (the project's real trend code)
 
 START_YEAR = 1981

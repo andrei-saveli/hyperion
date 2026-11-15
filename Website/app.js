@@ -3,7 +3,7 @@
 //
 // Where things come from
 // - Monthly data: NASA POWER (no login), asked for live for the place the visitor picks.
-// - Trend math: stats.js, a tested copy of the project's Python code (Task4/stats.py).
+// - Trend math: stats.js, a tested copy of the project's Python code (stats.py).
 // - Measurements and their plain-language definitions: data/variables.json.
 // - World overview squares: data/world.json, built once by build_world.py with the Python code.
 // - Place names: Open-Meteo geocoding (search) and BigDataCloud (name of a clicked point).
@@ -389,7 +389,7 @@ const AGREEMENT_TEXT = {
 };
 
 // ------------------------------------------------------------------ plain-language explanation
-// (same wording rules as Task3/explain.py: say what changed and how sure we are, never why)
+// (same wording rules as archive/Task3/explain.py: say what changed and how sure we are, never why)
 function explain(r, v, placeName) {
   const caveat = "A straight line simplifies a record that can rise and fall over time. " +
     "Identifying the cause requires a separate investigation.";
@@ -977,8 +977,15 @@ function placeHints(text) {
       (featureWordOf(parts[0]) || featureWordOf(parts.at(-1)));
   };
   const location = /\b(?:in|near|around|across|over|throughout|at|along)\s+([\p{L}][\p{L}\p{M} ,.'’–-]*?)(?=[?!]|\b(?:in|near|around|since|from|during|between|last|over|after|before|getting|is|are|has|have|with|compared|and|summer|winter|spring|autumn)\b|\d|$)/giu;
+  // A place name ends where the topic starts: "over Shanghai full of car fumes" -> "Shanghai"
+  const topicPhrases = [...VARS.flatMap((v) => listOf(v.phrases)), ...NOT_AVAILABLE.flatMap((n) => listOf(n.phrases))];
+  const topicWords = new Set(VARS.flatMap((v) => words(v.keywords)));
+  const startsTopic = (parts, i) => featureWordOf(parts[i]) ? false : topicWords.has(parts[i]) ||   // "sea" in "Black Sea" is part of the name
+    topicPhrases.some((p) => (" " + parts.slice(i).join(" ") + " ").startsWith(" " + p + " "));
   for (const [, span] of text.matchAll(location)) {
-    const name = span.trim().replace(/^the\s+/i, "").replace(/[,.]+$/, "").trim();
+    let name = span.trim().replace(/^the\s+/i, "").replace(/[,.]+$/, "").trim();
+    const all = name.split(/\s+/), cut = all.findIndex((w, i) => i > 0 && startsTopic(words(all.slice(i).join(" ")), 0));
+    if (cut > 0) name = all.slice(0, cut).join(" ").replace(/\s+(?:full|of|with|and|the)$/i, "").replace(/\s+(?:full|of|with|and|the)$/i, "").trim();
     const parts = words(name);
     if (!parts.length || parts.length > 6 || FILLER.has(parts[0])) continue;
     const key = TEXT(name).trim();

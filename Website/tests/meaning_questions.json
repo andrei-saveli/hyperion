@@ -1,5 +1,5 @@
 {
- "note": "Questions worded without our keywords, for the search-by-meaning fallback (meaning.js). Right answers: measurement codes, 'NA:<word>' for a topic we don't have (matched against variables.json not_available), or [] for off-topic questions that must get no measurement. tuning: used to choose the examples and thresholds. heldout: written at the same time and never tuned on. Run: node Website/tests/test_meaning.js Sea level, sea ice, glaciers, groundwater and frozen ground became measurable later, so those questions now expect the new measurements instead of a 'not available' note.",
+ "note": "Questions worded without our keywords, for the search-by-meaning fallback (meaning.js). Right answers: measurement codes, 'NA:<word>' for a topic we don't have (matched against variables.json not_available), or [] for off-topic questions that must get no measurement. tuning: used to choose the examples and thresholds. heldout: written at the same time and never tuned on. Run: node Website/tests/test_meaning.js Sea level, sea ice, glaciers, groundwater and frozen ground became measurable later, so those questions now expect the new measurements instead of a 'not available' note. 'Car fumes' over Shanghai also accepts carbon monoxide at ground level since that measurement was added.",
  "tuning": [
   [
    "Is the white stuff on the mountains thinning in the Alps?",
@@ -337,8 +337,9 @@
   [
    "Is the air over Shanghai full of car fumes?",
    [
-    "OMI_NO2",
-    "AOD_55"
+    "AOD_55",
+    "MERRA2_CO",
+    "OMI_NO2"
    ]
   ],
   [
