@@ -16,6 +16,10 @@
 //
 // Kept separate from app.js so tests/test_similar.js can check it with Node.
 const ByteMeSimilar = (function () {
+  // The 18 measurements that exist everywhere (or on all land) make up the fingerprint. The ones
+  // that only exist in some kinds of places (sea ice, snowfall, frost days...) are left out.
+  const FINGERPRINT = ["T2M", "T2M_MAX", "T2M_MIN", "TS", "PRECTOTCORR", "EVLAND", "RH2M", "QV2M", "PW", "GWETTOP", "GWETROOT",
+                       "SNODP", "WS10M", "PS", "TO3", "AOD_55", "ALLSKY_SFC_SW_DWN", "CLOUD_AMT"];
   const GROUPS = [["T2M", "T2M_MAX", "T2M_MIN", "TS"], ["RH2M", "QV2M", "PW"], ["GWETTOP", "GWETROOT"]];
   const LAND_ONLY = "EVLAND";      // only land squares have evaporation, root-zone soil and snow
   const CAP = 3;
@@ -38,7 +42,7 @@ const ByteMeSimilar = (function () {
   // Planet average and spread of each measurement's trend, over the squares that have one
   function planetStats(world) {
     const out = {};
-    Object.keys(world.slope).forEach((code) => {
+    FINGERPRINT.filter((code) => world.slope[code]).forEach((code) => {
       const values = world.slope[code].filter((s, i) => s !== null && world.verdict[code][i] > 0);
       if (values.length < 10) return;
       const mean = values.reduce((a, b) => a + b, 0) / values.length;
@@ -75,7 +79,7 @@ const ByteMeSimilar = (function () {
   // One world square: its centre and its trends
   function square(world, i) {
     const slopes = {}, verdicts = {};
-    Object.keys(world.slope).forEach((code) => { slopes[code] = world.slope[code][i]; verdicts[code] = world.verdict[code][i]; });
+    FINGERPRINT.filter((code) => world.slope[code]).forEach((code) => { slopes[code] = world.slope[code][i]; verdicts[code] = world.verdict[code][i]; });
     const [lat, lon] = world.points[i];
     return { lat, lon, slopes, verdicts };
   }

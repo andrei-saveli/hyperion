@@ -15,9 +15,27 @@ visitor picks a place ─► NASA POWER (live, no login) ─► stats.js ─► 
 build_world.py (run once, Python, Task4/stats.py) ─► data/world.json ─► coloured squares on the map
 ```
 - **Data:** [NASA POWER](https://power.larc.nasa.gov/) monthly values (MERRA-2 and CERES) for the
-  grid square, about 50 km wide, around the chosen point. 18 measurements, listed with
+  grid square, about 50 km wide, around the chosen point. 35 measurements, listed with
   plain-language definitions in `data/variables.json`. Most start in 1981, sunlight and clouds in
-  1984, haze in 2001.
+  1984, haze, surface brightness and UV in 2001. Another 17 come from prepared satellite and model
+  grids (see below), 52 in all.
+- **Measurements for particular kinds of places:** half of the 52 only make sense in some
+  terrains, so a visitor can investigate the sea, the ice, the mountains, a desert, a city or the
+  upper air:
+
+  | Where | Measurements |
+  |---|---|
+  | Ocean and coasts | Sea level (satellite altimeters), sea ice cover, peak wind of the month |
+  | Ice, snow and mountains | Snow cover, snowfall, frost days, snow depth, ice-sheet meltwater runoff, surface brightness (albedo) |
+  | Land and its water | Soil temperature, deep soil temperature (permafrost), deep soil wetness, water stored on land (soil + snow + groundwater) |
+  | Deserts, fires and industry | Desert dust, smoke and soot, sulfate haze, carbon monoxide, methane |
+  | Cities and people | Cooling need and heating need (degree days), day–night temperature range, dew point, UV index |
+  | Levels of the atmosphere | Tropopause temperature and pressure (top of the weather layer), stratosphere temperature at 50 hPa, heat radiation from the sky |
+
+  Where a measurement doesn't occur (sea ice in the Sahara, snowfall in Singapore: the same value
+  every month), it is shown as "Not found here" instead of "no trend" (`absent_if_constant`). A
+  measurement of the sea asked for a coastal town uses the nearest sea square within 200 km and
+  says so (`nearest`); further inland the answer explains where it is measured (`where`).
 - **Trend math:** seasons removed (the 12 monthly averages are estimated together with the trend
   line), straight-line trend, significance corrected for month-to-month memory, seasonal
   Mann-Kendall as a second test. `stats.js` is a line-by-line copy of the project's Python code
@@ -157,7 +175,7 @@ build_world.py (run once, Python, Task4/stats.py) ─► data/world.json ─► 
   or falling (every 5 degrees). They come from `data/world.json`.
 
 ## NASA satellite and model data (GPM, GLDAS, MODIS, OMI, AIRS)
-Eight more measurements come from the NASA datasets the challenge names. They need an Earthdata
+Seventeen measurements come from NASA datasets (the first eight are the ones the challenge names). They need an Earthdata
 login, so they are **prepared once** and saved with the site (`data/nasa/`), instead of being
 asked for live like NASA POWER.
 
@@ -171,9 +189,22 @@ asked for live like NASA POWER.
 | Evaporation (GLDAS) | same | 2000 | Evaporation from land (MERRA-2) |
 | Runoff (GLDAS) | same (surface + underground runoff) | 2000 | – |
 | Nitrogen dioxide (OMI) | OMI `OMNO2d` v003, daily maps averaged by month (at least 5 days) | 2004 | – |
+| Sea level | NASA-SSH simple grid v1 (TOPEX/Poseidon, Jason, Sentinel-6 altimeters), 0.5°, weekly maps averaged by month (at least 2) | 1992 | – |
+| Water stored on land (GLDAS) | GLDAS Catchment `GLDAS_CLSM10_M` 2.1 (`TWS_inst`: soil, snow, canopy and shallow groundwater) | 2000 | – |
+| Ice-sheet meltwater runoff | MERRA-2 `M2TMNXGLC` (`RUNOFF` over glaciated land) | 1980 | – |
+| Desert dust · Smoke and soot · Sulfate haze | MERRA-2 `M2TMNXAER` (`DUEXTTAU`, `BCEXTTAU` + `OCEXTTAU`, `SUEXTTAU`), 2° squares | 1980 | – |
+| Methane · Carbon monoxide · Stratosphere temperature (AIRS) | AIRS `AIRS3STM` v7.0 at 400, 500 and 50 hPa, day/night average, 2° squares | 2002 | – |
 
 - **Grid:** every dataset is averaged into 1 x 1 degree squares (about 110 km). A square needs data
-  in at least half of its small cells, so coasts and gaps don't give misleading averages.
+  in at least half of its small cells, so coasts and gaps don't give misleading averages. MERRA-2's
+  0.5 x 0.625 degree grid is averaged by how much of each cell lies inside the square. Smooth
+  fields (dust, smoke, sulfate, methane, carbon monoxide, stratosphere temperature) are saved on
+  2 x 2 degree squares (`step` in `data/nasa/index.json`), a quarter of the size.
+- **What these are, honestly:** sea level is a satellite measurement. Dust, smoke, sulfate and
+  ice-sheet runoff come from the MERRA-2 model, which takes in satellite aerosol measurements;
+  water storage is a land model driven by weather data (it is not the GRACE satellite gravity
+  measurement, which our login could not reach). AIRS methane and carbon monoxide describe the
+  air several kilometres up, not at the ground.
 - **Second source:** where a measurement exists twice, the evidence panel tests both over the
   years they share and says whether they agree. A significant trend that an independent
   satellite or model confirms gets "confirmed by ..." in the list.
@@ -199,7 +230,7 @@ Set `EARTHDATA_TOKEN` to your token (Earthdata profile → Generate Token) when 
 own computer. `build` runs `Task4/stats.py` for the map and writes the tiles; `test_nasa.js` checks
 that the website reads them back correctly. Needs `numpy`, `h5py`, `pandas`, `scipy`.
 
-The tiles add up to about 200 MB. Commit a rebuild only when it matters: every rebuild adds that
+The tiles add up to about 300 MB. Commit a rebuild only when it matters: every rebuild adds that
 much to the repository's history.
 
 ## Files
@@ -220,7 +251,7 @@ much to the repository's history.
 | `area.js` | Area averages: squares inside a country's or region's outline, weighted average of their records |
 | `build_nasa_grids.py`, `build_nasa_tiles.py` | Download the NASA datasets to 1° grids; then trends, tiles and map layers (`data/nasa/`) |
 | `globe.js` | Hero art: rotating globe of teal "satellite pixels", demo cases in coral (decoration only) |
-| `data/variables.json` | The 26 measurements (18 NASA POWER + 8 satellite/model): code, name, units, definition, search words, second-source pairs |
+| `data/variables.json` | The 52 measurements (35 NASA POWER + 17 satellite/model): code, name, units, definition, search words, second-source pairs |
 | `data/world.json` | World overview: trend of every measurement on a 5 degree grid (made by `build_world.py`) |
 | `build_world.py` | Rebuilds `data/world.json` with the Python trend code (about 25 minutes, can be stopped and restarted) |
 | `tests/` | `make_reference.py` + `test_stats.js` (website math = Python math); `test_nasa.js` + `nasa_reference.json` (tiles read back correctly); `test_area.js` (outlines and area averages); `test_investigation.js` (periods and matched comparisons); `test_decompose.js` (Trend Decomposer: known contributions, spurious trends, seasons, real Svalbard data); `test_search.js` + `search_questions.json` (search picks the right measurement; needs Playwright); `test_meaning.js` + `meaning_questions.json` (search by meaning; Playwright + model files); `test_similar.js` (places changing like this one) |

@@ -1,4 +1,4 @@
-"""Download six NASA datasets and turn them into monthly 1-degree grids for the ByteMe website.
+"""Download NASA datasets and turn them into monthly 1-degree grids for the ByteMe website.
 
 Datasets (all named in the challenge):
   GPM IMERG   rainfall                                   GPM_3IMERGM v07, 0.1 deg, monthly
@@ -7,6 +7,13 @@ Datasets (all named in the challenge):
   MODIS       land surface temperature                   MOD11C3 v061, 0.05 deg, monthly
   OMI         nitrogen dioxide (NO2)                     OMNO2d v003, 0.25 deg, DAILY -> monthly means
   AIRS        surface air temperature                    AIRS3STM v7.0, 1 deg, monthly
+
+Datasets for particular kinds of places (oceans, ice, deserts, the upper air):
+  SSH    sea level from satellite altimeters             NASA-SSH simple grid v1, 0.5 deg, WEEKLY -> monthly means
+  CLSM   water stored on land (soil, snow, groundwater)  GLDAS_CLSM10_M 2.1, 1 deg, monthly
+  M2AER  dust, smoke and sulfate haze in the air         MERRA-2 M2TMNXAER, 0.5 x 0.625 deg, monthly
+  M2GLC  meltwater running off glaciers and ice sheets   MERRA-2 M2TMNXGLC, 0.5 x 0.625 deg, monthly
+  AIRSX  methane, carbon monoxide, stratosphere temperature  AIRS3STM v7.0 (single pressure levels)
 
 How it works
 1. NASA's public catalogue (CMR, no login) lists every monthly (or daily) file.
@@ -24,7 +31,7 @@ Login: an Earthdata token is needed. This script sends no token itself: in our c
 network proxy adds it. To run it elsewhere, set the environment variable EARTHDATA_TOKEN.
 
 Run (from the repository root):
-    python3 Website/build_nasa_grids.py download            # all six datasets (a few hours)
+    python3 Website/build_nasa_grids.py download            # all datasets (a few hours)
     python3 Website/build_nasa_grids.py download GPM OMI    # only some
     python3 Website/build_nasa_grids.py build               # all downloaded datasets
     python3 Website/build_nasa_grids.py build GPM AIRS      # only some
@@ -61,9 +68,19 @@ DATASETS = {
             "paths": ["/HDFEOS/GRIDS/ColumnAmountNO2/Data_Fields/ColumnAmountNO2TropCloudScreened"]},
     "AIRS": {"collection": "C1701805662-GES_DISC",
              "paths": ["/ascending/Data_Fields/SurfAirTemp_A", "/descending/Data_Fields/SurfAirTemp_D"]},
+    # "[6][][]" asks for one pressure level only. AIRS levels: 5 = 500 hPa, 6 = 400 hPa, 13 = 50 hPa.
+    "AIRSX": {"collection": "C1701805662-GES_DISC",
+              "paths": ["/ascending/Data_Fields/CH4_VMR_A[6][][]", "/descending/Data_Fields/CH4_VMR_D[6][][]",
+                        "/ascending/Data_Fields/CO_VMR_A[5][][]", "/descending/Data_Fields/CO_VMR_D[5][][]",
+                        "/ascending/Data_Fields/Temperature_A[13][][]", "/descending/Data_Fields/Temperature_D[13][][]"]},
+    "SSH": {"collection": "C3309442935-POCLOUD", "weekly": True, "paths": ["/ssha"]},
+    "CLSM": {"collection": "C1690022314-GES_DISC", "paths": ["/TWS_inst"]},
+    "M2AER": {"collection": "C1276812866-GES_DISC", "paths": ["/DUEXTTAU", "/BCEXTTAU", "/OCEXTTAU", "/SUEXTTAU"]},
+    "M2GLC": {"collection": "C1276812853-GES_DISC", "paths": ["/RUNOFF"]},
 }
 MIN_VALID_SHARE = 0.5     # a 1-degree square needs data in at least half of its small cells
 MIN_OMI_DAYS = 5          # an OMI monthly value needs at least this many days with data
+MIN_SSH_WEEKS = 2         # a sea level monthly value needs at least this many weekly maps
 
 
 # ---------------------------------------------------------------- downloading
@@ -114,7 +131,7 @@ def fetch(address, paths):
     out = {}
     with h5py.File(io.BytesIO(data), "r") as f:
         for path in paths:
-            out[path] = f[path.lstrip("/")][()]
+            out[path] = f[path.split("[")[0].lstrip("/")][()]     # "[6][][]" (one level) is not part of the name
     return out
 
 
@@ -130,6 +147,33 @@ def to_one_degree(grid, cells_per_degree):
     with np.errstate(invalid="ignore", divide="ignore"):
         mean = total / count
     mean[count < MIN_VALID_SHARE * k * k] = np.nan
+    return mean.astype(np.float32)
+
+
+def overlap(source_edges, target_edges, wrap=None):
+    """How much of each target cell is covered by each source cell along one axis (degrees).
+    wrap = 360 for longitude, where the grid closes on itself."""
+    w = np.zeros((len(target_edges) - 1, len(source_edges) - 1))
+    for shift in ((0,) if wrap is None else (-wrap, 0, wrap)):
+        lo = np.maximum(target_edges[:-1, None], source_edges[None, :-1] + shift)
+        hi = np.minimum(target_edges[1:, None], source_edges[None, 1:] + shift)
+        w += np.clip(hi - lo, 0, None)
+    return w
+
+
+# MERRA-2's own grid: 361 latitudes (-90..90, every 0.5) x 576 longitudes (-180..179.375, every 0.625)
+_M2_LAT = overlap(np.clip(np.arange(-90.25, 90.5, 0.5), -90, 90), np.arange(-90.0, 91.0))
+_M2_LON = overlap(np.arange(-180.3125, 179.8, 0.625), np.arange(-180.0, 181.0), wrap=360)
+
+
+def merra_to_one_degree(grid):
+    """Area-weighted average of a MERRA-2 grid (NaN = missing) into 180 x 360 one-degree squares."""
+    valid = np.isfinite(grid)
+    total = _M2_LAT @ np.where(valid, grid, 0) @ _M2_LON.T
+    weight = _M2_LAT @ valid.astype(float) @ _M2_LON.T
+    with np.errstate(invalid="ignore", divide="ignore"):
+        mean = total / weight
+    mean[weight < MIN_VALID_SHARE] = np.nan           # a full square has weight 1 (1 degree x 1 degree)
     return mean.astype(np.float32)
 
 
@@ -171,7 +215,46 @@ def convert(name, arrays):
             t[t <= -9999] = np.nan
             both.append(t[::-1] - 273.15)
         return {"AIRS_T2M": ((both[0] + both[1]) / 2).astype(np.float32)}  # day-night average, degC
+    if name == "AIRSX":                                # north first, 1 degree, one pressure level each
+        def level(asc, desc):
+            both = []
+            for path in (asc, desc):
+                x = a(path)[0]
+                x[x <= -9999] = np.nan
+                both.append(x[::-1])
+            with np.errstate(invalid="ignore"):
+                return np.nanmean(both, axis=0)        # day-night average
+        d = "/ascending/Data_Fields/", "/descending/Data_Fields/"
+        return {"AIRS_CH4": (level(d[0] + "CH4_VMR_A[6][][]", d[1] + "CH4_VMR_D[6][][]") * 1e9).astype(np.float32),   # ppb
+                "AIRS_CO": (level(d[0] + "CO_VMR_A[5][][]", d[1] + "CO_VMR_D[5][][]") * 1e9).astype(np.float32),      # ppb
+                "AIRS_T50": (level(d[0] + "Temperature_A[13][][]", d[1] + "Temperature_D[13][][]") - 273.15).astype(np.float32)}
+    if name == "CLSM":                                 # (time, lat 60S..90N, lon), 1 degree, mm of water
+        g = np.full((180, 360), np.nan)
+        part = a("/TWS_inst")[0]
+        part[part <= -9999] = np.nan
+        g[30:] = part                                  # rows south of 60S have no data
+        return {"GLDAS_TWS": g.astype(np.float32)}
+    if name == "M2AER":                                # MERRA-2 grid; how much each kind of particle dims light
+        def field(path):
+            x = a(path)[0]
+            x[x > 1e14] = np.nan
+            return x
+        return {"MERRA2_DUST": merra_to_one_degree(field("/DUEXTTAU")),
+                "MERRA2_SMOKE": merra_to_one_degree(field("/BCEXTTAU") + field("/OCEXTTAU")),   # soot + organic smoke
+                "MERRA2_SULFATE": merra_to_one_degree(field("/SUEXTTAU"))}
+    if name == "M2GLC":                                # MERRA-2 grid; only where the land is covered by ice
+        x = a("/RUNOFF")[0]
+        x[x > 1e14] = np.nan
+        return {"MERRA2_ICEMELT": merra_to_one_degree(x * 86400)}   # kg/m2/s -> mm per day
     raise ValueError(name)
+
+
+def ssh_week(arrays):
+    """One weekly sea level map -> 1-degree grid in cm (NaN = land, ice or no data)."""
+    h = arrays["/ssha"].astype(np.float64)             # (lat south first, lon 0..360), 0.5 degree, metres
+    h[np.abs(h) > 100] = np.nan                        # fill value
+    h = np.roll(h, 360, axis=1)                        # -> lon -180..180
+    return to_one_degree(h * 100, 2)
 
 
 def omi_day(arrays):
@@ -190,16 +273,17 @@ def month_file(name, month):
 def do_month(name, month, addresses):
     """Download and convert one month (for OMI: all its days). Saves the month to the cache."""
     spec = DATASETS[name]
-    if spec.get("daily"):
+    if spec.get("daily") or spec.get("weekly"):        # many maps per month: average them
+        one, code, least = (omi_day, "OMI_NO2", MIN_OMI_DAYS) if spec.get("daily") else (ssh_week, "SEA_LEVEL", MIN_SSH_WEEKS)
         total = np.zeros((180, 360)); days = np.zeros((180, 360))
         for address in addresses:
-            g = omi_day(fetch(address, spec["paths"]))
+            g = one(fetch(address, spec["paths"]))
             ok = np.isfinite(g)
             total[ok] += g[ok]; days[ok] += 1
         with np.errstate(invalid="ignore", divide="ignore"):
             mean = total / days
-        mean[days < MIN_OMI_DAYS] = np.nan
-        grids = {"OMI_NO2": mean.astype(np.float32)}
+        mean[days < least] = np.nan
+        grids = {code: mean.astype(np.float32)}
     else:
         grids = convert(name, fetch(addresses[0], spec["paths"]))
     file = month_file(name, month)
@@ -215,10 +299,15 @@ def download(names, workers=8):
         files = list_files(DATASETS[name]["collection"])
         by_month = {}
         for start, address in files:
+            if DATASETS[name].get("weekly"):           # weekly maps are named after their middle day: ..._YYYYMMDD
+                day = address.rsplit("_", 1)[-1][:8]
+                start = f"{day[:4]}-{day[4:6]}-{day[6:8]}"
             by_month.setdefault(start[:7], []).append(address)
         todo = {m: a for m, a in by_month.items() if not month_file(name, m).exists()}
         if DATASETS[name].get("daily"):    # skip the current, unfinished month
             todo = {m: a for m, a in todo.items() if len(a) >= 20}
+        if DATASETS[name].get("weekly"):   # a month needs at least three weekly maps
+            todo = {m: a for m, a in todo.items() if len(a) >= 3}
         print(f"{name}: {len(by_month)} months listed, {len(todo)} still to download", flush=True)
         jobs += [(name, m, a) for m, a in sorted(todo.items())]
     # Daily OMI months take longest: start them first so everything ends at about the same time.

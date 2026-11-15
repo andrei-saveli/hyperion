@@ -1,5 +1,5 @@
 {
- "note": "Questions worded without our keywords, for the search-by-meaning fallback (meaning.js). Right answers: measurement codes, 'NA:<word>' for a topic we don't have (matched against variables.json not_available), or [] for off-topic questions that must get no measurement. tuning: used to choose the examples and thresholds. heldout: written at the same time and never tuned on. Run: node Website/tests/test_meaning.js",
+ "note": "Questions worded without our keywords, for the search-by-meaning fallback (meaning.js). Right answers: measurement codes, 'NA:<word>' for a topic we don't have (matched against variables.json not_available), or [] for off-topic questions that must get no measurement. tuning: used to choose the examples and thresholds. heldout: written at the same time and never tuned on. Run: node Website/tests/test_meaning.js Sea level, sea ice, glaciers, groundwater and frozen ground became measurable later, so those questions now expect the new measurements instead of a 'not available' note.",
  "tuning": [
   [
    "Is the white stuff on the mountains thinning in the Alps?",
@@ -173,7 +173,7 @@
   [
    "Are the beaches in Florida getting more water from melting ice caps?",
    [
-    "NA:sea level"
+    "SEA_LEVEL"
    ]
   ],
   [
@@ -185,7 +185,7 @@
   [
    "Are the wells running dry in Punjab?",
    [
-    "NA:groundwater"
+    "GLDAS_TWS"
    ]
   ],
   [
@@ -203,13 +203,14 @@
   [
    "Is the ice in the Arctic Ocean shrinking?",
    [
-    "NA:sea ice"
+    "FRSEAICE"
    ]
   ],
   [
    "Is the frozen ground thawing in Siberia?",
    [
-    "NA:permafrost"
+    "TSOIL5",
+    "TSOIL1"
    ]
   ],
   [
@@ -418,7 +419,7 @@
   [
    "Are the coasts of Bangladesh being swallowed by the ocean?",
    [
-    "NA:sea level"
+    "SEA_LEVEL"
    ]
   ],
   [
@@ -430,7 +431,7 @@
   [
    "Is the aquifer under California depleted?",
    [
-    "NA:groundwater"
+    "GLDAS_TWS"
    ]
   ],
   [
@@ -448,7 +449,7 @@
   [
    "Are the ice fields of Patagonia retreating?",
    [
-    "NA:glacier"
+    "MERRA2_ICEMELT"
    ]
   ],
   [

@@ -94,8 +94,22 @@ function powerSeries(lat, lon) {
   return powerCache.get(key);
 }
 
+// Some measurements only exist in some kinds of places: sea ice on cold seas, snowfall where it
+// snows. A record that never changes (sea ice in the Sahara: 0 every month) means "doesn't occur
+// here", so it is dropped instead of being reported as "no trend".
+function dropAbsent(series) {
+  VARS.forEach((v) => {
+    const s = series[v.code];
+    if (!v.absent_if_constant || !s) return;
+    const values = s.values.filter((x) => x !== null);
+    if (values.every((x) => x === values[0])) series[v.code] = null;
+  });
+  return series;
+}
+
 // Run the trend analysis on every measurement's record
 function analyzeAll(series) {
+  dropAbsent(series);
   const results = {};
   VARS.forEach((v) => {
     results[v.code] = series[v.code] ? ByteMeStats.analyze(series[v.code].dates, series[v.code].values, v.percent) : null;
@@ -156,7 +170,7 @@ function loadPlace(lat, lon) {
     const job = Promise.all([powerSeries(lat, lon), grids]).then(([power, nasa]) => {
         const series = {};
         VARS.forEach((v) => { series[v.code] = (v.dataset === "nasa" ? nasa[v.code] : power[v.code]) || null; });
-        return { series, results: analyzeAll(series) };
+        return { series, results: analyzeAll(series), moved: nasa.moved || {} };
       });
     job.catch(() => placeCache.delete(key));   // a failed download can be tried again
     placeCache.set(key, job);
@@ -164,12 +178,19 @@ function loadPlace(lat, lon) {
   return placeCache.get(key);
 }
 
+// NASA POWER takes at most 20 measurements per request, so we ask in groups and join the answers.
+const POWER_LIMIT = 20;
 async function downloadPower(lat, lon, endYear) {
-  const url = `${POWER}?parameters=${POWER_VARS.map((v) => v.code).join(",")}&community=AG` +
-    `&longitude=${lon}&latitude=${lat}&start=${START_YEAR}&end=${endYear}&format=JSON`;
-  const reply = await fetch(url);
-  if (!reply.ok) throw new Error(`NASA POWER answered ${reply.status}`);
-  return (await reply.json()).properties.parameter;
+  const codes = POWER_VARS.map((v) => v.code), groups = [];
+  for (let i = 0; i < codes.length; i += POWER_LIMIT) groups.push(codes.slice(i, i + POWER_LIMIT));
+  const parts = await Promise.all(groups.map(async (group) => {
+    const url = `${POWER}?parameters=${group.join(",")}&community=AG` +
+      `&longitude=${lon}&latitude=${lat}&start=${START_YEAR}&end=${endYear}&format=JSON`;
+    const reply = await fetch(url);
+    if (!reply.ok) throw new Error(`NASA POWER answered ${reply.status}`);
+    return (await reply.json()).properties.parameter;
+  }));
+  return Object.assign({}, ...parts);
 }
 
 // POWER's {"198101": 1.2, ..., "198113": yearly mean} -> { dates, values } (null = missing month).
@@ -198,15 +219,48 @@ function nasaTile(code, name) {
 }
 async function loadNasaCell(lat, lon) {
   if (!NASA) return {};
-  const { tile, square } = ByteMeNasa.locate(lat, lon, NASA.tile);
   const out = {};
   await Promise.all(Object.entries(NASA.variables).map(async ([code, info]) => {
+    const { tile, square } = ByteMeNasa.locate(lat, lon, NASA.tile, info.step || 1);
     if (!info.tiles.includes(tile)) return;     // no data anywhere in this tile (e.g. land data over the ocean)
     const buffer = await nasaTile(code, tile);
     const series = buffer && ByteMeNasa.decode(buffer, square, info, NASA.missing);
     if (series) out[code] = series;
   }));
+  // Measurements of the sea (sea level) have no value in a square that is mostly land. For a
+  // coastal town we then use the nearest square that has one, and say so.
+  out.moved = {};
+  await Promise.all(VARS.filter((v) => v.nearest && NASA.variables[v.code] && !out[v.code]).map(async (v) => {
+    const found = await nearestSquare(v.code, lat, lon);
+    if (found) { out[v.code] = found.series; out.moved[v.code] = found; }
+  }));
   return out;
+}
+
+// The closest 1-degree square (at most 200 km away) where a measurement has data
+const COMPASS = ["north", "north-east", "east", "south-east", "south", "south-west", "west", "north-west"];
+async function nearestSquare(code, lat, lon) {
+  const info = NASA.variables[code], centre = { lat: Math.floor(lat) + 0.5, lon: Math.floor(lon) + 0.5 }, around = [];
+  for (let dy = -2; dy <= 2; dy++) for (let dx = -3; dx <= 3; dx++) {
+    const q = { lat: centre.lat + dy, lon: ((centre.lon + dx + 540) % 360) - 180 };
+    if ((dy || dx) && Math.abs(q.lat) < 90 && ByteMeSimilar.km(lat, lon, q.lat, q.lon) <= 200) around.push({ ...q, km: ByteMeSimilar.km(lat, lon, q.lat, q.lon), dy, dx });
+  }
+  around.sort((a, b) => a.km - b.km);
+  for (const q of around) {
+    const { tile, square } = ByteMeNasa.locate(q.lat, q.lon, NASA.tile, info.step || 1);
+    if (!info.tiles.includes(tile)) continue;
+    const buffer = await nasaTile(code, tile);
+    const series = buffer && ByteMeNasa.decode(buffer, square, info, NASA.missing);
+    if (!series) continue;
+    const angle = (Math.atan2(q.dx * Math.cos((lat * Math.PI) / 180), q.dy) * 180) / Math.PI;   // 0 = north, 90 = east
+    return { series, lat: q.lat, lon: q.lon, km: Math.round(q.km / 10) * 10, towards: COMPASS[Math.round(((angle + 360) % 360) / 45) % 8] };
+  }
+  return null;
+}
+// "this is the nearest sea square, about 80 km to the south-west"
+function movedText(v) {
+  const m = !state.area && state.place && state.place.moved && state.place.moved[v.code];
+  return m ? `${escapeHTML(state.name)} is on land, where ${lowerFirst(v.name)} isn't measured. These numbers are for the nearest square with data, about ${m.km} km to the ${m.towards}.` : "";
 }
 
 // ------------------------------------------------------------------ area averages (countries and regions)
@@ -271,7 +325,7 @@ function loadArea(area) {
         }
         const info = NASA.variables[v.code];
         const members = await Promise.all(squares.squares.map(async (q) => {
-          const { tile, square } = ByteMeNasa.locate(q.lat, q.lon, NASA.tile);
+          const { tile, square } = ByteMeNasa.locate(q.lat, q.lon, NASA.tile, info.step || 1);
           if (!info.tiles.includes(tile)) return null;
           const buffer = await nasaTile(v.code, tile);
           return { series: buffer && ByteMeNasa.decode(buffer, square, info, NASA.missing), lat: q.lat };
@@ -340,7 +394,7 @@ function explain(r, v, placeName) {
   const caveat = "A straight line simplifies a record that can rise and fall over time. " +
     "Identifying the cause requires a separate investigation.";
   const subject = `${v.name} in ${placeName}`;
-  if (!r) return { headline: `${subject} · No data here`, details: "NASA has no values for this measurement at this place (some are measured over land only).", caveat };
+  if (!r) return { headline: `${subject} · No data here`, details: v.where || "NASA has no values for this measurement at this place (some are measured over land only).", caveat };
   if (r.verdict === "insufficient") return { headline: `${subject} · Not enough usable data`, details: "This record has too little usable data to estimate a trend.", caveat };
   const label = r.verdict === "none" ? "No clear trend" : `${r.verdict === "significant" ? "Significant" : "Possible"} ${r.direction}`;
   const rate = `${num(r.slope_per_decade)} ${v.units} per decade`;
@@ -703,7 +757,7 @@ function renderScan() {
     <div class="scan">${rows.map(({ v, r }) => `
       <button class="row${v.code === state.code ? " on" : ""}" data-code="${v.code}" title="${escapeHTML(v.definition)}">
         ${dotHTML(r)}
-        <span class="what">${v.name}<small>${r ? (r.verdict === "none" ? "No clear trend yet" : r.verdict === "insufficient" ? "Not enough data" : verdictText(r) + confirmed(v)) : "No data here"}</small></span>
+        <span class="what">${v.name}<small>${r ? (r.verdict === "none" ? "No clear trend yet" : r.verdict === "insufficient" ? "Not enough data" : verdictText(r) + confirmed(v)) : (v.absent_if_constant || v.where ? "Not found here" : "No data here")}</small></span>
         <span class="rate">${r && r.slope_per_decade !== null ? `${num(r.slope_per_decade)} <small>${v.units} / decade</small>` : "–"}</span>
       </button>`).join("")}</div>`;
   el.querySelectorAll(".row").forEach((b) => b.addEventListener("click", () => selectVariable(b.dataset.code)));
@@ -711,6 +765,9 @@ function renderScan() {
 }
 
 // ------------------------------------------------------------------ the evidence for one measurement
+// Size in degrees of a satellite/model measurement's squares (1, or 2 for smooth upper-air fields)
+const squareStep = (v) => (NASA && NASA.variables[v.code] && NASA.variables[v.code].step) || 1;
+
 function renderDetail() {
   renderInvestigate();
   renderSimilar();
@@ -725,7 +782,7 @@ function renderDetail() {
   const text = explain(r, v, state.name);
   const nasaGrid = v.dataset === "nasa";
   const sourceLine = (nasaGrid ? `${v.source} · ${v.product} · monthly` : `${v.source} via NASA POWER · ${v.code} · monthly`) +
-    (state.area ? " · area average" : nasaGrid ? " · 1° square" : "");
+    (state.area ? " · area average" : nasaGrid ? ` · ${squareStep(v)}° square` : "");
   if (!r || r.verdict === "insufficient") {
     el.innerHTML = `<div class="detail-text"><span class="tag">${escapeHTML(state.name)} · ${v.name}</span>
       <p class="meta">${sourceLine}</p><h3>${escapeHTML(text.headline)}</h3>
@@ -741,6 +798,7 @@ function renderDetail() {
     const present = s.values.filter((x) => x !== null);
     if (present.reduce((sum, x) => sum + x, 0) / present.length < v.low_level) notes.unshift(`<div class="note warn"><b>Caution</b><span>${v.low_note}</span></div>`);
   }
+  if (movedText(v)) notes.unshift(`<div class="note"><b>Nearest sea</b><span>${movedText(v)}</span></div>`);
   if (state.period) {                         // a chosen period: keep the whole record in view
     const whole = state.full.results[v.code];
     const span = r.end && (+r.end.slice(0, 4)) - (+r.start.slice(0, 4)) + 1;
@@ -774,7 +832,7 @@ function renderDetail() {
         <li>${state.area
           ? `NASA ${nasaGrid ? `${v.source} (<code>${v.product}</code>)` : `POWER (<code>${v.code}</code>, from ${v.source})`} monthly values in ${v.units}, averaged over the area as described above.`
           : nasaGrid
-          ? `NASA ${v.source} monthly values (<code>${v.product}</code>, ${v.units}), averaged over the 1° square (about 110 km) that contains this place.`
+          ? `NASA ${v.source} monthly values (<code>${v.product}</code>, ${v.units}), averaged over the ${squareStep(v)}° square (about ${110 * squareStep(v)} km) that contains this place.`
           : `NASA POWER monthly values, parameter <code>${v.code}</code> (${v.units}), from ${v.source}, for the grid square centred on ${coordText(state.lat, state.lon)}.`}</li>
         <li>${r.start} to ${r.end} · ${r.n_months} months · ${r.n_missing} missing.</li>
         <li>${r.method}</li>
@@ -1279,7 +1337,8 @@ function seasonOnly(series, season, lat, v) {
 
 const lowerFirst = (s) => (/^[A-Z][a-z]/.test(s) ? s[0].toLowerCase() + s.slice(1) : s);
 function relatedChips(v) {
-  return (v.related || []).map(variable).filter(Boolean).map((x) => {
+  // related measurements that don't occur at this place (sea ice in Venice) are left out
+  return (v.related || []).map(variable).filter((x) => x && (state.place.results[x.code] || !(x.absent_if_constant || x.where))).map((x) => {
     const r = state.place.results[x.code];
     return `<button class="chip" data-code="${x.code}">${dotHTML(r)}${x.name}<small>${r ? verdictText(r) : "No data here"}</small></button>`;
   }).join("");
@@ -1299,6 +1358,7 @@ function renderAnswer() {
   if (q.byMeaning && v && !q.closestOnly) notes.push(`No keyword in your question matched a measurement, so we read it by meaning as <b>${escapeHTML(v.name)}</b> ` +
     `(closest description: “${escapeHTML(q.byMeaning.nearest)}”). Not what you meant? Pick another measurement above.`);
   if (q.missing && !q.closestOnly) notes.push(escapeHTML(q.missing.say));
+  if (v && movedText(v)) notes.push(movedText(v));
   if (q.asksWhy) notes.push("ByteMe shows what changed and how sure we are, not why: finding the cause needs a separate investigation.");
   if (state.area && state.place.info) notes.push(areaText(state.area, state.place.info));
   else if (q.feature && !["mount", "peak", "volcano", "waterfall"].includes(q.feature)) {
@@ -1325,15 +1385,15 @@ function renderAnswer() {
     const r = seasonal ? seasonal.result : state.place.results[v.code];
     const subject = `${seasonal ? q.season[0].toUpperCase() + q.season.slice(1) + " " + lowerFirst(v.name) : v.name} in ${escapeHTML(state.name)}`;
     let headline, detail = "";
-    if (!r) headline = `There's no ${lowerFirst(v.name)} data for this place.`;
+    if (!r) { headline = `There's no ${lowerFirst(v.name)} data for this place.`; if (v.where) detail = v.where; }
     else if (r.verdict === "insufficient") headline = `Not enough data yet to tell how ${lowerFirst(v.name)} is changing here.`;
     else {
       const dir = r.direction === "increase" ? 1 : -1, moving = dir > 0 ? "rising" : "falling";
       if (q.closestOnly) headline = `<b>We can't measure that.</b> ${escapeHTML(q.missing.say)}`;   // then the closest, below
-      else if (r.verdict === "significant" && q.intent === -dir) headline = `<b>No, the opposite.</b> ${subject} is ${moving}.`;
-      else if (r.verdict === "significant") headline = `<b>Yes.</b> ${subject} is ${moving}.`;
+      else if (r.verdict === "significant" && q.intent === -dir) headline = `<b>No, the opposite.</b> ${subject} ${v.plural ? "are" : "is"} ${moving}.`;
+      else if (r.verdict === "significant") headline = `<b>Yes.</b> ${subject} ${v.plural ? "are" : "is"} ${moving}.`;
       else if (r.verdict === "possible") headline = `<b>Maybe.</b> ${subject} may be ${moving}, but it isn't significant yet.`;
-      else headline = `<b>No clear change yet.</b> ${subject} shows no clear trend.`;
+      else headline = `<b>No clear change yet.</b> ${subject} ${v.plural ? "show" : "shows"} no clear trend.`;
       detail = `${num(r.slope_per_decade)} ${v.units} per decade since ${r.start.slice(0, 4)} ` +
         `(about ${num(r.total_change)} ${v.units}${r.percent_change !== null ? `, ${num(r.percent_change)}%` : ""} in total) · p-value ${pText(r.p_value)}`;
       if (q.closestOnly) {
@@ -1593,7 +1653,7 @@ async function renderPlanet(res, outcome) {
 
 // ------------------------------------------------------------------ places changing like this one
 // Nearest-neighbour search over trend fingerprints (similar.js): the five parts of the planet whose
-// 18 NASA POWER trends (1981 onwards, whole record) follow the closest pattern to this place's.
+// 18 core NASA POWER trends (the ones measured everywhere; 1981 onwards, whole record) follow the closest pattern to this place's.
 const VERDICT_NUMBER = { insufficient: 0, none: 1, possible: 2, significant: 3 };
 const similarCache = new Map(), similarNames = new Map();
 let similarShown = 0;   // which drawing of the panel is on screen (names arrive later)
@@ -1644,14 +1704,14 @@ function renderSimilar() {
   el.style.display = "flex";
   const head = `<span class="tag">Places changing like this one · ${escapeHTML(state.name)}</span><h3>Where else is the planet changing like this?</h3>`;
   if (!res || !res.matches.length) {
-    el.innerHTML = head + `<p class="muted">Too few of the 18 measurements have a trend here to compare this place with the rest of the planet.</p>`;
+    el.innerHTML = head + `<p class="muted">Too few of the 18 core measurements have a trend here to compare this place with the rest of the planet.</p>`;
     showSimilarOnMap(null);
     return;
   }
   const land = state.full.results.EVLAND && state.full.results.EVLAND.verdict !== "insufficient";
   const arrow = (t) => `${escapeHTML(variable(t.code).name)} ${t.sign > 0 ? "↑" : "↓"}`;
   el.innerHTML = head + `
-    <p class="muted">We compared how ${escapeHTML(state.name)}'s 18 NASA POWER measurements changed (${WORLD.start}–${WORLD.end}, whole record${state.period ? ", not just the chosen period" : ""})
+    <p class="muted">We compared how ${escapeHTML(state.name)}'s 18 core measurements (the ones NASA POWER has everywhere) changed (${WORLD.start}–${WORLD.end}, whole record${state.period ? ", not just the chosen period" : ""})
       with ${res.compared.toLocaleString("en")} ${land ? "land" : "ocean"} squares of 5° at least 1,500 km away. These follow the closest pattern of change.</p>
     <ol class="similar-list">${res.matches.map((m, i) => `
       <li><button class="similar-row" data-i="${i}">
