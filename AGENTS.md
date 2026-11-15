@@ -247,7 +247,7 @@ Non-significant ≠ "no change". Never state causes (Investigate grades how well
   Questions get a direct answer card (Yes / No, the opposite / Maybe / No clear change yet) that
   respects the direction asked and a named season. Countries and regions are **averaged over their
   outline** (`Website/area.js`: up to 16 NASA POWER points + every 1° satellite/model square, cos-latitude
-  weighted; check: `node Website/tests/test_area.js`).
+  weighting; rivers and other lines are averaged *along* their course; features found via Nominatim; check: `node Website/tests/test_area.js`).
 - ⏱️ **Time periods** (from `codex/trend-detective`, `Website/investigation.js`): From/To in Explore,
   periods in questions and links, whole-record result always shown next to a window.
 - ✂️ **Removed from the site** (team lead's decision): Compare, the Method section and the big footer;

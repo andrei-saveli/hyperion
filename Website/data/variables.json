@@ -434,7 +434,7 @@
    "source": "GLDAS Noah",
    "percent": true,
    "definition": "Water that drains off the land into streams and rivers, over the surface and underground, from NASA's GLDAS land model. Land only.",
-   "phrases": "overland flow, runs downhill, runs off, water draining, run off",
+   "phrases": "overland flow, runs downhill, runs off, water draining, run off, rivers carrying, carrying more water, carrying less water, water in rivers, river water",
    "keywords": "runoff drainage streamflow",
    "dataset": "nasa",
    "product": "GLDAS_NOAH025_M v2.1",
@@ -810,10 +810,10 @@
    "phrases": ""
   },
   {
-   "words": "river rivers discharge flood floods flooding",
+   "words": "discharge flood floods flooding",
    "say": "River flow and floods aren't in our data set; 'Runoff (GLDAS)' shows the water draining off the land.",
    "closest": "GLDAS_RUNOFF",
-   "phrases": "flow in the"
+   "phrases": "river flow, flow in the, flow of the, flows down the river, river discharge"
   },
   {
    "words": "yield yields harvest harvests millet wheat maize",
@@ -836,8 +836,8 @@
   {
    "words": "volume",
    "phrases": "water level, surface area, square kilometres, square kilometers, footprint, how high the reservoir",
-   "say": "Lake and reservoir size or water level aren't in our data set.",
-   "closest": "EVLAND"
+   "say": "Water levels and the size of lakes, rivers and reservoirs aren't in our data set. 'Runoff (GLDAS)' shows how much water drains off the land into rivers, and rain shows how much falls.",
+   "closest": "GLDAS_RUNOFF"
   },
   {
    "words": "chill",

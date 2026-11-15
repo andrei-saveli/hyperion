@@ -79,6 +79,19 @@ build_world.py (run once, Python, Task4/stats.py) ─► data/world.json ─► 
   the ideas tried, and never says "cause". Why not just compare trend directions: on our world grid,
   the placebo "warmer air → less ozone" matches as often as "warmer air → less snow" (see
   `docs/CAUSALITY_REVIEW.md`). Two unrelated trending series fail step 1 (tested).
+- **Geographic features** (rivers, lakes, seas, mountains, deserts, glaciers, islands, reefs…): when a
+  name comes with a feature word ("Volga River", "Lake Baikal", "Caspian Sea"), the search also asks
+  OpenStreetMap's main search (Nominatim, ranked by importance; at most one request per second,
+  answers remembered) and keeps only results of that kind, retrying with the bare name ("Volga")
+  when needed. Order: features with a real outline, then our region boxes, then features that are
+  only a point, then towns. Big features that cross borders show no country ("Danube").
+  - **Rivers and other lines are averaged along their course** (`area.js`): up to 16 points along
+    the line and the 1° squares it passes through. These describe the land and air along the river,
+    not its water.
+  - A feature without an outline uses the box around it (Caspian Sea) or one grid square (Rocky
+    Mountains), and the page says so.
+  - "Water level" questions get a plain note that water levels aren't in our data, with Runoff
+    (GLDAS) as the closest measurement.
 - **Direct answer:** a question gets an answer card right under the search box, for example
   "**Yes.** Air temperature in Romania is rising: +0.57 °C per decade since 1981". It checks the
   direction asked ("warmer", "drier", "cleaner"...) and answers *Yes*, *No, the opposite*, *Maybe*

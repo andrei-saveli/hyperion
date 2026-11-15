@@ -34,5 +34,13 @@ const three = average([{ series: a, lat: 0 }, { series: b, lat: 0 }, { series: {
 check(three.values[3] === null, "a month with fewer than half the members is missing");
 check(average([{ series: null, lat: 0 }]) === null, "no data gives null");
 
+// a river (a line): points along it, and the squares it passes through
+const river = { type: "MultiLineString", coordinates: [[[30, 50], [35, 50]], [[35, 50], [35, 55]]] };
+const along = samplePoints(river);
+check(along.length === MAX_POINTS, `16 points along a long river (got ${along.length})`);
+check(along.every((p) => (p.lat === 50 && p.lon >= 30 && p.lon <= 35) || (p.lon === 35 && p.lat >= 50 && p.lat <= 55)), "points lie on the river");
+const riverSquares = squaresInside(river);
+check(riverSquares.total >= 10 && riverSquares.total <= 11, `river passes through 10 one-degree squares, 11 if its end point sits on a square edge (got ${riverSquares.total})`);
+
 console.log(`area tests: ${failures} failures`);
 process.exit(failures ? 1 : 0);
