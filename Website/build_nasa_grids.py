@@ -388,7 +388,7 @@ def download(names, workers=8):
 if __name__ == "__main__":
     command = sys.argv[1] if len(sys.argv) > 1 else ""
     if command == "download":
-        download(sys.argv[2:] or list(DATASETS))
+        download(sys.argv[2:] or list(DATASETS), int(os.environ.get("WORKERS", 8)))   # WORKERS=12 for more parallel requests
     elif command == "build":
         from build_nasa_tiles import build   # second half: trends + website files
         build(sys.argv[2:])
