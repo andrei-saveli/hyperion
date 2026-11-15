@@ -1,5 +1,5 @@
 {
- "note": "Everyday questions and the measurement(s) that count as right. tuning: used while improving the search. heldout: written before changing it and never tuned on. Run: node Website/tests/test_search.js The questions about the 26 terrain-specific measurements (sea level, sea ice, snowfall, dust...) were added with them; their held-out half was written before any keyword was changed in response to it. Three of the new held-out questions were missed at first (48/52 with them); keywords were then added for them, so they were moved to tuning.",
+ "note": "Everyday questions and the measurement(s) that count as right. tuning: used while improving the search. heldout: written before changing it and never tuned on. Run: node Website/tests/test_search.js The questions about the 26 terrain-specific measurements (sea level, sea ice, snowfall, dust...) were added with them; their held-out half was written before any keyword was changed in response to it. Three of the new held-out questions were missed at first (48/52 with them); keywords were then added for them, so they were moved to tuning. The 22 pollution questions (fine particles, soot, SO2, formaldehyde...) were added with those measurements; the held-out half was written before any keyword was changed in response to it. Two of the pollution held-out questions were missed at first (8/10); keywords were then added for them, so they were moved to tuning.",
  "tuning": [
   [
    "Is Romania getting warmer?",
@@ -562,6 +562,91 @@
    [
     "ALLSKY_SRF_ALB"
    ]
+  ],
+  [
+   "Is PM2.5 falling in Beijing?",
+   [
+    "MERRA2_PM25"
+   ]
+  ],
+  [
+   "Is fine particulate matter rising in Delhi?",
+   [
+    "MERRA2_PM25"
+   ]
+  ],
+  [
+   "Is there less black carbon over Europe?",
+   [
+    "MERRA2_BC"
+   ]
+  ],
+  [
+   "Is diesel soot decreasing in London?",
+   [
+    "MERRA2_BC"
+   ]
+  ],
+  [
+   "Is crop burning smoke increasing in Punjab?",
+   [
+    "MERRA2_OC"
+   ]
+  ],
+  [
+   "Are sulfate particles at ground level falling in Germany?",
+   [
+    "MERRA2_SO4"
+   ]
+  ],
+  [
+   "Is fine dust rising in Cairo?",
+   [
+    "MERRA2_DUST25"
+   ]
+  ],
+  [
+   "Is sulfur dioxide at ground level dropping in the United States?",
+   [
+    "MERRA2_SO2"
+   ]
+  ],
+  [
+   "Is carbon monoxide at ground level falling in Mexico City?",
+   [
+    "MERRA2_CO"
+   ]
+  ],
+  [
+   "Is sulfur dioxide decreasing over China?",
+   [
+    "OMI_SO2",
+    "MERRA2_SO2"
+   ]
+  ],
+  [
+   "Is formaldehyde increasing over the Amazon?",
+   [
+    "OMI_HCHO"
+   ]
+  ],
+  [
+   "Is the aerosol index rising over Siberia?",
+   [
+    "OMI_UVAI"
+   ]
+  ],
+  [
+   "Has particulate pollution gone down in Poland?",
+   [
+    "MERRA2_PM25"
+   ]
+  ],
+  [
+   "Are volcanic gases increasing over Iceland?",
+   [
+    "OMI_SO2"
+   ]
   ]
  ],
  "heldout": [
@@ -868,6 +953,57 @@
    "Are wind storms stronger in Scotland?",
    [
     "WS10M_MAX"
+   ]
+  ],
+  [
+   "Is the air we breathe getting cleaner in Los Angeles?",
+   [
+    "MERRA2_PM25"
+   ]
+  ],
+  [
+   "Is there more soot in the air in Lagos?",
+   [
+    "MERRA2_BC"
+   ]
+  ],
+  [
+   "Is stubble burning getting worse in Haryana?",
+   [
+    "MERRA2_OC"
+   ]
+  ],
+  [
+   "Is SO2 from smelters falling in Norilsk?",
+   [
+    "OMI_SO2",
+    "MERRA2_SO2"
+   ]
+  ],
+  [
+   "Are VOCs rising over Houston?",
+   [
+    "OMI_HCHO"
+   ]
+  ],
+  [
+   "Is dusty air getting worse in Riyadh?",
+   [
+    "MERRA2_DUST25",
+    "MERRA2_DUST"
+   ]
+  ],
+  [
+   "Is there more smoke and dust seen from space over Australia?",
+   [
+    "OMI_UVAI"
+   ]
+  ],
+  [
+   "Are car fumes at street level decreasing in Paris?",
+   [
+    "MERRA2_CO",
+    "OMI_NO2"
    ]
   ]
  ]
