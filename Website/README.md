@@ -34,6 +34,17 @@ build_world.py (run once, Python, Task4/stats.py) ─► data/world.json ─► 
      ("Hoover Dam"), then the leftover words. Each is looked up in Photon (OpenStreetMap, good for
      lakes, dams, islands) and Open-Meteo (GeoNames, good for towns).
   "Why" questions get the reminder that we show what changed, not why.
+- **Countries and regions are averaged over their whole area** (`area.js`). The outline comes from
+  OpenStreetMap (Nominatim); well-known regions such as the Sahel or the Amazon use a box.
+  - NASA POWER: up to 16 evenly spaced points inside the outline (one request each).
+  - Satellite and model grids: every 1° square inside the outline. For the very largest countries
+    (Russia, Canada...) only the 24 tiles that cover most of them, to keep downloads reasonable.
+  - Each square counts in proportion to cos(latitude), because squares nearer the poles cover less
+    ground. A month needs data from at least half of the squares. The trend test then runs on the
+    averaged record, exactly as for one place.
+  - The map shows the outline, the panel says what the average is made of, and a button switches
+    to the single grid square at the centre. Links keep the area: `#area=R90689,T2M,Romania`.
+  - It takes about 5–10 seconds (Russia about 25). Compare also averages countries and regions.
 - **Direct answer:** a question gets an answer card right under the search box, for example
   "**Yes.** Air temperature in Romania is rising: +0.57 °C per decade since 1981". It checks the
   direction asked ("warmer", "drier", "cleaner"...) and answers *Yes*, *No, the opposite*, *Maybe*
@@ -113,12 +124,13 @@ much to the repository's history.
 | `app.js` | Live data download, search, map (MapLibre), charts (Plotly), compare |
 | `stats.js` | Trend and significance math (copy of `Task4/stats.py`) |
 | `nasa.js` | Reads one square's monthly series from a NASA tile file |
+| `area.js` | Area averages: squares inside a country's or region's outline, weighted average of their records |
 | `build_nasa_grids.py`, `build_nasa_tiles.py` | Download the NASA datasets to 1° grids; then trends, tiles and map layers (`data/nasa/`) |
 | `globe.js` | Hero art: rotating globe of teal "satellite pixels", demo cases in coral (decoration only) |
 | `data/variables.json` | The 26 measurements (18 NASA POWER + 8 satellite/model): code, name, units, definition, search words, second-source pairs |
 | `data/world.json` | World overview: trend of every measurement on a 5 degree grid (made by `build_world.py`) |
 | `build_world.py` | Rebuilds `data/world.json` with the Python trend code (about 25 minutes, can be stopped and restarted) |
-| `tests/` | `make_reference.py` + `test_stats.js` (website math = Python math); `test_nasa.js` + `nasa_reference.json` (tiles read back correctly) |
+| `tests/` | `make_reference.py` + `test_stats.js` (website math = Python math); `test_nasa.js` + `nasa_reference.json` (tiles read back correctly); `test_area.js` (outlines and area averages) |
 | `data/land.geojson` | World land outline (Natural Earth, public domain): the fallback map |
 | `vendor/maplibre-gl.css` | The map library's stylesheet (kept locally) |
 | `build_data.py`, `data/results.json` | The earlier version (3 Giovanni regions). No longer read by the page; kept for reference |
@@ -145,7 +157,7 @@ Upload the whole `Website/` folder to any static hosting: the free Space Apps do
 GitHub Pages, Netlify, etc.
 
 ## Notes
-- Needs internet: NASA POWER (the data), Photon, Open-Meteo, BigDataCloud and Nominatim (place names), OpenFreeMap
+- Needs internet: NASA POWER (the data), Photon, Open-Meteo, BigDataCloud and Nominatim (place names and outlines), OpenFreeMap
   (the detailed map), Google Fonts and jsDelivr (fonts and the two libraries). If the detailed map
   can't load, the built-in land outline is used instead.
 - Demo cases (chosen from real results): Svalbard air temperature (+0.69 °C per decade),
