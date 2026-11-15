@@ -17,9 +17,9 @@ directly from [NASA POWER](https://power.larc.nasa.gov/) and loads eight additio
 the site's bundled NASA grids. The website needs internet for live records, map services, and chart
 libraries.
 
-Choose **Start an experiment** to test whether London’s 2019 emissions zone contributed to a drop
-in roadside NO₂. Make a prediction, inspect the pre-policy comparison, and test whether the finding
-changes under different assumptions. The case uses published roadside study data.
+Choose **Start an experiment** to write a prediction and test it with NASA records or your own CSV.
+The builder supports dated events with a reference group and randomized treatment-and-control
+experiments. **Try the London example** walks through a published roadside NO₂ study.
 
 1. Search for a place, enter coordinates, or try `Is Svalbard getting warmer from 2001 to 2015?`.
    Search uses phrases, keywords, and place-name lookups.

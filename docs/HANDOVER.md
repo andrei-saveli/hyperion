@@ -37,6 +37,9 @@ with a Newey–West adjustment. The follow-up compares the latest 15 years with 
   and after intervention comparisons. `Website/workbench-view.js` renders Explore's workspace
   and exports the ledger. The workspace and Compare views publish into the
   same ledger when Compare was opened from an investigation.
+- `Website/study.js` validates user CSV records, reuses the matched intervention model,
+  and computes the two-group Welch interval. `Website/study-view.js` owns the experiment
+  form and run history. It gets NASA records from the same adapter that Compare uses.
 
 Use these checks after a website change.
 
@@ -52,6 +55,8 @@ window, then recheck the full shared record. Reopen a shared URL to check that i
 places, measurement, and selected months. In Explore, add a custom explanation and reopen its
 entry after changing the date selection. Open a dated comparison from that workspace and save
 it to the notes.
+In **Design your experiment**, try both CSV templates and a NASA comparison. Reopen a prior
+run and confirm the exported notes keep its original prediction and evidence.
 In the London experiment, make a prediction, inspect the held-out weeks, then run the comparison
 and toggle both sensitivity checks.
 

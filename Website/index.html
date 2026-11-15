@@ -16,7 +16,7 @@
 <header class="top">
   <a class="logo" href="#"><span class="mark">B/</span><span>ByteMe</span></a>
   <nav class="menu">
-    <a href="#experiment">Experiment</a><a href="#explore">Explore</a><a href="#compare">Compare</a><a href="#method">Method</a><a href="#about">About</a>
+    <a href="#study">Experiment</a><a href="#explore">Explore</a><a href="#compare">Compare</a><a href="#method">Method</a><a href="#about">About</a>
   </nav>
 </header>
 
@@ -26,8 +26,8 @@
     <span class="tag">Earth system trend detective</span>
     <h1>Is Earth changing where you look?</h1>
     <p class="lead">Make a prediction, compare it with observations, and test another explanation.
-      Try a real policy experiment or follow a lead in the NASA records for a place you choose.</p>
-    <a class="btn" href="#experiment"><span>Start an experiment</span><span class="arrow">↓</span></a>
+      Use NASA records, bring your own data, or try the guided London example.</p>
+    <a class="btn" href="#study"><span>Start an experiment</span><span class="arrow">↓</span></a>
   </div>
   <div class="globe-wrap">
     <canvas id="globe" aria-label="Rotating globe made of satellite pixels; the demo cases are highlighted"></canvas>
@@ -35,6 +35,60 @@
       <span class="tag">Try a case</span>
       <div id="cases"></div>
     </div>
+  </div>
+</section>
+
+<section id="study" aria-labelledby="study-title">
+  <div class="section-head">
+    <div><h2 id="study-title">Design your experiment</h2></div>
+    <a class="pill" href="#experiment">Try the London example</a>
+  </div>
+  <div class="box experiment-step workbench-form">
+    <form id="study-form">
+      <h3>Write a prediction</h3>
+      <label>Research question<input name="question" required maxlength="240" placeholder="Did a change in land use affect local temperature?"></label>
+      <div class="workbench-fields">
+        <label>Expected effect<select name="direction"><option value="1">Increase</option><option value="-1">Decrease</option></select></label>
+        <label>Smallest change that would matter<input name="magnitude" type="number" min="0" step="any" required placeholder="Enter 0 for any directional change" aria-describedby="study-units"></label>
+      </div>
+      <p class="meta" id="study-units">Enter the change in the outcome’s units.</p>
+      <h3>Choose a comparison</h3>
+      <label>Study design<select name="design">
+        <option value="nasa" disabled>Dated event with NASA records</option>
+        <option value="monthly" selected>Dated event with my monthly records</option>
+        <option value="randomized">Randomized treatment and control groups</option>
+      </select></label>
+      <div id="study-nasa" class="workbench-fields" hidden>
+        <label>Outcome<select id="study-measurement"></select></label>
+        <label>Affected place<span class="search"><input type="search" id="study-place-a" autocomplete="off"><span id="study-place-a-list" class="suggestions"></span></span></label>
+        <label>Reference place<span class="search"><input type="search" id="study-place-b" autocomplete="off"><span id="study-place-b-list" class="suggestions"></span></span></label>
+      </div>
+      <div id="study-upload">
+        <div class="workbench-fields">
+          <label>Outcome<input name="outcome" required maxlength="100" placeholder="Soil moisture"></label>
+          <label>Units<input name="units" maxlength="30" placeholder="Percent"></label>
+          <label>CSV file<input name="records" type="file" accept=".csv,text/csv" required aria-describedby="study-format"></label>
+        </div>
+        <p class="meta" id="study-format"></p>
+        <button class="pill" id="study-template" type="button">Download CSV template</button>
+      </div>
+      <div id="study-dates" class="workbench-fields">
+        <label>First month affected<input name="start" type="month" required placeholder="YYYY-MM"></label>
+        <label>Length of each window<select name="windowMonths">
+          <option value="12">1 year</option><option value="24">2 years</option><option value="36">3 years</option>
+        </select></label>
+      </div>
+      <p id="study-design-help"></p>
+      <label>Rival explanation or design concern<input name="rival" maxlength="240" placeholder="A nearby change could affect the reference place too"></label>
+      <div class="study-actions"><button class="pill on" type="submit">Run my experiment</button></div>
+      <p id="study-error" class="period-error" role="alert"></p>
+    </form>
+  </div>
+  <div id="study-result" aria-live="polite"></div>
+  <div class="box experiment-step" id="study-history" hidden>
+    <h3>Experiment runs</h3>
+    <ul id="study-run-list"></ul>
+    <button class="pill" id="study-download" type="button">Download experiment notes</button>
   </div>
 </section>
 
@@ -221,7 +275,8 @@
       <li><a href="https://aura.gsfc.nasa.gov/omi.html">OMI</a> · NO₂ · <a href="https://airs.jpl.nasa.gov/">AIRS</a> · air temperature</li>
       <li>Place names: <a href="https://photon.komoot.io/">Photon</a> (OpenStreetMap), <a href="https://open-meteo.com/en/docs/geocoding-api">Open-Meteo</a> (GeoNames), BigDataCloud</li></ul></div>
     <div><span class="tag">Explore</span><ul>
-      <li><a href="#experiment">Guided experiment</a></li><li><a href="#explore">Map and results</a></li><li><a href="#compare">Compare places</a></li>
+      <li><a href="#study">Design an experiment</a></li><li><a href="#experiment">London example</a></li>
+      <li><a href="#explore">Map and results</a></li><li><a href="#compare">Compare places</a></li>
       <li><a href="#method">Method</a></li><li><a href="https://github.com/andrei-saveli/hyperion">Source code</a></li></ul></div>
     <div><span class="tag">Note</span><p style="margin:0;font-size:14px">Monthly data from 1981 for NASA POWER measurements
       (sunlight and clouds from 1984, haze from 2001) and from 1998–2004 for the satellite and land-model records
@@ -240,6 +295,8 @@
 <script src="experiments.js"></script>
 <script src="workbench.js"></script>
 <script src="workbench-view.js"></script>
+<script src="study.js"></script>
+<script src="study-view.js"></script>
 <script src="app.js"></script>
 <script src="london-case.js"></script>
 <script src="globe.js"></script>

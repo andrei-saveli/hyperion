@@ -89,6 +89,25 @@ The suggested soil-wetness rival checks precipitation minus evaporation against 
 wetness on the three-way overlap. Runoff, irrigation, and water storage remain possible
 explanations.
 
+## Run your own experiment
+
+Open **Design your experiment** from the home page or bring the selected NASA observation in
+from Explore's investigation workspace. Write a research question, specify the
+direction and smallest meaningful difference in the outcome's units, and record a rival
+explanation or design concern.
+
+| Design | Data | How to read the result |
+|---|---|---|
+| Dated event with NASA records | Choose a NASA measurement and two places. Use the first affected month and an unaffected reference. | The builder compares the change in the affected-minus-reference gap to the predicted change. An earlier simulated event checks whether the groups already diverged, and other available window lengths show sensitivity. |
+| Dated event with your monthly records | CSV with `month,affected,reference`. Use one row per `YYYY-MM` and the same measurement and units in both groups. | Uses the same three matched windows as the NASA design. A causal interpretation depends on whether the reference approximates what would otherwise have happened. |
+| Randomized treatment and control | CSV with `unit,group,outcome`. Use a unique identifier per independent, randomly assigned unit, with `treatment` or `control` as the assigned group. | Reports the difference in group means and an approximate 95% Welch interval. It compares the interval to the prespecified change and leaves the prediction open if any provided units are missing outcomes. |
+
+Download a CSV template from the form. Column order can vary and extra columns are ignored.
+Leave missing observations blank. ByteMe reads CSV files in the browser. The run history and
+notes record results, design choices, and proposed rivals. Download the notes before reloading
+the page. Free-text explanations are recorded for follow-up. The builder runs the numerical
+checks implied by the selected design.
+
 ## Guided London case
 
 **London NO₂.** The case tests whether central London’s Ultra Low Emission Zone, launched on
@@ -179,6 +198,7 @@ much to the repository's history.
 | `experiments.js` | Related-measurement predictions and London gap and sensitivity calculations |
 | `workbench.js` | Investigation ledger, lagged residual association, and matched intervention windows |
 | `workbench-view.js` | Explore workspace, reviewable evidence map, and notes export |
+| `study.js`, `study-view.js` | User-defined experiment analysis, local CSV input, and the experiment builder |
 | `london-case.js`, `build_london_case.py` | London experiment view and reproducible preprocessing of the fitted comparison |
 | `nasa.js` | Reads one square's monthly series from a NASA tile file |
 | `build_nasa_grids.py`, `build_nasa_tiles.py` | Download the NASA datasets to 1° grids; then trends, tiles and map layers (`data/nasa/`) |

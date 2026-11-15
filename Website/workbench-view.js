@@ -39,6 +39,7 @@ function renderFollowUps(measurement) {
       <h4>Next step</h4>
       ${workbenchNext(untested, active, rival)}
       <button type="button" class="pill" data-study-event>Study a dated event</button>
+      <button type="button" class="pill" data-open-builder>Design an experiment</button>
     </div>`;
 
   function showResult() {
@@ -77,6 +78,7 @@ function renderFollowUps(measurement) {
     useExploreInCompare(true);
     $("dated-intervention").open = true;
   });
+  panel.querySelector("[data-open-builder]").addEventListener("click", () => ByteMeStudyView.useObservation(state));
   if (active) renderLeadEvidence(panel.querySelector(".lead-evidence"), active, rival, showResult);
 }
 

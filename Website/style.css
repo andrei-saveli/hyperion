@@ -253,6 +253,13 @@ select {
 .workbench-next { border-top: 1px solid var(--line); padding-top: 14px; }
 .workbench-next p { margin: 6px 0 10px; }
 #dated-intervention { padding: 14px 18px; }
+#study [hidden] { display: none; }
+#study .search { display: block; width: 100%; }
+#study .search input { box-sizing: border-box; }
+#study-form h3:not(:first-child), .study-actions { margin-top: 18px; }
+#study-form .period-error:empty { display: none; }
+#study-result, #study-history { overflow-wrap: anywhere; }
+#study-run-list { display: grid; gap: 6px; padding: 0; list-style: none; }
 .lead-rival { padding: 12px 16px; margin: 14px 0; border: 1px solid var(--line); border-radius: var(--radius); }
 .lead-rival p { margin: 8px 0; }
 .lead-charts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }

@@ -283,13 +283,17 @@ Promise.all([
   const linkedComparison = readCompareLink();
   if (linkedComparison) Object.assign(compare, linkedComparison);
   buildCompare(catalogue.groups);
+  ByteMeStudyView.enableNASA({
+    options: optionsHTML(catalogue.groups),
+    placePicker, measurement: variable, series: comparisonSeries, cell: comparisonCell,
+  });
   const fromLink = readHash();
-  const openExperiment = location.hash === "#experiment";
+  const experimentSection = ["#study", "#experiment"].includes(location.hash) ? location.hash.slice(1) : null;
   const first = fromLink || CASES[0];
   if (fromLink) state.code = fromLink.code;
   selectPlace(first.lat, first.lon, first.name, first.code, true, first.period || null);
   if (linkedComparison) $("compare").scrollIntoView();
-  else if (openExperiment) $("experiment").scrollIntoView();
+  else if (experimentSection) $(experimentSection).scrollIntoView();
 });
 
 // Preserve old place links and append an optional analysis period.
@@ -900,7 +904,7 @@ function placePicker(input, list, onPick, withQuestions) {
     if (q?.period) hits = hits.map((hit) => ({ ...hit, period: q.period }));
     const notesHTML = notes.join("");
     show(hits.length
-      ? notesHTML + hits.map((h, i) => `<button data-i="${i}">${escapeHTML(h.name || h.label)}<span class="why">${h.variable ? h.variable.name + " · " : ""}${coordText(h.lat, h.lon)}${h.period ? " · " + escapeHTML([h.period.from || "Record start", h.period.to || "Record end"].join(" to ")) : ""}</span></button>`).join("")
+      ? notesHTML + hits.map((h, i) => `<button type="button" data-i="${i}">${escapeHTML(h.name || h.label)}<span class="why">${h.variable ? h.variable.name + " · " : ""}${coordText(h.lat, h.lon)}${h.period ? " · " + escapeHTML([h.period.from || "Record start", h.period.to || "Record end"].join(" to ")) : ""}</span></button>`).join("")
       : notesHTML + `<button disabled>No place found. Try a city, country or region, or click the map<span class="why">Examples: Bucharest · Sahel · Great Barrier Reef · 44.4, 26.1</span></button>`);
     list.querySelectorAll("[data-i]").forEach((b) => b.addEventListener("click", () => { hide(); onPick(hits[+b.dataset.i]); }));
   };
@@ -908,7 +912,11 @@ function placePicker(input, list, onPick, withQuestions) {
   input.addEventListener("focus", () => { if (input.value.trim()) run(); });
   input.addEventListener("keydown", (e) => {
     if (e.key === "Escape") hide();
-    if (e.key === "Enter") { const first = list.querySelector("[data-i]"); if (first) first.click(); else { clearTimeout(timer); run(); } }
+    if (e.key === "Enter") {
+      e.preventDefault();
+      const first = list.style.display === "block" && list.querySelector("[data-i]");
+      if (first) first.click(); else { clearTimeout(timer); run(); }
+    }
   });
   document.addEventListener("click", (e) => { if (e.target !== input && !list.contains(e.target)) hide(); });
 }
