@@ -12,6 +12,9 @@
 // If the files are missing, the search simply works with its rules alone.
 const ByteMeMeaning = (function () {
   const MODEL = "all-MiniLM-L6-v2";
+  // Bump when the pinned model, precision or pooling changes.
+  const INDEX_VERSION = "all-MiniLM-L6-v2:751bff3:q8:mean:l2:1";
+  const DIMENSIONS = 384;
   // Decision thresholds, chosen on the tuning questions in tests/meaning_questions.json and checked
   // on the held-out ones (node Website/tests/test_meaning.js). A question is matched only when the best
   // measurement is close enough (ACCEPT) and clearly closer than any unrelated one (MARGIN).
@@ -65,14 +68,32 @@ const ByteMeMeaning = (function () {
     return docs;
   }
 
-  // Build (once) the vectors of all the topic texts
+  // Used by scripts/build_meaning_index.js with the same browser pipeline as search.
+  async function buildIndex(vars, notAvailable) {
+    const texts = documents(vars, notAvailable).map((d) => d.text);
+    const vectors = await embed(texts);
+    if (!vectors) throw new Error("Search model could not be loaded");
+    return { version: INDEX_VERSION, texts, vectors };
+  }
+
+  // Load the bundled vectors once. Check the text order against the live catalog.
   async function prepare(vars, notAvailable) {
     if (!index) {
       index = (async () => {
         const docs = documents(vars, notAvailable);
-        const vectors = await embed(docs.map((d) => d.text));
-        return vectors ? docs.map((d, i) => ({ ...d, vector: vectors[i] })) : null;
-      })();
+        const response = await fetch(new URL("models/meaning-index.json", document.baseURI));
+        if (!response.ok) throw new Error(`Search index returned ${response.status}`);
+        const { version, texts, vectors } = await response.json();
+        const offsets = new Map(texts.map((text, i) => [text, i * DIMENSIONS]));
+        if (version !== INDEX_VERSION || docs.some((d) => !offsets.has(d.text))) throw new Error("Search index is out of date");
+        const bytes = Uint8Array.from(atob(vectors), (c) => c.charCodeAt(0));
+        if (bytes.byteLength !== texts.length * DIMENSIONS * 4) throw new Error("Search index has the wrong size");
+        const values = new Float32Array(bytes.buffer);
+        return docs.map((d) => {
+          const start = offsets.get(d.text);
+          return { ...d, vector: values.subarray(start, start + DIMENSIONS) };
+        });
+      })().catch((e) => { console.warn("Search index unavailable:", e.message); return null; });
     }
     return index;
   }
@@ -95,18 +116,20 @@ const ByteMeMeaning = (function () {
   // The question (place names already removed) -> { accepted, topic, score, margin, nearest, ranked }
   // or null when the model isn't available. Only an accepted match should be used.
   async function match(question, vars, notAvailable) {
-    const docs = await prepare(vars, notAvailable);
-    if (!docs || !question.trim()) return null;
-    const [q] = await embed([question]);
+    if (!question.trim()) return null;
+    const [docs, vectors] = await Promise.all([prepare(vars, notAvailable), embed([question])])
+      .catch((e) => { console.warn("Search by meaning failed:", e.message); return [null, null]; });
+    if (!docs || !vectors) return null;
+    const [q] = vectors;
     const ranked = rank(docs, q);
     const top = ranked[0];
     const rival = ranked.find((r) => !related(r.topic, top.topic));
     const margin = top.score - (rival ? rival.score : 0);
     const accepted = top.score >= ACCEPT && margin >= MARGIN;
-    return { accepted, topic: top.topic, score: top.score, margin, nearest: top.text, ranked: ranked.slice(0, 5) };
+    return { accepted, topic: top.topic, score: top.score, margin, nearest: top.text, ranked };
   }
 
-  return { load, match, ACCEPT, MARGIN };
+  return { load, match, buildIndex, ACCEPT, MARGIN };
 })();
 
 if (typeof module !== "undefined") module.exports = ByteMeMeaning;

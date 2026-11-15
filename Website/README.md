@@ -24,7 +24,7 @@ build_world.py (run once, Python, Task4/stats.py) ─► data/world.json ─► 
   (`Task4/stats.py`). `tests/test_stats.js` checks that both give the same numbers on 105 real
   series. If you change one, change the other and re-run the test.
 - **Search:** understands a place ("Bucharest"), a question ("is Romania getting warmer?"), a
-  famous region ("Sahel") or coordinates ("44.4, 26.1"). Simple rules, no AI:
+  famous region ("Sahel") or coordinates ("44.4, 26.1"). Clear matches use keyword rules:
   1. *Measurement:* each measurement in `data/variables.json` has `phrases` (several words, 6 points),
      `keywords` (3), optional `weak` words (2) and the words of its name (2). Words match by their
      stem (warmer = warming = warm, hazier = haze). Where phrases overlap, the longest wins ("land
@@ -36,9 +36,10 @@ build_world.py (run once, Python, Task4/stats.py) ─► data/world.json ─► 
   2. *Things we don't have* (NO₂, river flow, crop yield, forecasts, hourly data...) are listed in
      `not_available`: the search says so plainly and offers the closest measurement we do have.
      Years before 1981 or after the last complete year get the same kind of note.
-  3. *Place:* well-known regions first ("Sahel"), then names written with capital letters
-     ("Hoover Dam"), then the leftover words. Each is looked up in Photon (OpenStreetMap, good for
-     lakes, dams, islands) and Open-Meteo (GeoNames, good for towns).
+  3. *Place:* extract geographic names before scoring them as measurement words. Coordinates use
+     a direct path. Place spans can be lowercase ("black sea") or include a qualifier ("Paris,
+     Texas"). Well-known regions, capitalized names and leftover words also provide candidates.
+     Photon (OpenStreetMap) and Open-Meteo (GeoNames) resolve the candidates.
   "Why" questions get the reminder that we show what changed, not why.
 - **Countries and regions are averaged over their whole area** (`area.js`). The outline comes from
   OpenStreetMap (Nominatim); well-known regions such as the Sahel or the Amazon use a box.
@@ -121,27 +122,35 @@ build_world.py (run once, Python, Task4/stats.py) ─► data/world.json ─► 
   (Re-run after adding the 8 satellite/model measurements; greenness, NO₂ and runoff questions now
   count as answerable.) Most misses are riddle-style places ("Niger's capital", "the Nevada reservoir"). Questions that
   ask for several measurements get one suggestion; the "What is changing here" list shows the rest.
-- **Search by meaning (local language model):** when no keyword matches ("Is the white stuff on
-  the mountains thinning in the Alps?"), the browser compares the question with each measurement's
-  name, definition and everyday `examples` (in `variables.json`) using a small sentence transformer,
-  all-MiniLM-L6-v2 (the same model as the team's Searchlight, in its in-browser ONNX version), in
-  `meaning.js`. It runs on the visitor's own computer: no account, no key, nothing sent anywhere,
-  and it never produces numbers, it only picks the measurement (or a "we don't have that" note).
-  It answers only when the best match is close enough (similarity ≥ 0.42) and clearly ahead of any
-  unrelated measurement (margin ≥ 0.03), and the answer card says that the question was read by
-  meaning and which description matched. Thresholds and examples were chosen on the tuning half of
-  `tests/meaning_questions.json` and checked once on the held-out half (agent-written questions):
+- **Search by meaning (local language model):** weak, close and missing keyword matches also use
+  all-MiniLM-L6-v2, a sentence transformer that runs on the visitor’s computer. The model loads
+  on demand. The browser embeds the question and compares it with precomputed catalog vectors.
+  When the best semantic match scores at least 0.42 and leads the nearest unrelated topic by at
+  least 0.03, the search combines semantic and keyword ranks, giving weak keyword hits less weight.
+  The answer card names the matching description. If the index or model fails, the search can
+  still use keyword rules and place lookup. Place lookup starts while semantic matching runs.
+  The model selects a measurement or an unavailable topic. NASA records supply the numbers.
+- **Rebuild the meaning index** after changing names, definitions, or examples. With Playwright
+  and Chromium installed, run from the repository root:
 
-  | Question set | Answerable questions the keyword rules miss | Read right by meaning | Wrong | Off-topic questions given a measurement |
-  |---|---|---|---|---|
-  | tuning | 20 | 12 | 2 | 0/8 |
-  | held out | 13 | 8 | 0 | 0/8 |
+  ~~~sh
+  python3 Website/get_search_model.py
+  node Website/scripts/build_meaning_index.js
+  node Website/tests/test_meaning.js
+  ~~~
 
-  The keyword results above are unchanged (the model is only asked when the rules find nothing).
-  It doesn't help with riddle-style places: a sentence model compares meanings, it doesn't know
-  facts. The model files (about 46 MB, pinned versions, SHA-256 checked) come from
-  `python3 Website/get_search_model.py` and are committed; without them the search works with its
-  rules alone. The model loads when the visitor first clicks the search box (about 2 seconds).
+  The benchmark uses the original search revision in Git history. It compares the original
+  fallback, gated ranking, and ranking on every eligible query. Keep the generated
+  models/meaning-index.json and pinned model together. For an installed Chrome browser,
+  playwright-core also works when CHROME_PATH points to the Chrome executable.
+  The browser benchmark combines the two existing held-out question sets. All three strategies
+  abstained on all eight off-topic queries. The place checks use simulated geocoder responses.
+
+  | Strategy | Correct (62 answerable) | Wrong | Abstained | Semantic attempts (70 total) |
+  |---|---:|---:|---:|---:|
+  | Original fallback | 52 | 5 | 5 | 21 |
+  | Gated fusion | 52 | 5 | 5 | 33 |
+  | Always-on fusion | 53 | 4 | 5 | 68 |
 - **Places changing like this one:** below Investigate, the five parts of the planet whose trends
   follow the closest pattern to the chosen place (nearest-neighbour search, `similar.js`). Each 5°
   square of `data/world.json` has a "fingerprint": its 18 NASA POWER trends, each compared with the

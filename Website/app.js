@@ -886,19 +886,71 @@ const REGIONS = [
 ];
 const regionHit = ([key, name, lat, lon, box]) => ({ name, lat, lon, box, regionKey: key, kind: box ? "large" : "region" });
 
+function coordinatesIn(text) {
+  const pair = text.match(/^\s*(-?\d+(?:\.\d+)?)[\s,;]+(-?\d+(?:\.\d+)?)\s*$/);
+  if (!pair || Math.abs(+pair[1]) > 90 || Math.abs(+pair[2]) > 180) return null;
+  const lat = +pair[1], lon = +pair[2];
+  return { name: null, label: coordText(lat, lon), lat, lon };
+}
+
+// Keep full names, including a qualifier after a comma, before removing measurement words.
+function placeHints(text) {
+  const hints = [];
+  const isTopic = (key) => VARS.some((v) => TEXT(v.name).trim() === key ||
+    listOf(v.phrases).includes(key) || words(v.keywords).includes(key)) ||
+    NOT_AVAILABLE.some((n) => [...listOf(n.phrases), ...words(n.words)].some((p) =>
+      p.replace(/^(?:in|near|around|across|over|throughout|at|along)\s+(?:the\s+)?/, "") === key));
+  const add = (name) => {
+    const key = TEXT(name).trim();
+    if (key && !isTopic(key) && !hints.some((h) => TEXT(h).trim() === key)) hints.push(name);
+  };
+  const region = REGIONS.find(([key]) => TEXT(text).trim() === key);
+  if (region) return [region[0]];
+  const featureName = (name) => {
+    const parts = words(name);
+    return parts.length > 1 && !FILLER.has(parts[0]) &&
+      (featureWordOf(parts[0]) || featureWordOf(parts.at(-1)));
+  };
+  const location = /\b(?:in|near|around|across|over|throughout|at|along)\s+([\p{L}][\p{L}\p{M} ,.'’–-]*?)(?=[?!]|\b(?:in|near|around|since|from|during|between|last|over|after|before|getting|is|are|has|have|with|compared|and|summer|winter|spring|autumn)\b|\d|$)/giu;
+  for (const [, span] of text.matchAll(location)) {
+    const name = span.trim().replace(/^the\s+/i, "").replace(/[,.]+$/, "").trim();
+    const parts = words(name);
+    if (!parts.length || parts.length > 6 || FILLER.has(parts[0])) continue;
+    const key = TEXT(name).trim();
+    const known = REGIONS.some(([alias]) => alias === key) || featureName(name);
+    if (known || !parts.some((p) => FILLER.has(p) && !["of", "de", "del", "la", "the"].includes(p))) add(name);
+  }
+  if (/^[\p{L}\p{M} ,.'’–-]+$/u.test(text) && words(text).length <= 6 && featureName(text)) add(text);
+  const qualified = text.split(",").map((part) => part.trim());
+  if (qualified.length === 2 && qualified.every((part) => /^[\p{L}\p{M}.'’ –-]+$/u.test(part) &&
+    words(part).length && words(part).length <= 3 && !isTopic(TEXT(part).trim()) &&
+    !words(part).some((word) => FILLER.has(word)))) add(text);
+  return hints;
+}
+
+function maskPlaces(source, hints) {
+  return hints.reduce((masked, hint) => {
+    const name = TEXT(hint).trim();
+    return masked.split(" " + name + " ").join(" ".repeat(name.length + 2));
+  }, source);
+}
+
 // Read a question: which measurement, what we don't have, which words might name a place
 function understand(text) {
   text = text.replace(/(\p{Ll})(\p{Lu})/gu, "$1 $2");   // "BlackSea" -> "Black Sea"
   const t = TEXT(text);
-  let rest = t;                                  // the question minus the words we have explained
+  const directPlace = coordinatesIn(text);
+  const hints = placeHints(text);
+  const topicText = maskPlaces(t, hints);
+  let rest = topicText;                          // the question minus the words we have explained
   const take = (piece) => { rest = rest.split(` ${piece} `).join("  "); };
-  const tokens = words(text);
+  const tokens = words(topicText);
 
   // 0) things we don't have ("sea ice", "floods"): found first, and their words are set aside so
   //    they can't pull the search towards a measurement ("sea" -> sea surface temperature)
-  let missing = null, scoreText = t;
+  let missing = null, scoreText = topicText;
   for (const n of NOT_AVAILABLE) {
-    const phrase = listOf(n.phrases).find((p) => t.includes(` ${p} `));
+    const phrase = listOf(n.phrases).find((p) => topicText.includes(" " + p + " "));
     const word = tokens.find((tok) => words(n.words).includes(tok));
     if (phrase || word) {
       missing = n;
@@ -931,13 +983,13 @@ function understand(text) {
     const scores = VARS.map(() => 0), covered = [], familyCredit = VARS.map(() => 0);
     hits.forEach((h) => {
       if (covered.some(([s0, e0]) => h.start < e0 && s0 < h.end)) return;   // a longer phrase already covers these words
-      covered.push([h.start, h.end]); scores[h.i] += 6; h.p.split(" ").forEach(take);
+      covered.push([h.start, h.end]); scores[h.i] += 6; h.p.split(" ").forEach(mark);
       const fam = VARS[h.i].family;               // the family's other members may get part of the credit (below)
       if (fam) VARS.forEach((v, j) => { if (j !== h.i && v.family === fam) familyCredit[j] = Math.max(familyCredit[j], 4); });
     });
     let free = source;
     covered.forEach(([s0, e0]) => { free = free.slice(0, s0) + " ".repeat(e0 - s0) + free.slice(e0); });
-    const freeWords = words(free);
+    const freeWords = [...new Set(words(free))];
     VARS.forEach((v, i) => {
       const keys = words(v.keywords), weak = words(v.weak || ""), name = words(v.name).filter((w) => !FILLER.has(w));
       const family = v.family && FAMILIES[v.family] && FAMILIES[v.family].head !== v.code ? words(FAMILIES[v.family].words) : [];
@@ -957,8 +1009,9 @@ function understand(text) {
     return scores;
   };
   const scores = scoresOf(scoreText, true);
-  const best = Math.max(...scores);
-  let variable = best > 0 ? VARS[scores.indexOf(best)] : null;
+  const lexical = VARS.map((v, i) => ({ code: v.code, score: scores[i] }))
+    .filter((v) => v.score > 0).sort((a, b) => b.score - a.score);
+  let variable = lexical.length ? VARS.find((v) => v.code === lexical[0].code) : null;
   // The question asked for something we don't have ("sea level"). Did it also ask for one of our
   // measurements, or was that only suggested by a word of the place name ("sea" in "Black Sea")?
   let closestOnly = false;
@@ -977,10 +1030,13 @@ function understand(text) {
 
   // 3) place: names with capital letters first ("Hoover Dam", found above), then the leftover words
   const leftover = words(rest).filter((w) => !FILLER.has(w) && !/^\d/.test(w)).map((w) => w.replace(/'s$/, ""));
+  const candidates = [...hints, ...capitals, leftover.join(" ")].filter(Boolean);
   return {
-    variable, missing, closestOnly, period: periodInQuestion(text),
-    placeCandidates: [...new Set([...capitals, leftover.join(" ")])].filter(Boolean),
-    namedPlaces: capitals,                       // names written with capital letters ("Lake Mead")
+    variable, missing, closestOnly, lexical, period: periodInQuestion(text), directPlace,
+    placeOnly: !!directPlace || hints.some((hint) => TEXT(hint) === t),
+    explicitMeasurement: !!variable && scoreText.includes(TEXT(variable.name)),
+    placeCandidates: candidates.filter((c, i) => candidates.findIndex((p) => TEXT(p) === TEXT(c)) === i),
+    namedPlaces: [...hints, ...capitals],
     leftoverWords: leftover,
     asksWhy: tokens.includes("why") || tokens.includes("because") || tokens.includes("cause") || tokens.includes("causes"),
   };
@@ -1127,10 +1183,8 @@ const samePlace = (p, q) => p.name.split(",")[0] === q.name.split(",")[0] && Mat
 
 // Find places by name: "lat, lon" typed directly, our short list of famous regions, then the geocoders
 async function findPlaces(text) {
-  const direct = text.match(/^\s*(-?\d+(?:\.\d+)?)[\s,;]+(-?\d+(?:\.\d+)?)\s*$/);
-  if (direct && Math.abs(+direct[1]) <= 90 && Math.abs(+direct[2]) <= 180) {
-    return [{ name: null, label: coordText(+direct[1], +direct[2]), lat: +direct[1], lon: +direct[2] }];   // name is looked up after picking
-  }
+  const direct = coordinatesIn(text);
+  if (direct) return [direct];
   // order: features with a real outline ("Volga River", "Lake Baikal"), then our region boxes
   // ("Gobi"), then features that are only a point, then towns and other places
   let features = await findFeatures(text);
@@ -1146,6 +1200,7 @@ async function findPlaces(text) {
 
 // Places for a whole question: famous regions in it, then each candidate name, then single words
 async function placesForQuestion(question, q) {
+  if (q.directPlace) return [q.directPlace];
   const regions = REGIONS.filter(([key]) => TEXT(question).includes(` ${key}`)).map(regionHit);
   // a named feature that isn't one of our regions ("Amazon River" is not the Amazon rainforest;
   // "Lake Mead" is our Lake Mead)
@@ -1173,20 +1228,22 @@ function placePicker(input, list, onPick, withQuestions) {
     const text = input.value.trim(), mine = ++ticket;
     if (!text) { hide(); return; }
     const q = withQuestions ? understand(text) : null;
-    if (q && !q.variable && !q.missing) {        // no keyword matched: try reading the question by meaning
+    const hasLocation = q && (q.directPlace || q.placeCandidates.length || q.leftoverWords.length);
+    const placesJob = q ? (hasLocation ? placesForQuestion(text, q) : null) : findPlaces(text);
+    if (q && needsMeaning(q)) {
       show(`<button disabled>Reading your question…</button>`);
       await readByMeaning(q, text);
       if (mine !== ticket) return;               // the visitor kept typing
     }
     const notes = [];
-    if (q && q.byMeaning && !q.closestOnly) notes.push(`<button disabled>Read by meaning as “${escapeHTML(q.variable.name)}”<span class="why">No keyword matched · closest description: “${escapeHTML(q.byMeaning.nearest)}”</span></button>`);
+    if (q && q.byMeaning && !q.closestOnly) notes.push(`<button disabled>${q.byMeaning.hybrid ? "Matched using keywords and meaning" : "Read by meaning"} as “${escapeHTML(q.variable.name)}”<span class="why">Closest description: “${escapeHTML(q.byMeaning.nearest)}”</span></button>`);
     if (q && q.missing) notes.push(`<button disabled>${escapeHTML(q.missing.say)}<span class="why">${q.variable ? "Closest we have: " + q.variable.name : "Try another measurement"}</span></button>`);
     if (q && q.asksWhy) notes.push(`<button disabled>ByteMe shows what changed and how sure we are, not why.<span class="why">Finding the cause needs a separate investigation</span></button>`);
-    if (q && !q.placeCandidates.length && !q.leftoverWords.length) {   // a question about a measurement only: answer it for the place on the map
+    if (!placesJob) {   // a question about a measurement only: use the place on the map
       hits = q.variable ? [{ name: state.name, lat: state.lat, lon: state.lon, variable: q.variable }] : [];
     } else {
       show(`<button disabled>Searching places…</button>`);
-      const places = q ? await placesForQuestion(text, q) : await findPlaces(text);
+      const places = await placesJob;
       if (mine !== ticket) return;   // the visitor kept typing
       hits = places.map((p) => ({ ...p, variable: q ? q.variable : null }));
     }
@@ -1197,7 +1254,13 @@ function placePicker(input, list, onPick, withQuestions) {
     list.querySelectorAll("[data-i]").forEach((b) => b.addEventListener("click", () => { hide(); onPick(hits[+b.dataset.i], text, q); }));
     if (enterPressed && hits.length) { enterPressed = false; list.querySelector("[data-i]").click(); }   // Enter was pressed while we searched
   };
-  input.addEventListener("input", () => { enterPressed = false; clearTimeout(timer); timer = setTimeout(run, 350); });
+  input.addEventListener("input", () => {
+    ++ticket;
+    enterPressed = false;
+    hide();
+    clearTimeout(timer);
+    timer = setTimeout(run, 350);
+  });
   input.addEventListener("focus", () => { if (input.value.trim()) run(); });
   input.addEventListener("keydown", (e) => {
     if (e.key === "Escape") hide();
@@ -1209,25 +1272,42 @@ function placePicker(input, list, onPick, withQuestions) {
   document.addEventListener("click", (e) => { if (e.target !== input && !list.contains(e.target)) hide(); });
 }
 
-// When no keyword matched, the small language model in meaning.js compares the question with the
-// measurement descriptions. It only fills in q's measurement (or a "we don't have that" topic).
+function needsMeaning(q, always = false) {
+  if (q.missing || q.placeOnly) return false;
+  if (always) return true;
+  if (q.explicitMeasurement) return false;
+  const [best, second] = q.lexical;
+  return !best || best.score < 3 || best.score - (second?.score || 0) < 2;
+}
+
+// Combine ranks on ambiguous queries. A weak lexical match gets less weight.
+function fusedTopic(lexical, semantic) {
+  const votes = new Map();
+  const weight = lexical[0]?.score < 3 ? 0.55 : 1;
+  lexical.slice(0, 5).forEach(({ code }, i) => votes.set(code, weight / (3 + i)));
+  return semantic.ranked.slice(0, 5)
+    .filter((r) => r.score >= ByteMeMeaning.ACCEPT)
+    .map((r, i) => ({ ...r, vote: 1 / (3 + i) + (votes.get(r.topic.code) || 0) }))
+    .sort((a, b) => b.vote - a.vote)[0];
+}
+
 async function readByMeaning(q, text) {
   let question = text;
-  q.namedPlaces.forEach((c) => { question = question.split(c).join(" "); });   // the topic, not the place
+  q.namedPlaces.forEach((name) => { question = question.split(name).join(" "); });
   question = question.replace(/\b(1[89]\d\d|20\d\d)\b/g, " ");
   const m = await ByteMeMeaning.match(question, VARS, NOT_AVAILABLE);
   if (!m || !m.accepted) return;
-  if (m.topic.kind === "variable") q.variable = variable(m.topic.code);
+  const picked = fusedTopic(q.lexical, m);
+  if (picked.topic.kind === "variable") q.variable = variable(picked.topic.code);
   else {
-    q.missing = NOT_AVAILABLE[m.topic.index];
+    q.missing = NOT_AVAILABLE[picked.topic.index];
     q.variable = variable(q.missing.closest) || null;
     q.closestOnly = true;
   }
-  q.byMeaning = { nearest: m.nearest, score: m.score };
+  q.byMeaning = { nearest: picked.text, score: picked.score, hybrid: q.lexical.length > 0 };
 }
 
 function buildSearch() {
-  $("search").addEventListener("focus", () => ByteMeMeaning.load(), { once: true });   // get the model ready early
   placePicker($("search"), $("suggestions"), (hit, text, q) => {
     state.question = { text, code: hit.variable ? hit.variable.code : null, intent: intentOf(text), season: seasonOf(text),
                        kind: hit.kind || "place", feature: hit.feature || null, asksWhy: q.asksWhy, missing: q.missing,
@@ -1296,8 +1376,9 @@ function renderAnswer() {
   }
   const v = q.code && variable(q.code);
   const notes = [];
-  if (q.byMeaning && v && !q.closestOnly) notes.push(`No keyword in your question matched a measurement, so we read it by meaning as <b>${escapeHTML(v.name)}</b> ` +
-    `(closest description: “${escapeHTML(q.byMeaning.nearest)}”). Not what you meant? Pick another measurement above.`);
+  if (q.byMeaning && v && !q.closestOnly) notes.push(
+    `${q.byMeaning.hybrid ? "We combined the keywords and meaning of your question" : "We read your question by meaning"} and selected ` +
+    `<b>${escapeHTML(v.name)}</b>. Closest description: “${escapeHTML(q.byMeaning.nearest)}”.`);
   if (q.missing && !q.closestOnly) notes.push(escapeHTML(q.missing.say));
   if (q.asksWhy) notes.push("ByteMe shows what changed and how sure we are, not why: finding the cause needs a separate investigation.");
   if (state.area && state.place.info) notes.push(areaText(state.area, state.place.info));
