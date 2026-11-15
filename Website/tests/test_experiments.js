@@ -1,6 +1,6 @@
 const assert = require("node:assert/strict");
 const { test } = require("node:test");
-const { relatedLeads, assessLead, policyTest } = require("../experiments.js");
+const { relatedLeads, assessLead, rivalLead, assessRival, policyTest } = require("../experiments.js");
 const london = require("../data/london-ulez.json");
 
 function record(rate) {
@@ -18,6 +18,24 @@ test("a lead can fit a prediction, weaken it, or remain open", () => {
   assert.equal(assessLead(lead, temperature, risingSnow).verdict, "weakened");
   assert.equal(assessLead(lead, temperature, record(0)).verdict, "insufficient");
   assert.equal(assessLead(lead, temperature, null).verdict, "insufficient");
+});
+
+test("a weakened snow lead can test a rival on the original observed months", () => {
+  const records = { SNODP: record(-3), PRECTOTCORR: record(2), T2M: record(2) };
+  records.PRECTOTCORR.values[24] = null;
+  records.T2M.values[35] = null;
+  const precipitation = relatedLeads("SNODP", records).find(({ to }) => to === "PRECTOTCORR");
+  const original = assessLead(precipitation, records.SNODP, records.PRECTOTCORR);
+  assert.equal(original.verdict, "weakened");
+
+  const rival = rivalLead(precipitation, records);
+  assert.equal(rival.to, "T2M");
+  const followUp = assessRival(rival, original.paired, records);
+  assert.equal(followUp.verdict, "consistent");
+  assert.equal(followUp.paired.count, original.paired.count - 1);
+  assert.equal(followUp.paired.values[0][24], null);
+  assert.equal(followUp.paired.values[0][35], null);
+  assert.equal(rivalLead(precipitation, { ...records, T2M: null }), null);
 });
 
 test("the data and checks reproduce the London policy experiment", () => {

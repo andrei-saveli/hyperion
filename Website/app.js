@@ -709,6 +709,7 @@ function renderFollowUps(measurement) {
       from: measurement.code, to: partner.code, label: "Check another source", expectedSign: 1,
       prediction: "If the products agree about the direction of change, both should show the same direction over their shared months.",
       alternative: "Differences in coverage, resolution, or how a product defines the measurement can explain a disagreement.",
+      nextEvidence: "Check the product descriptions for differences in spatial coverage and what each instrument measures.",
     });
   }
   panel.hidden = choices.length === 0;
@@ -740,9 +741,9 @@ function renderLeadEvidence(panel, lead) {
   };
   const evidence = {
     consistent: "Both measurements have a clear direction over the same months, and their directions fit the prediction.",
-    weakened: "Both measurements have a clear direction, and their directions differ from this prediction. Give this explanation less weight for the selected period.",
     insufficient: "The trend tests do not give both measurements a clear, reliable direction over this period.",
   };
+  const finding = verdict === "weakened" ? leadCounterEvidence(lead, fits) : evidence[verdict];
   const coverage = paired?.count
     ? `${dateSpan(paired.first, paired.last)} · ${paired.count} shared observations`
     : "No months with usable observations in both records.";
@@ -750,14 +751,30 @@ function renderLeadEvidence(panel, lead) {
     const id = index === 0 ? "lead-chart-a" : "lead-chart-b";
     return `<div><h4>${escapeHTML(variable(code).name)}</h4><div id="${id}" class="chart"></div></div>`;
   }).join("");
+  const rival = verdict === "weakened" ? ByteMeExperiments.rivalLead(lead, state.analysis.series) : null;
+  const explanation = verdict === "weakened"
+    ? `<div class="lead-rival">
+        <h4>A rival explanation</h4>
+        <p>${escapeHTML(lead.alternative)}</p>
+        ${rival ? `<button type="button" class="pill" data-test-rival>Test rival with ${escapeHTML(variable(rival.to).name.toLowerCase())}</button>` : ""}
+        <div data-rival-result aria-live="polite"></div>
+        <p class="meta">${escapeHTML(lead.nextEvidence)}</p>
+      </div>`
+    : `<p>${escapeHTML(lead.alternative)}</p>`;
   panel.innerHTML = `<p>${escapeHTML(lead.prediction)}</p>
     <div class="experiment-finding">
       <h4 tabindex="-1">${headlines[verdict]}</h4>
       <p class="meta">${coverage}</p>
-      <p>${paired?.count ? evidence[verdict] : ""}</p>
-      <p>${escapeHTML(lead.alternative)}</p>
+      ${paired?.count ? `<p>${verdict === "weakened" ? "<strong>Counter-evidence</strong> · " : ""}${escapeHTML(finding)}</p>` : ""}
+      ${verdict === "weakened" ? "" : explanation}
     </div>
+    ${verdict === "weakened" ? explanation : ""}
     ${fits.length ? `<div class="lead-charts">${chartSlots}</div>` : ""}`;
+  if (rival) {
+    panel.querySelector("[data-test-rival]").addEventListener("click", () =>
+      renderRivalResult(panel.querySelector("[data-rival-result]"), rival, paired)
+    );
+  }
   if (!fits.length) return;
   [lead.from, lead.to].forEach((code, index) => {
     const v = variable(code), id = index === 0 ? "lead-chart-a" : "lead-chart-b";
@@ -765,6 +782,28 @@ function renderLeadEvidence(panel, lead) {
     const reference = { dates: state.fullRecord.series[code]?.dates, fit: state.fullRecord.results[code] };
     drawChart(id, fits[index], series, v, false, undefined, reference);
   });
+}
+
+function leadCounterEvidence(lead, fits) {
+  const [first, second] = [lead.from, lead.to].map((code, index) => {
+    const verb = fits[index].direction === "increase" ? "rose" : "fell";
+    return `${variable(code).name} ${verb}`;
+  });
+  const prediction = lead.expectedSign === 1 ? "the same direction" : "opposite directions";
+  return `${first}, while ${second}. The prediction called for ${prediction}.`;
+}
+
+function renderRivalResult(panel, rival, originalPair) {
+  const { paired, fits, verdict } = ByteMeExperiments.assessRival(rival, originalPair, state.analysis.series);
+  const findings = {
+    consistent: "The trends fit this rival prediction. The mechanism still needs a more direct test.",
+    weakened: "The trends also weaken this rival explanation.",
+    insufficient: "The observations leave this rival explanation open.",
+  };
+  const evidence = verdict === "weakened" ? ` ${leadCounterEvidence(rival, fits)}` : "";
+  panel.innerHTML = `<p>${escapeHTML(rival.prediction)}</p>
+    <p><strong>${findings[verdict]}</strong>${escapeHTML(evidence)}</p>
+    <p class="meta">${paired?.count ?? 0} of the original ${originalPair.count} observed months could be used.</p>`;
 }
 
 // ------------------------------------------------------------------ charts

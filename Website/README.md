@@ -80,6 +80,9 @@ to the policy. The authors’ augmented synthetic-control model has its own esti
 **Explore leads.** `experiments.js` holds prediction and rival-explanation text for a few linked
 measurements. Compare the series on the same observed months. A lead is weakened when both trends
 have reliable directions and the direction combination disagrees with the stated prediction.
+The finding then shows the contrary observations, proposes a rival mechanism, and suggests
+which evidence could separate the two. When the rival has a runnable check, it uses observations
+shared with the original test and reports how many of those months it could use.
 The ordinary Explore results help screen hypotheses. The London case uses a control design
 to estimate a policy effect.
 

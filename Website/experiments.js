@@ -6,32 +6,41 @@ const ByteMeExperiments = (function (stats, investigation) {
     {
       from: "T2M", to: "SNODP", label: "Check snow depth", expectedSign: -1,
       prediction: "If changes in air temperature account for changes in snow depth through melting, the long-term trends should point in opposite directions.",
-      alternative: "Changes in snowfall or the timing of storms can also change snow depth.",
+      alternative: "Changes in how much snow falls could outweigh changes in melting. Wetter winters could add snow even as the air warms.",
+      rival: { from: "SNODP", to: "PRECTOTCORR" },
+      nextEvidence: "Look for snowfall-only observations to separate changes in accumulation from changes in melt.",
     },
     {
       from: "SNODP", to: "T2M", label: "Check air temperature", expectedSign: -1,
       prediction: "An explanation based on warmer air predicts that snow depth and temperature move in opposite directions.",
-      alternative: "Look at snowfall and storm timing as rival explanations for a change in snow depth.",
+      alternative: "Changes in snow accumulation could outweigh changes in melt. A change in the number or intensity of snowstorms could explain the pattern.",
+      rival: { from: "SNODP", to: "PRECTOTCORR" },
+      nextEvidence: "Look for snowfall-only observations to see whether snow accumulation changed.",
     },
     {
       from: "SNODP", to: "PRECTOTCORR", label: "Test the precipitation explanation", expectedSign: 1,
       prediction: "If total precipitation accounts for the change in snow depth, the two trends should point in the same direction.",
-      alternative: "Total precipitation includes both rain and snow. A shift from snow to rain could reduce snow depth even as total precipitation rises.",
+      alternative: "Temperature could be changing either the rate of melt or how much precipitation falls as snow. A shift from snow to rain could reduce snow depth even as total precipitation rises.",
+      rival: { from: "SNODP", to: "T2M" },
+      nextEvidence: "Look for snowfall-only observations to distinguish less snow falling from faster melt.",
     },
     {
       from: "PRECTOTCORR", to: "GWETROOT", label: "Check root-zone wetness", expectedSign: 1,
       prediction: "If changing precipitation is driving soil wetness, the two measures should generally move in the same direction.",
-      alternative: "Evaporation, irrigation, and runoff can alter how much water reaches or stays in the soil.",
+      alternative: "Water losses could dominate the rainfall change. More evaporation or runoff can leave the root zone drier during a wetter period.",
+      nextEvidence: "Check evaporation and runoff during the months in which the two records diverge.",
     },
     {
       from: "GWETROOT", to: "PRECTOTCORR", label: "Test the precipitation explanation", expectedSign: 1,
       prediction: "If changes in precipitation account for changes in soil moisture, their trends should generally point in the same direction.",
-      alternative: "Changes in evaporation, irrigation, or drainage can dry soil even where total precipitation rises.",
+      alternative: "Evaporation or drainage could explain soil drying during a wetter period. Irrigation or reduced losses could explain wetter soil during a drier period.",
+      nextEvidence: "Check evaporation and local water management over the same period.",
     },
     {
       from: "GWETROOT", to: "MODIS_NDVI", label: "Check vegetation greenness", expectedSign: 1,
       prediction: "If water limits plant growth in this region, root-zone wetness and greenness should tend to move in the same direction.",
-      alternative: "Land use, temperature, and differences in the plants observed can change greenness independently of soil moisture.",
+      alternative: "A change in land use or plant cover could explain a greenness trend that runs against the moisture trend.",
+      nextEvidence: "Check whether land cover, crops, or the timing of the growing season changed over these years.",
     },
   ];
 
@@ -51,6 +60,28 @@ const ByteMeExperiments = (function (stats, investigation) {
 
     const observedSign = fits[0].direction === fits[1].direction ? 1 : -1;
     return { paired, fits, verdict: observedSign === lead.expectedSign ? "consistent" : "weakened" };
+  }
+
+  function rivalLead(lead, records) {
+    if (!lead.rival) return null;
+    const { from, to } = lead.rival;
+    if (![from, to].every((code) => records[code]?.values.some(Number.isFinite))) return null;
+    return hypotheses.find((candidate) => candidate.from === from && candidate.to === to) ?? null;
+  }
+
+  // Keep the rival check inside the original comparison's observed months.
+  // Missing data in a third measurement can shorten the overlap further.
+  function assessRival(rival, originalPair, records) {
+    const observedMonths = new Set(originalPair.dates
+      .filter((_, index) => Number.isFinite(originalPair.values[0][index])).map(investigation.monthText));
+    const restricted = [rival.from, rival.to].map((code) => {
+      const record = records[code];
+      return {
+        dates: record.dates,
+        values: record.values.map((value, index) => observedMonths.has(investigation.monthText(record.dates[index])) ? value : null),
+      };
+    });
+    return assessLead(rival, restricted[0], restricted[1]);
   }
 
   function policyTest(study, { postWeeks, omitLargestDonor = false, adjustBaseline = false } = {}) {
@@ -76,7 +107,7 @@ const ByteMeExperiments = (function (stats, investigation) {
     return { gap, percent: 100 * gap / control, rmse: Math.sqrt(squaredError / weeks.length), count: weeks.length };
   }
 
-  return { relatedLeads, assessLead, policyTest };
+  return { relatedLeads, assessLead, rivalLead, assessRival, policyTest };
 })(
   typeof module === "undefined" ? ByteMeStats : require("./stats.js"),
   typeof module === "undefined" ? ByteMeInvestigation : require("./investigation.js")
