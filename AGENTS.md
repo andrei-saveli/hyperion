@@ -146,7 +146,7 @@ variables makes it hard to pick ones that could indicate change and then analyze
 Search or pick a place + variable → monthly NASA data since 2001 → chart (seasons-removable) with
 trend line and 95% band → verdict card (🟢 significant / 🟡 possible, not significant yet /
 ⚪ no clear trend / ⚫ not enough data; rate per decade, total change, p-value, plain explanation)
-→ what might explain it (evidence ladder). Say *what* changed, never claim *why*. Demo cases are chosen from real results, not assumed.
+→ what accounts for it (Trend Decomposer). Say *what* changed, never claim *why*. Demo cases are chosen from real results, not assumed.
 
 ### Data decision (global version)
 The public site uses **NASA POWER** monthly point data (MERRA-2 + CERES, 1981 onwards, any place on
@@ -202,7 +202,7 @@ correction) as second checks. Verdict: 🟢 p<0.05 · 🟡 p<0.10 · ⚪ otherwi
 or 24 valid months. Flags: `reliability` (low if < 30 effective months), `tests_agree`,
 `band_meaning`. `percent_change` only for RAIN/SOILM/EVAP and never-negative data.
 "Years until significant" = record × (1.96/|t|)^(2/3) − record; labelled planning estimate.
-Non-significant ≠ "no change". Never state causes (Investigate grades how well an idea fits the data; it never says "cause").
+Non-significant ≠ "no change". Never state causes (Investigate says how much a driver statistically accounts for; it never says "cause").
 
 ## Current status / handover (update this when you finish something)
 - ✅ Planning done: `docs/PLAN.md`, `docs/HANDSHAKES.md`.
@@ -252,11 +252,11 @@ Non-significant ≠ "no change". Never state causes (Investigate grades how well
   periods in questions and links, whole-record result always shown next to a window.
 - ✂️ **Removed from the site** (team lead's decision): Compare, the Method section and the big footer;
   the page ends with a one-line copyright. The measurement list scrolls inside its box.
-- 🔍 **Investigate: what might explain this?** (`Website/evidence.js`): ideas per measurement in
-  `variables.json` (`explanations`) or the student's own, graded on an evidence ladder (month-to-month
-  link with effective-n range → share of the trend explained → independent data). Never claims causes;
-  shows a "shared drivers" box and counts tries. Replaces the sign-matching workspace of
-  `codex/trend-detective` (review: `docs/CAUSALITY_REVIEW.md`). Check: `node Website/tests/test_evidence.js`.
+- 🔍 **Investigate = Trend Decomposer** (`Website/decompose.js`): student picks drivers (suggested in
+  `variables.json` → `drivers`); joint (optionally seasonal) regression on detrended month-to-month
+  wiggles → each driver's contribution to the trend + what's left (re-tested); block-bootstrap ranges;
+  alibi check (driver shifted by whole years, permutation p); across-the-planet check from the world
+  grids; satellite-data swap. Never claims causes. Check: `node Website/tests/test_decompose.js`.
 - 🖥️ **Website first version** in `FrontEnd_claude/` (built for P1 on the real Task2/3/4 parts):
   `app.py`, `charts.py` (H5), theme, 6 passing app tests, mock-ups + screenshots in `design/`.
   Run: `streamlit run FrontEnd_claude/app.py`. Combine with `--frontend FrontEnd_claude`.
