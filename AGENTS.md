@@ -241,7 +241,7 @@ Non-significant ≠ "no change". Never state causes.
   phrases/keywords, plain "we don't have that" notes with the closest measurement (`not_available`),
   place from famous regions, capitalised names, then leftover words (Photon + Open-Meteo geocoders).
   On Task3's 48 fresh benchmark questions (held out): right measurement 36/36, right place and
-  measurement 32/36, 1/12 unavailable requests answered without a note. Details: `Website/README.md`.
+  measurement 33/36, 1/12 unavailable requests answered without a note. Details: `Website/README.md`.
 - 🖥️ **Website first version** in `FrontEnd_claude/` (built for P1 on the real Task2/3/4 parts):
   `app.py`, `charts.py` (H5), theme, 6 passing app tests, mock-ups + screenshots in `design/`.
   Run: `streamlit run FrontEnd_claude/app.py`. Combine with `--frontend FrontEnd_claude`.

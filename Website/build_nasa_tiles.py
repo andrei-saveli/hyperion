@@ -78,13 +78,19 @@ def write_tiles(code, months, cube):
     return scale, offset, tiles
 
 
-def map_layer(code, months, cube, percent, pool):
-    """Trend of every 2 x 2 degree square (average of its four 1-degree squares)."""
+def map_layer(code, months, cube, percent, pool, low_level=None):
+    """Trend of every 2 x 2 degree square (average of its four 1-degree squares).
+    low_level: squares whose average is below it are marked "not enough data" (e.g. NO2 over clean
+    oceans, where the satellite is near its detection limit and trends aren't trustworthy)."""
     blocks = cube.reshape(len(months), 90, 2, 180, 2)
     with np.errstate(invalid="ignore"):
         coarse = np.nanmean(blocks, axis=(2, 4))                         # months x 90 x 180
     series = coarse.reshape(len(months), -1).T
     results = pool.map(trend_of, [(months, s, percent) for s in series], chunksize=64)
+    if low_level is not None:
+        with np.errstate(invalid="ignore"):
+            level = np.nanmean(series, axis=1)
+        results = [(None, 0) if not (lv >= low_level) else r for r, lv in zip(results, level)]
     return {"step": 2, "start": months[0], "end": months[-1],
             "note": "Squares in order south to north, then west to east. Slope per decade; verdict "
                     "0 not enough data, 1 no clear trend, 2 possible, 3 significant.",
@@ -95,6 +101,7 @@ def build(only=None):
     """only: optional list of dataset names (e.g. ['GPM', 'AIRS']) to build just those."""
     catalogue = json.loads((HERE / "data" / "variables.json").read_text())
     percent = {v["code"]: v["percent"] for v in catalogue["variables"]}
+    low_level = {v["code"]: v.get("low_level") for v in catalogue["variables"]}
     OUT.mkdir(parents=True, exist_ok=True)
     index = {"tile": TILE, "missing": MISSING, "variables": {}}
     if only and (OUT / "index.json").exists():      # building some datasets: keep the others
@@ -109,7 +116,7 @@ def build(only=None):
             months, cube = load(code)
             gaps = int(sum(not np.isfinite(cube[i]).any() for i in range(len(months))))
             scale, offset, tiles = write_tiles(code, months, cube)
-            layer = map_layer(code, months, cube, percent.get(code, False), pool)
+            layer = map_layer(code, months, cube, percent.get(code, False), pool, low_level.get(code))
             (OUT / f"{code}_map.json").write_text(json.dumps(layer, separators=(",", ":")))
             index["variables"][code] = {"start": months[0], "months": len(months), "scale": scale,
                                         "offset": offset, "tiles": tiles}

@@ -301,7 +301,9 @@
    "keywords": "no2 nitrogen dioxide traffic exhaust emissions",
    "dataset": "nasa",
    "product": "OMNO2d v003 (daily, averaged by month)",
-   "landing": "https://disc.gsfc.nasa.gov/datasets/OMNO2d_003/summary"
+   "landing": "https://disc.gsfc.nasa.gov/datasets/OMNO2d_003/summary",
+   "low_level": 1.0,
+   "low_note": "Here the air has very little NO₂ (on average below 1 × 10¹⁵ molecules/cm²), close to what OMI can detect. Small trends at such low levels can come from slow changes in the instrument rather than in the air, so this result is not reliable. NO₂ trends are most meaningful over cities and industry."
   },
   {
    "code": "ALLSKY_SFC_SW_DWN",
