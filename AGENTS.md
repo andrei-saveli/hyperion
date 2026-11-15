@@ -246,6 +246,9 @@ Non-significant ≠ "no change". Never state causes.
   respects the direction asked and a named season. Countries and regions are **averaged over their
   outline** (`Website/area.js`: up to 16 NASA POWER points + every 1° satellite/model square, cos-latitude
   weighted; check: `node Website/tests/test_area.js`).
+- ⏱️ **Time periods** (from `codex/trend-detective`, `Website/investigation.js`): From/To in Explore and
+  Compare, periods in questions and links, whole-record result always shown next to a window. Compare
+  matches months at both places and reports A − B with a Newey–West range.
 - 🖥️ **Website first version** in `FrontEnd_claude/` (built for P1 on the real Task2/3/4 parts):
   `app.py`, `charts.py` (H5), theme, 6 passing app tests, mock-ups + screenshots in `design/`.
   Run: `streamlit run FrontEnd_claude/app.py`. Combine with `--frontend FrontEnd_claude`.

@@ -54,6 +54,14 @@
     </div>
     <label class="var-pick"><span>Measurement</span><select id="var-select" aria-label="Measurement"></select></label>
   </div>
+  <form class="period-controls" id="explore-period" aria-label="Period to test">
+    <label>From <input name="from" type="month" placeholder="YYYY-MM" aria-label="Test from month"></label>
+    <label>To <input name="to" type="month" placeholder="YYYY-MM" aria-label="Test to month"></label>
+    <button class="pill on" type="submit">Test this period</button>
+    <button class="pill" type="button" data-reset>Whole record</button>
+    <p class="meta" data-coverage></p>
+    <p class="meta period-error" data-error role="alert"></p>
+  </form>
   <div class="box answer" id="answer" aria-live="polite"></div>
   <div class="explore">
     <div class="box map-wrap">
@@ -90,6 +98,15 @@
     <label>Place B<span class="search"><input id="cmp-b" type="search" autocomplete="off" placeholder="Search a place"><span class="suggestions" id="cmp-b-list"></span></span></label>
     <button class="pill" id="cmp-use">Use my map place as A</button>
   </div>
+  <form class="period-controls" id="compare-period" aria-label="Period to compare">
+    <label>From <input name="from" type="month" placeholder="YYYY-MM" aria-label="Compare from month"></label>
+    <label>To <input name="to" type="month" placeholder="YYYY-MM" aria-label="Compare to month"></label>
+    <button class="pill on" type="submit">Compare this period</button>
+    <button class="pill" type="button" data-reset>Whole shared record</button>
+    <p class="meta" data-coverage></p>
+    <p class="meta period-error" data-error role="alert"></p>
+  </form>
+  <div class="box compare-finding" id="compare-finding" aria-live="polite"></div>
   <div class="compare">
     <div class="box" id="cmp-panel-a"></div>
     <div class="box" id="cmp-panel-b"></div>
@@ -141,6 +158,7 @@
 <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.35.2/plotly.min.js"></script>
 <script src="stats.js"></script>
+<script src="investigation.js"></script>
 <script src="nasa.js"></script>
 <script src="area.js"></script>
 <script src="app.js"></script>

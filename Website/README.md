@@ -45,6 +45,15 @@ build_world.py (run once, Python, Task4/stats.py) ─► data/world.json ─► 
   - The map shows the outline, the panel says what the average is made of, and a button switches
     to the single grid square at the centre. Links keep the area: `#area=R90689,T2M,Romania`.
   - It takes about 5–10 seconds (Russia about 25). Compare also averages countries and regions.
+- **Time periods** (`investigation.js`, from the `codex/trend-detective` branch): a From/To form in
+  Explore and in Compare cuts every record to the chosen months and runs the trend test again.
+  Questions can name a period ("since 2005", "2001 to 2015"), and links keep it
+  (`#78.25,15.625,T2M,Svalbard?from=2001-01&to=2015-12`). The evidence panel always shows the
+  whole-record result next to a chosen window, and warns that short windows are uncertain and easy
+  to cherry-pick.
+- **Compare uses the same months at both places.** Each place gets its own trend, and the finding is
+  about the difference A − B (its 95% range uses a Newey–West adjustment over 12 months, because
+  neighbouring months are not independent). A button checks the latest 15 years.
 - **Direct answer:** a question gets an answer card right under the search box, for example
   "**Yes.** Air temperature in Romania is rising: +0.57 °C per decade since 1981". It checks the
   direction asked ("warmer", "drier", "cleaner"...) and answers *Yes*, *No, the opposite*, *Maybe*
@@ -124,13 +133,14 @@ much to the repository's history.
 | `app.js` | Live data download, search, map (MapLibre), charts (Plotly), compare |
 | `stats.js` | Trend and significance math (copy of `Task4/stats.py`) |
 | `nasa.js` | Reads one square's monthly series from a NASA tile file |
+| `investigation.js` | Time periods: read periods from questions, cut records, match months at two places, A − B trend with a Newey–West range |
 | `area.js` | Area averages: squares inside a country's or region's outline, weighted average of their records |
 | `build_nasa_grids.py`, `build_nasa_tiles.py` | Download the NASA datasets to 1° grids; then trends, tiles and map layers (`data/nasa/`) |
 | `globe.js` | Hero art: rotating globe of teal "satellite pixels", demo cases in coral (decoration only) |
 | `data/variables.json` | The 26 measurements (18 NASA POWER + 8 satellite/model): code, name, units, definition, search words, second-source pairs |
 | `data/world.json` | World overview: trend of every measurement on a 5 degree grid (made by `build_world.py`) |
 | `build_world.py` | Rebuilds `data/world.json` with the Python trend code (about 25 minutes, can be stopped and restarted) |
-| `tests/` | `make_reference.py` + `test_stats.js` (website math = Python math); `test_nasa.js` + `nasa_reference.json` (tiles read back correctly); `test_area.js` (outlines and area averages) |
+| `tests/` | `make_reference.py` + `test_stats.js` (website math = Python math); `test_nasa.js` + `nasa_reference.json` (tiles read back correctly); `test_area.js` (outlines and area averages); `test_investigation.js` (periods and matched comparisons) |
 | `data/land.geojson` | World land outline (Natural Earth, public domain): the fallback map |
 | `vendor/maplibre-gl.css` | The map library's stylesheet (kept locally) |
 | `build_data.py`, `data/results.json` | The earlier version (3 Giovanni regions). No longer read by the page; kept for reference |
