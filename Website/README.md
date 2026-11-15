@@ -201,7 +201,7 @@ asked for live like NASA POWER.
 | Sea level | NASA-SSH simple grid v1 (TOPEX/Poseidon, Jason, Sentinel-6 altimeters), 0.5°, weekly maps averaged by month (at least 2) | 1992 | – |
 | Water stored on land (GLDAS) | GLDAS Catchment `GLDAS_CLSM10_M` 2.1 (`TWS_inst`: soil, snow, canopy and shallow groundwater) | 2000 | – |
 | Ice-sheet meltwater runoff | MERRA-2 `M2TMNXGLC` (`RUNOFF` over glaciated land) | 1980 | – |
-| Desert dust · Smoke and soot · Sulfate haze | MERRA-2 `M2TMNXAER` (`DUEXTTAU`, `BCEXTTAU` + `OCEXTTAU`, `SUEXTTAU`), 2° squares | 1980 | – |
+| Desert dust · Smoke and soot · Sulfate haze | MERRA-2 `M2TMNXAER` (`DUEXTTAU`, `BCEXTTAU` + `OCEXTTAU`, `SUEXTTAU`), 2° squares | 2003 (the model has MODIS aerosol measurements to lean on from then; earlier years would show the observing system changing) | – |
 | Methane · Carbon monoxide · Stratosphere temperature (AIRS) | AIRS `AIRS3STM` v7.0 at 400, 500 and 50 hPa, day/night average, 2° squares | 2002 | – |
 
 - **Grid:** every dataset is averaged into 1 x 1 degree squares (about 110 km). A square needs data
@@ -239,7 +239,7 @@ Set `EARTHDATA_TOKEN` to your token (Earthdata profile → Generate Token) when 
 own computer. `build` runs `Task4/stats.py` for the map and writes the tiles; `test_nasa.js` checks
 that the website reads them back correctly. Needs `numpy`, `h5py`, `pandas`, `scipy`.
 
-The tiles add up to about 300 MB. Commit a rebuild only when it matters: every rebuild adds that
+The tiles add up to about 340 MB. Commit a rebuild only when it matters: every rebuild adds that
 much to the repository's history.
 
 ## Files
