@@ -224,12 +224,18 @@ function shapeFor(hit) {
       const url = hit.osm
         ? `${NOMINATIM}/lookup?osm_ids=${hit.osm}&format=geojson&polygon_geojson=1&polygon_threshold=0.02`
         : `${NOMINATIM}/search?q=${encodeURIComponent(hit.name.split(",")[0])}&featureType=country&limit=1&format=geojson&polygon_geojson=1&polygon_threshold=0.02`;
-      job = fetch(url).then((r) => r.json()).then((j) => {
-        const g = j.features && j.features[0] && j.features[0].geometry;
-        return g && (g.type === "Polygon" || g.type === "MultiPolygon") ? g : null;
-      }).catch(() => null);
+      job = nominatim(url.slice(NOMINATIM.length)).then((j) => {
+        const g = j && j.features && j.features[0] && j.features[0].geometry;
+        return g && ["Polygon", "MultiPolygon", "LineString", "MultiLineString"].includes(g.type) ? g : null;
+      });
     }
-    shapeCache.set(key, job.then((geometry) => (geometry ? { key, geometry, name: hit.name || hit.label } : null)));
+    // no outline (e.g. the Caspian Sea): use the box around the feature that the search gave, and say so
+    const box = (g) => {
+      if (g || !hit.extent || hit.extent.some((v) => !Number.isFinite(v))) return g ? { geometry: g, box: false } : null;
+      const [w, s, e, n] = hit.extent;
+      return { geometry: { type: "Polygon", coordinates: [[[w, s], [e, s], [e, n], [w, n], [w, s]]] }, box: true };
+    };
+    shapeCache.set(key, job.then((g) => { const b = box(g); return b ? { key, geometry: b.geometry, box: b.box, name: hit.name || hit.label } : null; }));
   }
   return shapeCache.get(key);
 }
@@ -284,7 +290,12 @@ function loadArea(area) {
 
 // A sentence describing what an area average is made of
 function areaText(area, info) {
-  return `Average over ${escapeHTML(area.name)}: ${info.points} evenly spaced NASA POWER point${info.points === 1 ? "" : "s"}` +
+  if (ByteMeArea.isLine(area.geometry)) {
+    return `Average along ${escapeHTML(area.name)}: ${info.points} evenly spaced NASA POWER point${info.points === 1 ? "" : "s"}` +
+      (info.squares ? ` and the ${info.squares}${info.sampled ? ` (of ${info.total})` : ""} one-degree squares it passes through` : "") +
+      ". These describe the land and air along its course, not the water in it.";
+  }
+  return `Average over ${area.box ? `a box around ${escapeHTML(area.name)} (OpenStreetMap has no outline for it)` : escapeHTML(area.name)}: ${info.points} evenly spaced NASA POWER point${info.points === 1 ? "" : "s"}` +
     (info.squares ? ` and ${info.squares}${info.sampled ? ` of its ${info.total}` : ""} one-degree squares of satellite and model data` : "") + ".";
 }
 
@@ -430,7 +441,9 @@ function buildCases() {
 async function selectArea(area, code) {
   const [w, s, e, n] = ByteMeArea.bbox(area.geometry);
   const middle = { lat: (s + n) / 2, lon: (w + e) / 2 };
-  const centre = ByteMeArea.inside(middle.lon, middle.lat, area.geometry) ? middle : ByteMeArea.samplePoints(area.geometry)[0];
+  const samples = ByteMeArea.samplePoints(area.geometry);
+  const centre = ByteMeArea.isLine(area.geometry) ? samples[Math.floor(samples.length / 2)]
+    : ByteMeArea.inside(middle.lon, middle.lat, area.geometry) ? middle : samples[0];
   Object.assign(state, { area, lastArea: area, lat: centre.lat, lon: centre.lon, name: area.name, loading: true, error: null, place: null, full: null });
   if (code) { state.code = code; $("var-select").value = code; }
   writeHash(); refreshWorldLayer(); placeMarker(); showAreaOutline(); renderScan(); renderDetail(); renderAnswer();
@@ -531,7 +544,8 @@ function buildMap(detailedStyle) {
       paint: { "fill-color": ["get", "colour"], "fill-opacity": ["get", "opacity"] } },
       (map.getStyle().layers.find((l) => l.type === "symbol") || {}).id);   // squares go under the place labels
     map.addSource("area", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
-    map.addLayer({ id: "area-fill", type: "fill", source: "area", paint: { "fill-color": COLOURS.deep, "fill-opacity": 0.06 } });
+    map.addLayer({ id: "area-fill", type: "fill", source: "area", filter: ["==", ["geometry-type"], "Polygon"],   // areas only, not rivers
+      paint: { "fill-color": COLOURS.deep, "fill-opacity": 0.06 } });
     map.addLayer({ id: "area-line", type: "line", source: "area", paint: { "line-color": COLOURS.deep, "line-width": 2 } });
     placeMarker(); showAreaOutline();
   });
@@ -844,7 +858,7 @@ const FILLER = new Set(("is are was were the a an of in on at to and or does do 
   "versus vs compare compared comparing between from through until till to data dataset datasets record records series monthly " +
   "month months daily per each every average averaged averages nowadays days today used use early earlier late later decade decades " +
   "twenty ten area areas region regions box site place places surrounding wider across two three separate side by give pull plot " +
-  "i'm i've i'd it's don't doing " +
+  "i'm i've i'd it's don't doing put next other " +
   "chart charts graph map maps typically usually people same different faster slower rate rates historical history " +
   "making make made goes going gone come comes coming out off into onto as total totals inputs input losses loss school project poster " +
   "measured measure model output report reports land air ground water sky plants plant " +
@@ -942,6 +956,7 @@ function understand(text) {
   return {
     variable, missing, period: periodInQuestion(text),
     placeCandidates: [...new Set([...capitals, leftover.join(" ")])].filter(Boolean),
+    namedPlaces: capitals,                       // names written with capital letters ("Lake Mead")
     leftoverWords: leftover,
     asksWhy: tokens.includes("why") || tokens.includes("because") || tokens.includes("cause") || tokens.includes("causes"),
   };
@@ -967,9 +982,14 @@ async function geocode(name) {
   ((photon && photon.features) || []).forEach((f) => {
     const p = f.properties;
     if (!p.name || SKIP_KINDS.has(p.osm_key)) return;
-    found.push({ name: [p.name, p.state !== p.name ? p.state : null, p.country !== p.name ? p.country : null].filter(Boolean).join(", "),
+    // a big natural feature (a river, sea or mountain range that may cross borders) keeps just its name
+    const natural = ["waterway", "natural", "water"].includes(p.osm_key) || ["sea", "ocean"].includes(p.osm_value);
+    const bigFeature = natural && isLarge(p);
+    found.push({ name: bigFeature ? p.name : [p.name, p.state !== p.name ? p.state : null, p.country !== p.name ? p.country : null].filter(Boolean).join(", "),
                  lat: f.geometry.coordinates[1], lon: f.geometry.coordinates[0],
-                 kind: isLarge(p) ? "large" : "place", osm: p.osm_type && p.osm_id ? `${p.osm_type}${p.osm_id}` : null });
+                 kind: isLarge(p) ? "large" : "place", osm: p.osm_type && p.osm_id ? `${p.osm_type}${p.osm_id}` : null,
+                 feature: natural ? (p.osm_key === "waterway" ? "river" : p.osm_value) : null,
+                 extent: p.extent ? [p.extent[0], p.extent[3], p.extent[2], p.extent[1]] : null });
   });
   ((meteo && meteo.results) || []).forEach((p) => found.push({
     name: [p.name, p.admin1 !== p.name ? p.admin1 : null, p.country !== p.name ? p.country : null].filter(Boolean).join(", "),
@@ -979,21 +999,124 @@ async function geocode(name) {
   return found.filter((p, i) => found.findIndex((q) => q.name === p.name || (Math.abs(q.lat - p.lat) < 0.2 && Math.abs(q.lon - p.lon) < 0.2)) === i);
 }
 
+// ------------------------------------------------------------------ geographic features
+// Rivers, lakes, seas, mountains, deserts... The two quick geocoders mostly know towns, so a name
+// with a feature word ("Volga River", "Lake Baikal", "Mount Kilimanjaro") is also looked up in
+// OpenStreetMap's main search (Nominatim), which ranks by importance, and only results of the
+// matching kind are kept. Nominatim asks for at most one request per second: requests wait
+// their turn and every answer is remembered.
+const FEATURES = {
+  river: [["waterway", "river"], ["waterway", "canal"], ["waterway", "stream"]],
+  lake: [["water", "lake"], ["water", "reservoir"], ["natural", "water"], ["water", "lagoon"]],
+  reservoir: [["water", "reservoir"], ["natural", "water"], ["water", "lake"]],
+  sea: [["place", "sea"], ["place", "ocean"], ["natural", "bay"], ["natural", "strait"], ["natural", "water"]],
+  ocean: [["place", "ocean"], ["place", "sea"]],
+  gulf: [["natural", "bay"], ["place", "sea"], ["natural", "water"]],
+  bay: [["natural", "bay"], ["natural", "water"]],
+  strait: [["natural", "strait"]],
+  mountain: [["natural", "mountain_range"], ["natural", "peak"], ["natural", "volcano"], ["natural", "ridge"], ["boundary", "region"], ["place", "region"]],
+  mount: [["natural", "peak"], ["natural", "volcano"], ["natural", "mountain_range"]],
+  peak: [["natural", "peak"], ["natural", "volcano"]],
+  volcano: [["natural", "volcano"], ["natural", "peak"]],
+  desert: [["natural", "desert"], ["place", "region"], ["natural", "sand"]],
+  glacier: [["natural", "glacier"]],
+  island: [["place", "island"], ["place", "archipelago"], ["place", "islet"]],
+  delta: [["natural", "wetland"], ["place", "region"], ["waterway", "river"]],
+  forest: [["natural", "wood"], ["landuse", "forest"], ["boundary", "protected_area"], ["boundary", "national_park"], ["place", "region"]],
+  valley: [["natural", "valley"], ["place", "region"]],
+  plateau: [["natural", "plateau"], ["place", "region"]],
+  peninsula: [["natural", "peninsula"], ["place", "peninsula"]],
+  reef: [["natural", "reef"]],
+  wetland: [["natural", "wetland"]],
+  swamp: [["natural", "wetland"]],
+  canyon: [["natural", "valley"], ["natural", "canyon"]],
+  waterfall: [["waterway", "waterfall"]],
+  park: [["boundary", "national_park"], ["boundary", "protected_area"], ["leisure", "nature_reserve"]],
+};
+const FEATURE_ALIASES = { rivers: "river", lakes: "lake", seas: "sea", mountains: "mountain", mountain: "mountain", mt: "mount",
+  range: "mountain", ranges: "mountain", hills: "mountain", islands: "island", deserts: "desert", glaciers: "glacier",
+  forests: "forest", rainforest: "forest", valleys: "valley", reefs: "reef", marsh: "wetland", marshes: "wetland" };
+const featureWordOf = (text) => {
+  for (const w of words(text)) { const k = FEATURE_ALIASES[w] || w; if (FEATURES[k]) return k; }
+  return null;
+};
+
+const nominatimCache = new Map();
+let nominatimFree = 0;   // when the next Nominatim request may start
+function nominatim(path) {
+  if (!nominatimCache.has(path)) {
+    const wait = Math.max(0, nominatimFree - Date.now());
+    nominatimFree = Date.now() + wait + 1100;
+    nominatimCache.set(path, new Promise((r) => setTimeout(r, wait))
+      .then(() => fetch(`${NOMINATIM}${path}`)).then((r) => r.json()).catch(() => null));
+  }
+  return nominatimCache.get(path);
+}
+
+// Features of the kind named in `text` ("Volga River" -> rivers called Volga). Both services are
+// asked: Nominatim ranks by importance, Photon knows some big outlines Nominatim misses (Caspian Sea).
+async function findFeatures(text) {
+  const kind = featureWordOf(text);
+  if (!kind) return [];
+  const fits = (category, type) => FEATURES[kind].some(([c, t]) => category === c && type === t);
+  const search = async (q) => ((await nominatim(`/search?q=${encodeURIComponent(q)}&format=jsonv2&limit=10&accept-language=en`)) || [])
+    .filter((x) => fits(x.category, x.type));
+  const [nominatimHits, photon] = await Promise.all([
+    search(text),
+    fetch(`${GEOCODER_2}?q=${encodeURIComponent(text)}&limit=10&lang=en`).then((r) => r.json()).catch(() => null),
+  ]);
+  let found = nominatimHits;
+  // "Volga River" mostly finds small pieces of the river; the bare name "Volga" finds the whole river
+  const bare = words(text).filter((w) => !FEATURES[FEATURE_ALIASES[w] || w] && !FILLER.has(w)).join(" ");
+  if (bare && bare !== TEXT(text).trim() && !found.some((x) => (x.importance || 0) >= 0.3)) found = [...found, ...(await search(bare))];
+  found.sort((x, y) => (y.importance || 0) - (x.importance || 0));
+  const size = (w, s, e, n) => Math.max(Math.abs(e - w), Math.abs(n - s));
+  const hit = (name, country, lat, lon, osm, span, box) => ({
+    // a big feature, which may cross borders (the Danube), gets no country after its name
+    name: [name, span < 1 && country && country !== name ? country : null].filter(Boolean).join(", "),
+    lat, lon, osm, feature: kind, kind: span > 1 ? "large" : "place", extent: span > 1 ? box : null,
+  });
+  const hits = found.map((x) => {
+    const [s, n, w, e] = (x.boundingbox || []).map(Number);
+    const country = (x.display_name || "").split(",").map((p) => p.trim()).filter(Boolean).pop();
+    return hit(x.name || x.display_name.split(",")[0], country, +x.lat, +x.lon,
+      x.osm_type && x.osm_id ? `${x.osm_type[0].toUpperCase()}${x.osm_id}` : null, size(w, s, e, n) || 0, [w, s, e, n]);
+  });
+  ((photon && photon.features) || []).forEach((f) => {
+    const p = f.properties;
+    if (!p.name || !fits(p.osm_key, p.osm_value)) return;
+    const span = p.extent ? size(p.extent[0], p.extent[3], p.extent[2], p.extent[1]) : 0;
+    hits.push(hit(p.name, p.country, f.geometry.coordinates[1], f.geometry.coordinates[0], p.osm_type && p.osm_id ? `${p.osm_type}${p.osm_id}` : null, span,
+      p.extent && [p.extent[0], p.extent[3], p.extent[2], p.extent[1]]));
+  });
+  return hits;
+}
+
+// Drop repeats: the same name nearby (two services, or several pieces of one feature)
+const samePlace = (p, q) => p.name.split(",")[0] === q.name.split(",")[0] && Math.abs(p.lat - q.lat) < 1 && Math.abs(p.lon - q.lon) < 1;
+
 // Find places by name: "lat, lon" typed directly, our short list of famous regions, then the geocoders
 async function findPlaces(text) {
   const direct = text.match(/^\s*(-?\d+(?:\.\d+)?)[\s,;]+(-?\d+(?:\.\d+)?)\s*$/);
   if (direct && Math.abs(+direct[1]) <= 90 && Math.abs(+direct[2]) <= 180) {
     return [{ name: null, label: coordText(+direct[1], +direct[2]), lat: +direct[1], lon: +direct[2] }];   // name is looked up after picking
   }
-  const found = REGIONS.filter(([key]) => TEXT(text).includes(` ${key}`)).map(regionHit);
-  found.push(...(await geocode(text)));
-  return found.filter((p, i) => found.findIndex((q) => q.name === p.name) === i).slice(0, 6);
+  // order: features with a real outline ("Volga River", "Lake Baikal"), then our region boxes
+  // ("Gobi"), then features that are only a point, then towns and other places
+  const features = await findFeatures(text);
+  const outlined = features.filter((f) => f.kind === "large" && f.osm && f.osm[0] !== "N");
+  const regions = REGIONS.filter(([key]) => TEXT(text).includes(` ${key}`)).map(regionHit);
+  const found = [...outlined, ...regions, ...features.filter((f) => !outlined.includes(f)), ...(await geocode(text))];
+  return found.filter((p, i) => found.findIndex((q) => q.name === p.name || samePlace(p, q)) === i).slice(0, 6);
 }
 
 // Places for a whole question: famous regions in it, then each candidate name, then single words
 async function placesForQuestion(question, q) {
   const regions = REGIONS.filter(([key]) => TEXT(question).includes(` ${key}`)).map(regionHit);
-  if (regions.length) return regions.filter((p, i) => regions.findIndex((r) => r.name === p.name) === i);
+  // a named feature that isn't one of our regions ("Amazon River" is not the Amazon rainforest;
+  // "Lake Mead" is our Lake Mead)
+  const namesFeature = (q.namedPlaces || []).some((c) => featureWordOf(c) && !regions.some((r) => TEXT(c).trim() === r.regionKey));
+  if (regions.length && !namesFeature) return regions.filter((p, i) => regions.findIndex((r) => r.name === p.name) === i);
   for (const candidate of q.placeCandidates) {
     const places = await findPlaces(candidate);
     if (places.length) return places;
@@ -1049,7 +1172,7 @@ function placePicker(input, list, onPick, withQuestions) {
 function buildSearch() {
   placePicker($("search"), $("suggestions"), (hit, text, q) => {
     state.question = { text, code: hit.variable ? hit.variable.code : null, intent: intentOf(text), season: seasonOf(text),
-                       kind: hit.kind || "place", asksWhy: q.asksWhy, missing: q.missing, period: q.period };
+                       kind: hit.kind || "place", feature: hit.feature || null, asksWhy: q.asksWhy, missing: q.missing, period: q.period };
     state.period = q.period || null;            // a new question tests the years it names, or the whole record
     state.lastArea = null;
     goTo(hit, state.question.code);
@@ -1117,6 +1240,9 @@ function renderAnswer() {
   if (q.missing) notes.push(escapeHTML(q.missing.say));
   if (q.asksWhy) notes.push("ByteMe shows what changed and how sure we are, not why: finding the cause needs a separate investigation.");
   if (state.area && state.place.info) notes.push(areaText(state.area, state.place.info));
+  else if (q.feature && !["mount", "peak", "volcano", "waterfall"].includes(q.feature)) {
+    notes.push(`OpenStreetMap has no outline for ${escapeHTML(state.name)}, so these numbers are for one NASA grid square near its middle (about 55 km wide). Click the map to check other parts.`);
+  }
   else if (q.kind === "large") {
     notes.push(`We couldn't get the outline of ${escapeHTML(state.name)}, so these numbers are for one NASA grid square near its centre ` +
       `(about ${v && v.dataset === "nasa" ? 110 : 55} km wide). Click the map to check other parts.`);

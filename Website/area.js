@@ -1,7 +1,9 @@
 // Area averages for countries and regions.
 //
 // A country is much bigger than one NASA grid square, so for a country or region we average the
-// monthly records of many squares inside its outline:
+// monthly records of many squares inside its outline. Rivers and mountain ranges are lines, not
+// areas: for them we average along the line instead (the land and air along a river, not the
+// river's water).
 // - NASA POWER (asked live, one point per request): up to MAX_POINTS evenly spaced points.
 // - Satellite and model grids (data/nasa/): every 1-degree square inside the outline (for very big
 //   countries, the squares in the MAX_TILES tiles that cover most of it).
@@ -16,6 +18,9 @@ const ByteMeArea = (function () {
 
   // GeoJSON Polygon or MultiPolygon -> list of polygons, each a list of rings [[lon, lat], ...]
   const polygonsOf = (g) => (g.type === "Polygon" ? [g.coordinates] : g.type === "MultiPolygon" ? g.coordinates : []);
+  // GeoJSON LineString or MultiLineString -> list of lines [[lon, lat], ...]
+  const linesOf = (g) => (g.type === "LineString" ? [g.coordinates] : g.type === "MultiLineString" ? g.coordinates : []);
+  const isLine = (g) => linesOf(g).length > 0;
 
   // Is a point inside the shape? (ray casting; holes such as lakes count as outside)
   function inside(lon, lat, geometry) {
@@ -34,10 +39,25 @@ const ByteMeArea = (function () {
 
   function bbox(geometry) {
     let w = 180, s = 90, e = -180, n = -90;
-    polygonsOf(geometry).forEach((p) => p[0].forEach(([x, y]) => {
+    [...polygonsOf(geometry).map((p) => p[0]), ...linesOf(geometry)].forEach((ring) => ring.forEach(([x, y]) => {
       w = Math.min(w, x); e = Math.max(e, x); s = Math.min(s, y); n = Math.max(n, y);
     }));
     return [w, s, e, n];
+  }
+
+  // Points every `step` degrees along a line feature (all its parts)
+  function alongLine(geometry, step) {
+    const out = [];
+    linesOf(geometry).forEach((line) => {
+      let carry = 0;
+      for (let i = 1; i < line.length; i++) {
+        const [x0, y0] = line[i - 1], [x1, y1] = line[i];
+        const length = Math.hypot(x1 - x0, y1 - y0);
+        for (let d = carry; d < length; d += step) out.push({ lon: x0 + ((x1 - x0) * d) / length, lat: y0 + ((y1 - y0) * d) / length });
+        carry = length ? (step - ((length - carry) % step)) % step : carry;
+      }
+    });
+    return out;
   }
 
   // Centres of a regular grid (spacing `step` degrees, aligned to whole degrees) that fall inside
@@ -54,6 +74,12 @@ const ByteMeArea = (function () {
   // Up to MAX_POINTS evenly spaced points inside the shape: try a fine grid, make it coarser
   // until few enough points remain. A tiny shape gets the middle of its bounding box.
   function samplePoints(geometry) {
+    if (isLine(geometry)) {                       // a river: evenly spaced along its course
+      const fine = alongLine(geometry, 0.1);
+      if (!fine.length) return [];
+      const count = Math.min(MAX_POINTS, fine.length);
+      return Array.from({ length: count }, (_, i) => fine[Math.round(((i + 0.5) * (fine.length - 1)) / count)]);
+    }
     const [w, s, e, n] = bbox(geometry);
     let step = 0.5, points = gridInside(geometry, step);
     while (points.length > MAX_POINTS) { step *= 1.4; points = gridInside(geometry, step); }
@@ -64,7 +90,12 @@ const ByteMeArea = (function () {
   // 1-degree squares inside the shape, grouped by 10-degree tile. Very big shapes keep the
   // MAX_TILES tiles that hold most of their squares; `sampled` says when that happened.
   function squaresInside(geometry, tileSize = 10) {
-    let squares = gridInside(geometry, 1);
+    let squares = isLine(geometry)                // a river: the 1-degree squares it passes through
+      ? [...new Map(alongLine(geometry, 0.1).map((p) => {
+          const q = { lat: Math.floor(p.lat) + 0.5, lon: Math.floor(p.lon) + 0.5 };
+          return [`${q.lat},${q.lon}`, q];
+        })).values()]
+      : gridInside(geometry, 1);
     if (!squares.length) {
       const [w, s, e, n] = bbox(geometry);
       squares = [{ lat: Math.floor((s + n) / 2) + 0.5, lon: Math.floor((w + e) / 2) + 0.5 }];
@@ -105,7 +136,7 @@ const ByteMeArea = (function () {
     return { dates, values };
   }
 
-  return { inside, bbox, samplePoints, squaresInside, average, MAX_POINTS, MAX_TILES };
+  return { inside, bbox, isLine, samplePoints, squaresInside, average, MAX_POINTS, MAX_TILES };
 })();
 
 if (typeof module !== "undefined") module.exports = ByteMeArea;
