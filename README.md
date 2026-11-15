@@ -67,28 +67,31 @@ are). The **Mann-Kendall test** double-checks for a steady rise or fall without 
 curve. As the challenge suggests, we stick to **linear trends**: a straight line is a
 simplification, and we say so.
 
-## Run it (once the code exists)
+## Run the Byte Me Streamlit app
+
+Use Python 3.11 or newer. From the repository root, assemble the Byte Me frontend and its
+bundled NASA data. The assembly command recreates `final/streamlit/`.
 
 ```bash
+python Task4/scripts/combine.py --frontend FrontEnd_nasa --out final/streamlit --no-checks
+cd final/streamlit
 pip install -r requirements.txt
-```
-
-```bash
 streamlit run app.py
 ```
 
+Open [localhost:8501](http://localhost:8501). Choose **Start**, then open a dataset. Use
+**Months to analyze** to change the period and **Compare with another place** to compare both
+locations over the same observed months. The Query URL preserves the dataset, dates, and
+comparison place. **Browse available data** works with the base requirements. For model setup, see
+[Searchlight and the Streamlit frontend](FrontEnd_nasa/README.md).
+
 ## Repository
 
-```
-AGENTS.md            instructions for AI coding agents (and humans)
-docs/PLAN.md         roles, tasks, timeline, starter prompts
-docs/HANDSHAKES.md   interfaces between the 4 parts
-app.py, charts.py    website (Frontend)
-scripts/, data_io.py data download + loading (Data)
-search.py, explain.py, pages/  search, explanations, guided demo (Search + explainability)
-stats.py, tests/     trend + significance (Trend & integration)
-data/                places, variables, monthly CSVs, sources
-```
+- `FrontEnd_nasa/` holds the Byte Me Streamlit pages and charts. `FrontEnd_claude/` holds the earlier Hyperion frontend.
+- `Task2/`, `Task3/`, and `Task4/` hold the data, search and explanations, and trend analysis.
+- `final/streamlit/` is the runnable app produced by the command above.
+- `Website/` holds the separate static site.
+- `docs/PLAN.md` and `docs/HANDSHAKES.md` describe the team plan and shared interfaces.
 
 ## Data sources
 Main source: [NASA Giovanni](https://giovanni.gsfc.nasa.gov) (fallback: [NASA POWER](https://power.larc.nasa.gov)).

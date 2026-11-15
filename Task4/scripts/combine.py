@@ -10,9 +10,9 @@ What goes where (see AGENTS.md "Repo layout"):
                                scripts/convert_giovanni.py
     Task3 (Search+explain)  -> search.py, search_model.py, explain.py, pages/, models/search/,
                                scripts/*search*.py, data/search_*.jsonl
-    Task4 (Trend)           -> stats.py, tests/, scripts/results_table.py, scripts/check_handshakes.py
-    Frontend (optional)     -> app.py, investigate.py, charts.py, .streamlit/  (its FAKE data_io/stats/explain/search
-                               files are NOT copied: the real ones above replace them)
+    Task4 (Trend)           -> stats.py, investigation.py, tests/, scripts/results_table.py, scripts/check_handshakes.py
+    Frontend (optional)     -> app.py, investigate.py, charts.py, .streamlit/, and Byte Me's UI files
+                               (the real data_io/stats/explain/search modules are retained)
     places.csv/variables.csv -> from Task3/data if they exist, otherwise the starting catalogue
                                built into Task2/data_io.py
 
@@ -53,6 +53,8 @@ REQUIREMENTS_SEARCH = """\
 sentence-transformers==5.1.2
 torch
 """
+
+BYTE_ME_STREAMLIT = "streamlit>=1.67,<2"
 
 
 def _show(path: Path) -> str:
@@ -117,20 +119,29 @@ def combine(out: Path, frontend: Path | None):
 
     print("Trend + integration (Task4):")
     copy(t4 / "stats.py", out / "stats.py")
+    copy(t4 / "investigation.py", out / "investigation.py")
     copy(t4 / "tests", out / "tests")
     for name in ("results_table.py", "check_handshakes.py"):
         copy(t4 / "scripts" / name, out / "scripts" / name)
 
+    byte_me = frontend is not None and (frontend / "ui_navigation.py").is_file()
     if frontend:
         print("Frontend:")
         for name in ("app.py", "investigate.py", "charts.py"):
             copy(frontend / name, out / name)
         copy(frontend / ".streamlit", out / ".streamlit")
-        # pages/ come from Task3 only (the frontend's pages/ are just links to them)
+        # Byte Me uses its own page router. Keep the Task3 teaching pages alongside it.
+        if byte_me:
+            for name in ("ui_navigation.py", "investigation_view.py"):
+                copy(frontend / name, out / name)
+            copy(frontend / "assets", out / "assets")
+            for page in ("0_Home.py", "1_Investigation.py", "2_About.py"):
+                copy(frontend / "pages" / page, out / "pages" / page)
     else:
         print("Frontend: not included (pass --frontend PATH once app.py exists)")
 
-    (out / "requirements.txt").write_text(REQUIREMENTS, encoding="utf-8")
+    requirements = REQUIREMENTS.replace("streamlit>=1.40", BYTE_ME_STREAMLIT) if byte_me else REQUIREMENTS
+    (out / "requirements.txt").write_text(requirements, encoding="utf-8")
     (out / "requirements-search.txt").write_text(REQUIREMENTS_SEARCH, encoding="utf-8")
     print("  requirements.txt, requirements-search.txt written")
 
