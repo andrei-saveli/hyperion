@@ -40,6 +40,11 @@ SOURCES = {"GPM_RAIN": "GPM", "GLDAS_SOILM": "GLDAS", "GLDAS_EVAP": "GLDAS", "GL
            "AIRS_CH4": "AIRSX", "AIRS_CO": "AIRSX", "AIRS_T50": "AIRSX"}
 # Size of a square in degrees (1 unless listed here)
 STEP = {"MERRA2_DUST": 2, "MERRA2_SMOKE": 2, "MERRA2_SULFATE": 2, "AIRS_CH4": 2, "AIRS_CO": 2, "AIRS_T50": 2}
+# First month used (default: the first month downloaded). MERRA-2's dust, smoke and sulfate lean on
+# satellite aerosol measurements that only exist since MODIS (Terra 2000, Aqua 2002): before that
+# the model had far less to go on, and the 1982 and 1991 volcanic eruptions fill the early years
+# with haze. Starting in 2003 keeps the trend from being a change in the observing system.
+START = {"MERRA2_DUST": "2003-01", "MERRA2_SMOKE": "2003-01", "MERRA2_SULFATE": "2003-01"}
 VERDICT_NUMBER = {"insufficient": 0, "none": 1, "possible": 2, "significant": 3}
 
 
@@ -55,7 +60,7 @@ def coarsen(cube, step):
 
 def load(code):
     """All months of one measurement: (list of 'YYYY-MM', array months x 180 x 360). Gaps = NaN."""
-    files = sorted(f for f in (CACHE / SOURCES[code]).glob("*.npz") if "tmp" not in f.name)
+    files = sorted(f for f in (CACHE / SOURCES[code]).glob("*.npz") if "tmp" not in f.name and f.stem >= START.get(code, ""))
     found = {f.stem: f for f in files}
     first, last = pd.Period(files[0].stem, "M"), pd.Period(files[-1].stem, "M")
     months = [str(p) for p in pd.period_range(first, last, freq="M")]

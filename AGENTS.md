@@ -157,7 +157,7 @@ Since then the challenge's own datasets were added as **prepared 1° grids** (Ea
 `Website/build_nasa_grids.py`): GPM IMERG rain, GLDAS soil moisture / evaporation / runoff, MODIS
 NDVI and land surface temperature, OMI NO₂ (daily averaged by month), AIRS air temperature. Where a
 measurement exists twice (e.g. MERRA-2 vs GPM rain) the site tests both over shared years and says
-whether they agree ("second source"). Tiles live in `Website/data/nasa/` (~300 MB): rebuild and
+whether they agree ("second source"). Tiles live in `Website/data/nasa/` (~340 MB): rebuild and
 commit them rarely, each rebuild adds that much to git history.
 
 ### Stack (simplified for a beginner team)
