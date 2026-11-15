@@ -1,16 +1,21 @@
-// Reads one 1-degree square's monthly series out of a NASA tile file (data/nasa/<CODE>/<tile>.bin).
+// Reads one square's monthly series out of a NASA tile file (data/nasa/<CODE>/<tile>.bin).
+// Most measurements use 1-degree squares; smooth fields of the upper air and of dust and smoke use
+// 2-degree squares ("step": 2 in data/nasa/index.json) to keep the files small.
 // Kept separate from app.js so tests/test_nasa.js can check it against the Python build.
 //
 // Tile format (written by build_nasa_tiles.py): little-endian 16-bit whole numbers, 100 squares
-// (south to north, then west to east inside a 10 x 10 degree tile), each followed by all its months.
+// (25 for 2-degree squares; south to north, then west to east inside a 10 x 10 degree tile), each
+// followed by all its months.
 // Real value = number x scale + offset; the "missing" number means no data that month.
 const ByteMeNasa = (function () {
   // Which tile file and which square inside it hold a place
-  function locate(lat, lon, tileSize) {
-    const row = Math.min(179, Math.max(0, Math.floor(lat + 90)));
-    const col = ((Math.floor(lon + 180) % 360) + 360) % 360;
-    const tileRow = row - (row % tileSize), tileCol = col - (col % tileSize);
-    return { tile: `${tileRow - 90}_${tileCol - 180}`, square: (row - tileRow) * tileSize + (col - tileCol) };
+  // tileSize: degrees per tile (10); step: degrees per square (1 or 2)
+  function locate(lat, lon, tileSize, step = 1) {
+    const rows = 180 / step, cols = 360 / step, n = tileSize / step;   // n squares along a tile's side
+    const row = Math.min(rows - 1, Math.max(0, Math.floor((lat + 90) / step)));
+    const col = ((Math.floor((lon + 180) / step) % cols) + cols) % cols;
+    const tileRow = row - (row % n), tileCol = col - (col % n);
+    return { tile: `${tileRow * step - 90}_${tileCol * step - 180}`, square: (row - tileRow) * n + (col - tileCol) };
   }
 
   // -> { dates: [{year, month}], values: [number | null] }, without the empty months at either end,

@@ -157,7 +157,7 @@ Since then the challenge's own datasets were added as **prepared 1° grids** (Ea
 `Website/build_nasa_grids.py`): GPM IMERG rain, GLDAS soil moisture / evaporation / runoff, MODIS
 NDVI and land surface temperature, OMI NO₂ (daily averaged by month), AIRS air temperature. Where a
 measurement exists twice (e.g. MERRA-2 vs GPM rain) the site tests both over shared years and says
-whether they agree ("second source"). Tiles live in `Website/data/nasa/` (~200 MB): rebuild and
+whether they agree ("second source"). Tiles live in `Website/data/nasa/` (~300 MB): rebuild and
 commit them rarely, each rebuild adds that much to git history.
 
 ### Stack (simplified for a beginner team)
@@ -234,7 +234,7 @@ Non-significant ≠ "no change". Never state causes (Investigate says how much a
   `Website/build_world.py` (Python, real `stats.py`) builds the world overview squares
   (`data/world.json`). Run: `python3 -m http.server 8000 --directory Website`. Details:
   `Website/README.md`. The 3 Giovanni regions (Task2) stay as the Python reference data set.
-- 🛰️ **NASA satellite/model grids** (GPM, GLDAS, MODIS, OMI, AIRS) on the website: 8 more
+- 🛰️ **NASA satellite/model grids** (GPM, GLDAS, MODIS, OMI, AIRS) on the website: 8 more (now 17, see below)
   measurements + second-source checks. Build: `python3 Website/build_nasa_grids.py download` then
   `build` (token needed); check: `node Website/tests/test_nasa.js`. Details: `Website/README.md`.
 - 🔎 **Website search** (rules, no AI, in `Website/app.js` + `data/variables.json`): measurement from
@@ -277,6 +277,15 @@ Non-significant ≠ "no change". Never state causes (Investigate says how much a
   fetched and SHA-256 checked by `python3 Website/get_search_model.py`) matches the question to each measurement's
   `examples`. No API, no key, never numbers. Held out: 8/13 rule misses read right, 0 wrong, 0/8 off-topic answered.
   Check: `node Website/tests/test_meaning.js` (Playwright).
+- 🗺️ **52 measurements, half of them for particular terrains** (ocean, ice and snow, land water, deserts and
+  fires, cities, levels of the atmosphere). 17 more from NASA POWER, asked live (sea ice, snow cover, snowfall,
+  frost days, soil temperatures, deep soil wetness, albedo, day–night range, cooling/heating need, dew point,
+  tropopause temperature and pressure, peak wind, heat radiation, UV index). 9 more prepared grids: sea level
+  (NASA-SSH altimetry), water stored on land (GLDAS Catchment), ice-sheet meltwater runoff, dust, smoke and
+  sulfate (MERRA-2), methane, carbon monoxide and stratosphere temperature (AIRS; these six on 2° squares).
+  `absent_if_constant` = "Not found here" instead of "no trend"; `nearest` = nearest sea square within 200 km for
+  coastal towns; `where` = says where a measurement exists. `build_world.py` now only builds new measurements.
+  Sea level, sea ice, snowfall, soil temperature, groundwater and glaciers are no longer "not available".
 - ⏭️ Next: team kickoff (30 min) → everyone starts their hour 0.5–8 tasks in `docs/PLAN.md`.
 
 ## Git

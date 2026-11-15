@@ -5,8 +5,13 @@ Writes  Website/data/nasa/index.json                   what is available, dates,
         Website/data/nasa/<CODE>/<lat>_<lon>.bin        monthly series, one 10 x 10 degree tile per file
         Website/data/nasa/<CODE>_map.json               trend of every 2 x 2 degree square (map layer)
 
+Most measurements are kept on 1-degree squares. Smooth fields (the upper air, dust, smoke, gases)
+are kept on 2-degree squares (STEP below): a quarter of the file size, and nothing is lost that a
+trend over a region would show.
+
 Tile format (kept simple so the website can read it with a few lines of JavaScript):
-  little-endian 16-bit integers; 100 squares (south to north, then west to east inside the tile),
+  little-endian 16-bit integers; 100 squares (25 for 2-degree squares; south to north, then west
+  to east inside the tile),
   each followed by all its months; value = number x scale + offset; -32768 = missing.
 
 Run: python3 Website/build_nasa_grids.py build
@@ -29,8 +34,23 @@ TILE = 10                       # tile size in degrees
 MISSING = -32768
 # Which downloaded dataset holds which website measurement
 SOURCES = {"GPM_RAIN": "GPM", "GLDAS_SOILM": "GLDAS", "GLDAS_EVAP": "GLDAS", "GLDAS_RUNOFF": "GLDAS",
-           "MODIS_NDVI": "NDVI", "MODIS_LST": "LST", "OMI_NO2": "OMI", "AIRS_T2M": "AIRS"}
+           "MODIS_NDVI": "NDVI", "MODIS_LST": "LST", "OMI_NO2": "OMI", "AIRS_T2M": "AIRS",
+           "SEA_LEVEL": "SSH", "GLDAS_TWS": "CLSM", "MERRA2_ICEMELT": "M2GLC",
+           "MERRA2_DUST": "M2AER", "MERRA2_SMOKE": "M2AER", "MERRA2_SULFATE": "M2AER",
+           "AIRS_CH4": "AIRSX", "AIRS_CO": "AIRSX", "AIRS_T50": "AIRSX"}
+# Size of a square in degrees (1 unless listed here)
+STEP = {"MERRA2_DUST": 2, "MERRA2_SMOKE": 2, "MERRA2_SULFATE": 2, "AIRS_CH4": 2, "AIRS_CO": 2, "AIRS_T50": 2}
 VERDICT_NUMBER = {"insufficient": 0, "none": 1, "possible": 2, "significant": 3}
+
+
+def coarsen(cube, step):
+    """months x 180 x 360 -> months x (180/step) x (360/step): average of the 1-degree squares inside."""
+    if step == 1:
+        return cube
+    blocks = cube.reshape(cube.shape[0], 180 // step, step, 360 // step, step)
+    with np.errstate(invalid="ignore"), __import__("warnings").catch_warnings():
+        __import__("warnings").simplefilter("ignore")              # "mean of empty slice" where all are missing
+        return np.nanmean(blocks, axis=(2, 4)).astype(np.float32)
 
 
 def load(code):
@@ -57,22 +77,24 @@ def trend_of(args):
     return (None if slope is None else float(f"{slope:.3g}")), VERDICT_NUMBER[r["verdict"]]
 
 
-def write_tiles(code, months, cube):
-    """Monthly series in 10 x 10 degree tiles. Returns (scale, offset, list of tiles with data)."""
+def write_tiles(code, months, cube, step=1):
+    """Monthly series in 10 x 10 degree tiles. cube: months x rows x columns of squares `step`
+    degrees wide. Returns (scale, offset, list of tiles with data)."""
+    n = TILE // step                                                     # squares along a tile's side
     low, high = np.nanmin(cube), np.nanmax(cube)
     offset = float((low + high) / 2)
     scale = float(max(high - low, 1e-9) / 65000)          # fits in -32500 .. 32500
     folder = OUT / code
     folder.mkdir(parents=True, exist_ok=True)
     tiles = []
-    for row in range(0, 180, TILE):
-        for col in range(0, 360, TILE):
-            block = cube[:, row:row + TILE, col:col + TILE]              # months x 10 x 10
+    for row in range(0, 180 // step, n):
+        for col in range(0, 360 // step, n):
+            block = cube[:, row:row + n, col:col + n]                    # months x n x n
             if not np.isfinite(block).any():
                 continue
-            series = block.reshape(len(months), TILE * TILE).T           # 100 squares x months
+            series = block.reshape(len(months), n * n).T                 # squares x months
             ints = np.where(np.isfinite(series), np.round((series - offset) / scale), MISSING)
-            name = f"{row - 90}_{col - 180}"                             # south-west corner, degrees
+            name = f"{row * step - 90}_{col * step - 180}"               # south-west corner, degrees
             (folder / f"{name}.bin").write_bytes(ints.astype("<i2").tobytes())
             tiles.append(name)
     return scale, offset, tiles
@@ -82,9 +104,7 @@ def map_layer(code, months, cube, percent, pool, low_level=None):
     """Trend of every 2 x 2 degree square (average of its four 1-degree squares).
     low_level: squares whose average is below it are marked "not enough data" (e.g. NO2 over clean
     oceans, where the satellite is near its detection limit and trends aren't trustworthy)."""
-    blocks = cube.reshape(len(months), 90, 2, 180, 2)
-    with np.errstate(invalid="ignore"):
-        coarse = np.nanmean(blocks, axis=(2, 4))                         # months x 90 x 180
+    coarse = coarsen(cube, 2)                                            # months x 90 x 180
     series = coarse.reshape(len(months), -1).T
     results = pool.map(trend_of, [(months, s, percent) for s in series], chunksize=64)
     if low_level is not None:
@@ -115,11 +135,14 @@ def build(only=None):
                 continue
             months, cube = load(code)
             gaps = int(sum(not np.isfinite(cube[i]).any() for i in range(len(months))))
-            scale, offset, tiles = write_tiles(code, months, cube)
+            step = STEP.get(code, 1)
+            scale, offset, tiles = write_tiles(code, months, coarsen(cube, step), step)
             layer = map_layer(code, months, cube, percent.get(code, False), pool, low_level.get(code))
             (OUT / f"{code}_map.json").write_text(json.dumps(layer, separators=(",", ":")))
             index["variables"][code] = {"start": months[0], "months": len(months), "scale": scale,
                                         "offset": offset, "tiles": tiles}
+            if step != 1:
+                index["variables"][code]["step"] = step
             print(f"{code}: {months[0]}..{months[-1]} ({len(months)} months, {gaps} missing), "
                   f"{len(tiles)} tiles, {sum(v == 3 for v in layer['verdict'])} significant map squares", flush=True)
     (OUT / "index.json").write_text(json.dumps(index, separators=(",", ":")))
@@ -127,16 +150,19 @@ def build(only=None):
     print("Wrote", OUT)
 
 
-def write_test_reference(index, places=((44.4, 26.1), (28.6, 77.2), (-3.1, -60.0), (78.2, 15.6), (0.5, -140.5), (-33.9, 151.2))):
+def write_test_reference(index, places=((44.4, 26.1), (28.6, 77.2), (-3.1, -60.0), (78.2, 15.6), (0.5, -140.5), (-33.9, 151.2),
+                                        (69.5, -49.5), (23.5, 10.5))):       # + Greenland's ice edge and the Sahara
     """Expected series for a few places, straight from the downloaded grids, so tests/test_nasa.js can
     check that the website reads the tiles back correctly."""
     cases = []
     for code in index["variables"]:
         if not (CACHE / SOURCES[code]).exists():
             continue
+        step = STEP.get(code, 1)
         months, cube = load(code)
+        cube = coarsen(cube, step)
         for lat, lon in places:
-            row, col = min(179, int(np.floor(lat + 90))), int(np.floor(lon + 180)) % 360
+            row, col = min(180 // step - 1, int(np.floor((lat + 90) / step))), int(np.floor((lon + 180) / step)) % (360 // step)
             values = [None if not np.isfinite(x) else float(x) for x in cube[:, row, col]]
             cases.append({"code": code, "lat": lat, "lon": lon, "months": months, "values": values})
     (HERE / "tests" / "nasa_reference.json").write_text(json.dumps(cases, separators=(",", ":")))

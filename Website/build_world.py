@@ -5,6 +5,9 @@ monthly NASA POWER record for every measurement in data/variables.json and runs 
 real trend code (Task4/stats.py) on it. The website draws the result as coloured squares, so a
 visitor sees at a glance WHERE each measurement is rising or falling.
 
+Measurements that are already in data/world.json are kept as they are; only new ones are
+downloaded and tested (use --all to redo everything).
+
 Run (takes roughly 15-30 minutes, safe to stop and restart: finished points are kept):
     python3 Website/build_world.py            # 5 degree grid
     python3 Website/build_world.py --step 10  # quicker, coarser
@@ -64,7 +67,11 @@ def one_point(lat, lon, variables):
         return None
     out = {}
     for v in variables:
-        r = analyze(to_frame(data[v["code"]], v.get("scale", 1)), code="RAIN" if v["percent"] else None)
+        frame = to_frame(data[v["code"]], v.get("scale", 1))
+        if v.get("absent_if_constant") and frame["value"].nunique() <= 1:
+            out[v["code"]] = [None, 0]               # never changes (e.g. no sea ice here): not present
+            continue
+        r = analyze(frame, code="RAIN" if v["percent"] else None)
         slope = r["slope_per_decade"]
         out[v["code"]] = [None if slope is None else float(f"{slope:.3g}"), VERDICT_NUMBER[r["verdict"]]]
     return out
@@ -74,16 +81,28 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--step", type=float, default=5.0, help="grid spacing in degrees")
     parser.add_argument("--workers", type=int, default=4)
+    parser.add_argument("--all", action="store_true", help="redo every measurement, not only new ones")
     args = parser.parse_args()
 
-    variables = [v for v in json.loads((HERE / "data" / "variables.json").read_text())["variables"] if v.get("dataset") != "nasa"]
+    everything = [v for v in json.loads((HERE / "data" / "variables.json").read_text())["variables"] if v.get("dataset") != "nasa"]
     step = args.step
+    world_file = HERE / "data" / "world.json"
+    old = json.loads(world_file.read_text()) if world_file.exists() and not args.all else None
+    if old and old["step"] != step:
+        old = None                                   # a different grid: start again
+    variables = [v for v in everything if not (old and v["code"] in old["slope"])]
+    if not variables:
+        print("Nothing new to build.")
+        return
+    print("Building:", ", ".join(v["code"] for v in variables), flush=True)
     lats = [round(-90 + step / 2 + i * step, 3) for i in range(int(180 / step))]
     lons = [round(-180 + step / 2 + i * step, 3) for i in range(int(360 / step))]
     points = [(lat, lon) for lat in lats for lon in lons]
 
     partial_file = HERE / "data" / f"world_partial_{step:g}.json"     # lets you stop and restart
     done = json.loads(partial_file.read_text()) if partial_file.exists() else {}
+    wanted = {v["code"] for v in variables}
+    done = {k: r for k, r in done.items() if set(r) == wanted}        # left over from a different set: redo
     todo = [p for p in points if f"{p[0]},{p[1]}" not in done]
     print(f"{len(points)} grid points, {len(todo)} still to do", flush=True)
 
@@ -107,6 +126,12 @@ def main():
         "slope": {v["code"]: [done[f"{a},{b}"][v["code"]][0] for a, b in points] for v in variables},
         "verdict": {v["code"]: [done[f"{a},{b}"][v["code"]][1] for a, b in points] for v in variables},
     }
+    if old:                                          # keep the measurements that were already there
+        if old["points"] != world["points"] or old["start"] != START_YEAR or old["end"] != END_YEAR:
+            print("data/world.json was built for other years or points. Run again with --all.")
+            return
+        for key in ("slope", "verdict"):
+            world[key] = {**old[key], **world[key]}
     (HERE / "data" / "world.json").write_text(json.dumps(world, separators=(",", ":")))
     partial_file.unlink()
     print("Wrote data/world.json")

@@ -12,7 +12,7 @@ let failures = 0;
 
 for (const c of cases) {
   const info = index.variables[c.code];
-  const { tile, square } = locate(c.lat, c.lon, index.tile);
+  const { tile, square } = locate(c.lat, c.lon, index.tile, info.step || 1);
   const file = path.join(root, c.code, `${tile}.bin`);
   const expectedReal = c.values.filter((v) => v !== null).length;
   if (!fs.existsSync(file)) {
