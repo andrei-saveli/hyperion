@@ -792,6 +792,12 @@
  ],
  "not_available": [
   {
+   "words": "",
+   "phrases": "sea level, sea levels, sea-level, rising seas, rising sea",
+   "say": "Sea level isn't in our data set (NASA measures it with satellite altimeters, which ByteMe doesn't use yet).",
+   "closest": "TS"
+  },
+  {
    "words": "forecast forecasts predict prediction projected projection projections",
    "say": "ByteMe measures how things changed in the past; it doesn't forecast the future.",
    "closest": null,

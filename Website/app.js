@@ -884,6 +884,7 @@ const regionHit = ([key, name, lat, lon, box]) => ({ name, lat, lon, box, region
 
 // Read a question: which measurement, what we don't have, which words might name a place
 function understand(text) {
+  text = text.replace(/(\p{Ll})(\p{Lu})/gu, "$1 $2");   // "BlackSea" -> "Black Sea"
   const t = TEXT(text);
   let rest = t;                                  // the question minus the words we have explained
   const take = (piece) => { rest = rest.split(` ${piece} `).join("  "); };
@@ -902,59 +903,78 @@ function understand(text) {
     }
   }
 
-  // 1) measurement. Phrases count 6: all phrases of all measurements are found first and the
-  //    longest wins where two overlap ("land surface temperature" beats "surface temperature").
-  //    Then each remaining word counts once per measurement: a keyword 3; a weak keyword, a word
-  //    of the measurement's name, or a word of its family (e.g. "warmer" for night temperature) 2.
-  //    So "nights getting warmer" -> nights (3) + warmer (2) beats plain air temperature (3).
-  const hits = [];
-  VARS.forEach((v, i) => listOf(v.phrases).forEach((p) => {
-    for (let at = scoreText.indexOf(` ${p} `); at >= 0; at = scoreText.indexOf(` ${p} `, at + 1)) hits.push({ i, p, start: at, end: at + p.length + 1 });
-  }));
-  hits.sort((x, y) => y.p.length - x.p.length);
-  const scores = VARS.map(() => 0), covered = [], familyCredit = VARS.map(() => 0);
-  hits.forEach((h) => {
-    if (covered.some(([s0, e0]) => h.start < e0 && s0 < h.end)) return;   // a longer phrase already covers these words
-    covered.push([h.start, h.end]); scores[h.i] += 6; h.p.split(" ").forEach(take);
-    const fam = VARS[h.i].family;               // the family's other members may get part of the credit (below)
-    if (fam) VARS.forEach((v, j) => { if (j !== h.i && v.family === fam) familyCredit[j] = Math.max(familyCredit[j], 4); });
-  });
-  let free = scoreText;
-  covered.forEach(([s0, e0]) => { free = free.slice(0, s0) + " ".repeat(e0 - s0) + free.slice(e0); });
-  const freeWords = words(free);
-  VARS.forEach((v, i) => {
-    const keys = words(v.keywords), weak = words(v.weak || ""), name = words(v.name).filter((w) => !FILLER.has(w));
-    const family = v.family && FAMILIES[v.family] && FAMILIES[v.family].head !== v.code ? words(FAMILIES[v.family].words) : [];
-    let ownKeyword = false;
-    freeWords.forEach((tok) => {
-      // ordinary words ("air", "ground") only count when a list holds exactly that word
-      const same = FILLER.has(tok) ? (k) => k === tok : (k) => matches(tok, k);
-      if (keys.some(same)) { scores[i] += 3; ownKeyword = true; take(tok); return; }
-      if (weak.some(same)) { scores[i] += 2; take(tok); return; }
-      if (FILLER.has(tok)) return;
-      if ([...name, ...family].some(same)) { scores[i] += 2; take(tok); }
-    });
-    // "GLDAS soil moisture": a family phrase counts for a member only when the question also names
-    // that member specifically (here "gldas")
-    if (ownKeyword) scores[i] += familyCredit[i];
-  });
-  const best = Math.max(...scores);
-  let variable = best > 0 ? VARS[scores.indexOf(best)] : null;
-  if (!variable && missing && missing.closest) variable = VARS.find((v) => v.code === missing.closest) || null;   // closest we have
-
-  const years = (t.match(/\b(1[89]\d\d|20\d\d)\b/g) || []).map(Number);
-  if (!missing && years.some((y) => y < START_YEAR)) missing = { say: `Our records start in ${START_YEAR} (haze in 2001), so earlier years aren't available.` };
-  if (!missing && years.some((y) => y > END_YEAR)) missing = { say: `Our records run to ${END_YEAR}. ByteMe measures past change; it doesn't forecast.` };
-
-  // 3) place: names with capital letters first ("Hoover Dam"), then the leftover words
+  // Names written with capital letters ("Hoover Dam", "Black Sea"): the likely place names
   const capitals = (text.match(/[A-ZÀ-Ž][\p{L}'’.-]*(?:\s+(?:of|de|del|da|la|le|the)?\s*[A-ZÀ-Ž][\p{L}'’.-]*)*/gu) || [])
     .map((c) => c.replace(/['’]s\b/g, "").split(/\s+/))
     .map((ws) => { while (ws.length && FILLER.has(ws[0].toLowerCase())) ws.shift(); return ws.join(" "); })
     .map((c) => c.replace(/[.,;:!?]+$/, ""))
     .filter((c) => c.length >= 3 && !FILLER.has(c.toLowerCase()) && !VARS.some((v) => words(v.keywords).includes(c.toLowerCase())));
+
+  // 1) measurement. Phrases count 6: all phrases of all measurements are found first and the
+  //    longest wins where two overlap ("land surface temperature" beats "surface temperature").
+  //    Then each remaining word counts once per measurement: a keyword 3; a weak keyword, a word
+  //    of the measurement's name, or a word of its family (e.g. "warmer" for night temperature) 2.
+  //    So "nights getting warmer" -> nights (3) + warmer (2) beats plain air temperature (3).
+  // scoresOf(source, record): points per measurement for a text; record = true also marks the
+  // words used, so they aren't mistaken for a place name
+  const scoresOf = (source, record) => {
+    const mark = record ? take : () => {};
+    const hits = [];
+    VARS.forEach((v, i) => listOf(v.phrases).forEach((p) => {
+      for (let at = source.indexOf(` ${p} `); at >= 0; at = source.indexOf(` ${p} `, at + 1)) hits.push({ i, p, start: at, end: at + p.length + 1 });
+    }));
+    hits.sort((x, y) => y.p.length - x.p.length);
+    const scores = VARS.map(() => 0), covered = [], familyCredit = VARS.map(() => 0);
+    hits.forEach((h) => {
+      if (covered.some(([s0, e0]) => h.start < e0 && s0 < h.end)) return;   // a longer phrase already covers these words
+      covered.push([h.start, h.end]); scores[h.i] += 6; h.p.split(" ").forEach(take);
+      const fam = VARS[h.i].family;               // the family's other members may get part of the credit (below)
+      if (fam) VARS.forEach((v, j) => { if (j !== h.i && v.family === fam) familyCredit[j] = Math.max(familyCredit[j], 4); });
+    });
+    let free = source;
+    covered.forEach(([s0, e0]) => { free = free.slice(0, s0) + " ".repeat(e0 - s0) + free.slice(e0); });
+    const freeWords = words(free);
+    VARS.forEach((v, i) => {
+      const keys = words(v.keywords), weak = words(v.weak || ""), name = words(v.name).filter((w) => !FILLER.has(w));
+      const family = v.family && FAMILIES[v.family] && FAMILIES[v.family].head !== v.code ? words(FAMILIES[v.family].words) : [];
+      let ownKeyword = false;
+      freeWords.forEach((tok) => {
+        // ordinary words ("air", "ground") only count when a list holds exactly that word
+        const same = FILLER.has(tok) ? (k) => k === tok : (k) => matches(tok, k);
+        if (keys.some(same)) { scores[i] += 3; ownKeyword = true; mark(tok); return; }
+        if (weak.some(same)) { scores[i] += 2; mark(tok); return; }
+        if (FILLER.has(tok)) return;
+        if ([...name, ...family].some(same)) { scores[i] += 2; mark(tok); }
+      });
+      // "GLDAS soil moisture": a family phrase counts for a member only when the question also names
+      // that member specifically (here "gldas")
+      if (ownKeyword) scores[i] += familyCredit[i];
+    });
+    return scores;
+  };
+  const scores = scoresOf(scoreText, true);
+  const best = Math.max(...scores);
+  let variable = best > 0 ? VARS[scores.indexOf(best)] : null;
+  // The question asked for something we don't have ("sea level"). Did it also ask for one of our
+  // measurements, or was that only suggested by a word of the place name ("sea" in "Black Sea")?
+  let closestOnly = false;
+  if (missing && missing.closest) {
+    let withoutNames = scoreText;
+    capitals.forEach((c) => { const p = TEXT(c).trim(); withoutNames = withoutNames.split(` ${p} `).join(" " + " ".repeat(p.length + 1)); });
+    if (!variable || Math.max(...scoresOf(withoutNames, false)) === 0) {
+      closestOnly = true;
+      variable = VARS.find((v) => v.code === missing.closest) || null;   // the closest we have
+    }
+  }
+
+  const years = (t.match(/\b(1[89]\d\d|20\d\d)\b/g) || []).map(Number);
+  if (!missing && years.some((y) => y < START_YEAR)) missing = { say: `Our records start in ${START_YEAR} (haze in 2001), so earlier years aren't available.` };
+  if (!missing && years.some((y) => y > END_YEAR)) missing = { say: `Our records run to ${END_YEAR}. ByteMe measures past change; it doesn't forecast.` };
+
+  // 3) place: names with capital letters first ("Hoover Dam", found above), then the leftover words
   const leftover = words(rest).filter((w) => !FILLER.has(w) && !/^\d/.test(w)).map((w) => w.replace(/'s$/, ""));
   return {
-    variable, missing, period: periodInQuestion(text),
+    variable, missing, closestOnly, period: periodInQuestion(text),
     placeCandidates: [...new Set([...capitals, leftover.join(" ")])].filter(Boolean),
     namedPlaces: capitals,                       // names written with capital letters ("Lake Mead")
     leftoverWords: leftover,
@@ -1009,7 +1029,7 @@ const FEATURES = {
   river: [["waterway", "river"], ["waterway", "canal"], ["waterway", "stream"]],
   lake: [["water", "lake"], ["water", "reservoir"], ["natural", "water"], ["water", "lagoon"]],
   reservoir: [["water", "reservoir"], ["natural", "water"], ["water", "lake"]],
-  sea: [["place", "sea"], ["place", "ocean"], ["natural", "bay"], ["natural", "strait"], ["natural", "water"]],
+  sea: [["place", "sea"], ["place", "ocean"], ["natural", "bay"], ["natural", "strait"], ["natural", "water"], ["water", "lake"]],   // the Dead Sea is a lake
   ocean: [["place", "ocean"], ["place", "sea"]],
   gulf: [["natural", "bay"], ["place", "sea"], ["natural", "water"]],
   bay: [["natural", "bay"], ["natural", "water"]],
@@ -1036,6 +1056,12 @@ const FEATURES = {
 const FEATURE_ALIASES = { rivers: "river", lakes: "lake", seas: "sea", mountains: "mountain", mountain: "mountain", mt: "mount",
   range: "mountain", ranges: "mountain", hills: "mountain", islands: "island", deserts: "desert", glaciers: "glacier",
   forests: "forest", rainforest: "forest", valleys: "valley", reefs: "reef", marsh: "wetland", marshes: "wetland" };
+// "blacksea" -> "black sea": a word that ends with a feature word (only used when nothing else matched)
+function splitGlued(word) {
+  const keys = [...Object.keys(FEATURES), ...Object.keys(FEATURE_ALIASES)].sort((x, y) => y.length - x.length);
+  const key = keys.find((k) => word.length >= k.length + 3 && word.endsWith(k));
+  return key ? `${word.slice(0, -key.length)} ${key}` : word;
+}
 const featureWordOf = (text) => {
   for (const w of words(text)) { const k = FEATURE_ALIASES[w] || w; if (FEATURES[k]) return k; }
   return null;
@@ -1103,7 +1129,11 @@ async function findPlaces(text) {
   }
   // order: features with a real outline ("Volga River", "Lake Baikal"), then our region boxes
   // ("Gobi"), then features that are only a point, then towns and other places
-  const features = await findFeatures(text);
+  let features = await findFeatures(text);
+  if (!features.length && !featureWordOf(text)) {          // "blacksea" -> try "black sea"
+    const split = words(text).map(splitGlued).join(" ");
+    if (split !== TEXT(text).trim()) features = (await findFeatures(split)).filter((f) => f.kind === "large");
+  }
   const outlined = features.filter((f) => f.kind === "large" && f.osm && f.osm[0] !== "N");
   const regions = REGIONS.filter(([key]) => TEXT(text).includes(` ${key}`)).map(regionHit);
   const found = [...outlined, ...regions, ...features.filter((f) => !outlined.includes(f)), ...(await geocode(text))];
@@ -1172,7 +1202,8 @@ function placePicker(input, list, onPick, withQuestions) {
 function buildSearch() {
   placePicker($("search"), $("suggestions"), (hit, text, q) => {
     state.question = { text, code: hit.variable ? hit.variable.code : null, intent: intentOf(text), season: seasonOf(text),
-                       kind: hit.kind || "place", feature: hit.feature || null, asksWhy: q.asksWhy, missing: q.missing, period: q.period };
+                       kind: hit.kind || "place", feature: hit.feature || null, asksWhy: q.asksWhy, missing: q.missing,
+                       closestOnly: q.closestOnly, period: q.period };
     state.period = q.period || null;            // a new question tests the years it names, or the whole record
     state.lastArea = null;
     goTo(hit, state.question.code);
@@ -1237,11 +1268,13 @@ function renderAnswer() {
   }
   const v = q.code && variable(q.code);
   const notes = [];
-  if (q.missing) notes.push(escapeHTML(q.missing.say));
+  if (q.missing && !q.closestOnly) notes.push(escapeHTML(q.missing.say));
   if (q.asksWhy) notes.push("ByteMe shows what changed and how sure we are, not why: finding the cause needs a separate investigation.");
   if (state.area && state.place.info) notes.push(areaText(state.area, state.place.info));
   else if (q.feature && !["mount", "peak", "volcano", "waterfall"].includes(q.feature)) {
-    notes.push(`OpenStreetMap has no outline for ${escapeHTML(state.name)}, so these numbers are for one NASA grid square near its middle (about 55 km wide). Click the map to check other parts.`);
+    notes.push(q.kind === "large"
+      ? `OpenStreetMap has no outline for ${escapeHTML(state.name)}, so these numbers are for one NASA grid square near its middle (about 55 km wide). Click the map to check other parts.`
+      : `These numbers are for the NASA grid square (about 55 km wide) at ${escapeHTML(state.name)}.`);
   }
   else if (q.kind === "large") {
     notes.push(`We couldn't get the outline of ${escapeHTML(state.name)}, so these numbers are for one NASA grid square near its centre ` +
@@ -1266,12 +1299,17 @@ function renderAnswer() {
     else if (r.verdict === "insufficient") headline = `Not enough data yet to tell how ${lowerFirst(v.name)} is changing here.`;
     else {
       const dir = r.direction === "increase" ? 1 : -1, moving = dir > 0 ? "rising" : "falling";
-      if (r.verdict === "significant" && q.intent === -dir) headline = `<b>No, the opposite.</b> ${subject} is ${moving}.`;
+      if (q.closestOnly) headline = `<b>We can't measure that.</b> ${escapeHTML(q.missing.say)}`;   // then the closest, below
+      else if (r.verdict === "significant" && q.intent === -dir) headline = `<b>No, the opposite.</b> ${subject} is ${moving}.`;
       else if (r.verdict === "significant") headline = `<b>Yes.</b> ${subject} is ${moving}.`;
       else if (r.verdict === "possible") headline = `<b>Maybe.</b> ${subject} may be ${moving}, but it isn't significant yet.`;
       else headline = `<b>No clear change yet.</b> ${subject} shows no clear trend.`;
       detail = `${num(r.slope_per_decade)} ${v.units} per decade since ${r.start.slice(0, 4)} ` +
         `(about ${num(r.total_change)} ${v.units}${r.percent_change !== null ? `, ${num(r.percent_change)}%` : ""} in total) · p-value ${pText(r.p_value)}`;
+      if (q.closestOnly) {
+        detail = `<b>The closest measurement we have</b> is a different quantity, so it doesn't answer your question: ` +
+          `${subject} shows ${r.verdict === "none" ? "no clear trend" : verdictText(r).toLowerCase()} (${detail}).`;
+      }
       if (seasonal) notes.unshift(`Only ${seasonal.label} months are used here; the chart below shows every month.`);
       if (state.period) notes.unshift(`Only ${periodLabel(state.period)} is tested, as your question asked.`);
       const second = !seasonal && secondOpinion(state.place, v);

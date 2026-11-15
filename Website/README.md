@@ -90,8 +90,13 @@ build_world.py (run once, Python, Task4/stats.py) ─► data/world.json ─► 
     not its water.
   - A feature without an outline uses the box around it (Caspian Sea) or one grid square (Rocky
     Mountains), and the page says so.
-  - "Water level" questions get a plain note that water levels aren't in our data, with Runoff
-    (GLDAS) as the closest measurement.
+  - Questions about things we don't have ("water level", "sea level") get **"We can't measure
+    that"**, never a Yes/No about a substitute. The closest measurement is shown and labelled as a
+    different quantity: runoff for water levels, sea-surface temperature for sea level. A measurement
+    only suggested by a word inside the place name ("sea" in "Black Sea") doesn't count as asked.
+  - Names typed as one word are split: "BlackSea" → "Black Sea", and "blacksea" is retried as "black
+    sea" when nothing else matches ("Chelsea" stays Chelsea). "Sea" also matches lakes called seas
+    (the Dead Sea).
 - **Direct answer:** a question gets an answer card right under the search box, for example
   "**Yes.** Air temperature in Romania is rising: +0.57 °C per decade since 1981". It checks the
   direction asked ("warmer", "drier", "cleaner"...) and answers *Yes*, *No, the opposite*, *Maybe*
