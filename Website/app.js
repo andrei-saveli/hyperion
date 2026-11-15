@@ -1173,7 +1173,13 @@ function placePicker(input, list, onPick, withQuestions) {
     const text = input.value.trim(), mine = ++ticket;
     if (!text) { hide(); return; }
     const q = withQuestions ? understand(text) : null;
+    if (q && !q.variable && !q.missing) {        // no keyword matched: try reading the question by meaning
+      show(`<button disabled>Reading your question…</button>`);
+      await readByMeaning(q, text);
+      if (mine !== ticket) return;               // the visitor kept typing
+    }
     const notes = [];
+    if (q && q.byMeaning && !q.closestOnly) notes.push(`<button disabled>Read by meaning as “${escapeHTML(q.variable.name)}”<span class="why">No keyword matched · closest description: “${escapeHTML(q.byMeaning.nearest)}”</span></button>`);
     if (q && q.missing) notes.push(`<button disabled>${escapeHTML(q.missing.say)}<span class="why">${q.variable ? "Closest we have: " + q.variable.name : "Try another measurement"}</span></button>`);
     if (q && q.asksWhy) notes.push(`<button disabled>ByteMe shows what changed and how sure we are, not why.<span class="why">Finding the cause needs a separate investigation</span></button>`);
     if (q && !q.placeCandidates.length && !q.leftoverWords.length) {   // a question about a measurement only: answer it for the place on the map
@@ -1203,11 +1209,29 @@ function placePicker(input, list, onPick, withQuestions) {
   document.addEventListener("click", (e) => { if (e.target !== input && !list.contains(e.target)) hide(); });
 }
 
+// When no keyword matched, the small language model in meaning.js compares the question with the
+// measurement descriptions. It only fills in q's measurement (or a "we don't have that" topic).
+async function readByMeaning(q, text) {
+  let question = text;
+  q.namedPlaces.forEach((c) => { question = question.split(c).join(" "); });   // the topic, not the place
+  question = question.replace(/\b(1[89]\d\d|20\d\d)\b/g, " ");
+  const m = await ByteMeMeaning.match(question, VARS, NOT_AVAILABLE);
+  if (!m || !m.accepted) return;
+  if (m.topic.kind === "variable") q.variable = variable(m.topic.code);
+  else {
+    q.missing = NOT_AVAILABLE[m.topic.index];
+    q.variable = variable(q.missing.closest) || null;
+    q.closestOnly = true;
+  }
+  q.byMeaning = { nearest: m.nearest, score: m.score };
+}
+
 function buildSearch() {
+  $("search").addEventListener("focus", () => ByteMeMeaning.load(), { once: true });   // get the model ready early
   placePicker($("search"), $("suggestions"), (hit, text, q) => {
     state.question = { text, code: hit.variable ? hit.variable.code : null, intent: intentOf(text), season: seasonOf(text),
                        kind: hit.kind || "place", feature: hit.feature || null, asksWhy: q.asksWhy, missing: q.missing,
-                       closestOnly: q.closestOnly, period: q.period };
+                       closestOnly: q.closestOnly, period: q.period, byMeaning: q.byMeaning || null };
     state.period = q.period || null;            // a new question tests the years it names, or the whole record
     state.lastArea = null;
     goTo(hit, state.question.code);
@@ -1272,6 +1296,8 @@ function renderAnswer() {
   }
   const v = q.code && variable(q.code);
   const notes = [];
+  if (q.byMeaning && v && !q.closestOnly) notes.push(`No keyword in your question matched a measurement, so we read it by meaning as <b>${escapeHTML(v.name)}</b> ` +
+    `(closest description: “${escapeHTML(q.byMeaning.nearest)}”). Not what you meant? Pick another measurement above.`);
   if (q.missing && !q.closestOnly) notes.push(escapeHTML(q.missing.say));
   if (q.asksWhy) notes.push("ByteMe shows what changed and how sure we are, not why: finding the cause needs a separate investigation.");
   if (state.area && state.place.info) notes.push(areaText(state.area, state.place.info));

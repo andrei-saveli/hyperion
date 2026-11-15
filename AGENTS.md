@@ -269,6 +269,14 @@ Non-significant ≠ "no change". Never state causes (Investigate says how much a
   The checks improved recall but exceeded the false-answer ceiling, so they remain experimental.
 - 💬 **Explanations and teaching pages (P3)** are in `Task3/explain.py` and `Task3/pages/`.
   The guided demo uses the shared frontend chart (H5).
+- 🧭 **Places changing like this one** (`Website/similar.js`, check: `node Website/tests/test_similar.js`): nearest
+  neighbours over 5° "trend fingerprints" (18 POWER trends vs the planet, weighted cosine), land with land, 5 matches
+  ≥ 1,500 km apart, shared significant trends listed, outlined on the map. Says nothing about causes.
+- 🧠 **Search by meaning, fully local** (`Website/meaning.js`): when the keyword rules find no measurement, a sentence
+  transformer (all-MiniLM-L6-v2, as Searchlight, in-browser ONNX in `Website/models/` + `Website/vendor/transformers/`,
+  fetched and SHA-256 checked by `python3 Website/get_search_model.py`) matches the question to each measurement's
+  `examples`. No API, no key, never numbers. Held out: 8/13 rule misses read right, 0 wrong, 0/8 off-topic answered.
+  Check: `node Website/tests/test_meaning.js` (Playwright).
 - ⏭️ Next: team kickoff (30 min) → everyone starts their hour 0.5–8 tasks in `docs/PLAN.md`.
 
 ## Git

@@ -1,0 +1,493 @@
+{
+ "note": "Questions worded without our keywords, for the search-by-meaning fallback (meaning.js). Right answers: measurement codes, 'NA:<word>' for a topic we don't have (matched against variables.json not_available), or [] for off-topic questions that must get no measurement. tuning: used to choose the examples and thresholds. heldout: written at the same time and never tuned on. Run: node Website/tests/test_meaning.js",
+ "tuning": [
+  [
+   "Is the white stuff on the mountains thinning in the Alps?",
+   [
+    "SNODP"
+   ]
+  ],
+  [
+   "is it getting stickier in Bangkok",
+   [
+    "RH2M",
+    "QV2M"
+   ]
+  ],
+  [
+   "Are summers in Madrid becoming more scorching?",
+   [
+    "T2M_MAX",
+    "T2M"
+   ]
+  ],
+  [
+   "Is Mumbai getting more torrential downpours?",
+   [
+    "PRECTOTCORR",
+    "GPM_RAIN"
+   ]
+  ],
+  [
+   "Has the air in Delhi become more choking?",
+   [
+    "AOD_55",
+    "OMI_NO2"
+   ]
+  ],
+  [
+   "Are the fields in Kansas parched more often?",
+   [
+    "GWETROOT",
+    "GWETTOP",
+    "GLDAS_SOILM"
+   ]
+  ],
+  [
+   "Is the Sahara getting more scorched?",
+   [
+    "T2M",
+    "T2M_MAX",
+    "TS"
+   ]
+  ],
+  [
+   "Is Lagos more sweltering than before?",
+   [
+    "T2M",
+    "T2M_MAX",
+    "RH2M"
+   ]
+  ],
+  [
+   "Has it become gloomier in London?",
+   [
+    "CLOUD_AMT",
+    "ALLSKY_SFC_SW_DWN"
+   ]
+  ],
+  [
+   "Do farmers in Kenya get enough moisture in the ground?",
+   [
+    "GWETROOT",
+    "GLDAS_SOILM",
+    "GWETTOP"
+   ]
+  ],
+  [
+   "Are there more blizzards in Minnesota?",
+   [
+    "SNODP",
+    "PRECTOTCORR"
+   ]
+  ],
+  [
+   "Is the Amazon losing its lushness?",
+   [
+    "MODIS_NDVI"
+   ]
+  ],
+  [
+   "Is it gustier on the coast of Ireland?",
+   [
+    "WS10M"
+   ]
+  ],
+  [
+   "Are the plants in the Sahel recovering?",
+   [
+    "MODIS_NDVI"
+   ]
+  ],
+  [
+   "Is Moscow getting milder winters?",
+   [
+    "T2M",
+    "T2M_MIN"
+   ]
+  ],
+  [
+   "Has the atmosphere over Chile become more transparent?",
+   [
+    "AOD_55"
+   ]
+  ],
+  [
+   "Is it getting balmier in Norway?",
+   [
+    "T2M"
+   ]
+  ],
+  [
+   "Has the protective layer that blocks UV thinned over Antarctica?",
+   [
+    "TO3"
+   ]
+  ],
+  [
+   "Are the frosty mornings disappearing in Germany?",
+   [
+    "T2M_MIN"
+   ]
+  ],
+  [
+   "Is less water trickling off the hills in Spain?",
+   [
+    "GLDAS_RUNOFF"
+   ]
+  ],
+  [
+   "Is the sky over Arizona clearer?",
+   [
+    "CLOUD_AMT",
+    "AOD_55",
+    "ALLSKY_SFC_SW_DWN"
+   ]
+  ],
+  [
+   "Is Seattle drizzlier?",
+   [
+    "PRECTOTCORR",
+    "GPM_RAIN"
+   ]
+  ],
+  [
+   "Has the barometer reading changed in Iceland?",
+   [
+    "PS"
+   ]
+  ],
+  [
+   "Are there more tailpipe fumes over Los Angeles?",
+   [
+    "OMI_NO2"
+   ]
+  ],
+  [
+   "Is the ground in Texas baking hotter?",
+   [
+    "TS",
+    "MODIS_LST"
+   ]
+  ],
+  [
+   "Are the beaches in Florida getting more water from melting ice caps?",
+   [
+    "NA:sea level"
+   ]
+  ],
+  [
+   "Will Brazil be hotter in 2050?",
+   [
+    "NA:forecast"
+   ]
+  ],
+  [
+   "Are the wells running dry in Punjab?",
+   [
+    "NA:groundwater"
+   ]
+  ],
+  [
+   "Is the Nile overflowing its banks more often?",
+   [
+    "NA:flood"
+   ]
+  ],
+  [
+   "Are rice harvests in Vietnam shrinking?",
+   [
+    "NA:yield"
+   ]
+  ],
+  [
+   "Is the ice in the Arctic Ocean shrinking?",
+   [
+    "NA:sea ice"
+   ]
+  ],
+  [
+   "Is the frozen ground thawing in Siberia?",
+   [
+    "NA:permafrost"
+   ]
+  ],
+  [
+   "How many tourists visit Rome?",
+   []
+  ],
+  [
+   "What is the capital of Australia?",
+   []
+  ],
+  [
+   "Best restaurants in Tokyo",
+   []
+  ],
+  [
+   "Who won the world cup in Brazil?",
+   []
+  ],
+  [
+   "How tall is Mount Everest?",
+   []
+  ],
+  [
+   "Is the economy of India growing?",
+   []
+  ],
+  [
+   "Are house prices rising in Toronto?",
+   []
+  ],
+  [
+   "Is crime going down in Chicago?",
+   []
+  ]
+ ],
+ "heldout": [
+  [
+   "Is the snowpack on the Rockies vanishing?",
+   [
+    "SNODP"
+   ]
+  ],
+  [
+   "Are the nights in Phoenix staying hotter?",
+   [
+    "T2M_MIN"
+   ]
+  ],
+  [
+   "Is Singapore getting more muggy and steamy?",
+   [
+    "RH2M",
+    "QV2M"
+   ]
+  ],
+  [
+   "Has Cape Town become parched?",
+   [
+    "PRECTOTCORR",
+    "GWETROOT",
+    "GWETTOP",
+    "GLDAS_SOILM"
+   ]
+  ],
+  [
+   "Is Beijing's sky getting less grey?",
+   [
+    "AOD_55",
+    "CLOUD_AMT"
+   ]
+  ],
+  [
+   "Are the forests of Borneo less leafy now?",
+   [
+    "MODIS_NDVI"
+   ]
+  ],
+  [
+   "Is Chicago becoming less breezy?",
+   [
+    "WS10M"
+   ]
+  ],
+  [
+   "Are scorchers more common in Athens?",
+   [
+    "T2M_MAX"
+   ]
+  ],
+  [
+   "Is the soil in Ukraine holding less water?",
+   [
+    "GWETROOT",
+    "GWETTOP",
+    "GLDAS_SOILM"
+   ]
+  ],
+  [
+   "Has the summer sun become stronger in Greece?",
+   [
+    "ALLSKY_SFC_SW_DWN"
+   ]
+  ],
+  [
+   "Is it more overcast than before in Scotland?",
+   [
+    "CLOUD_AMT"
+   ]
+  ],
+  [
+   "Are the winters in Canada getting less bitter?",
+   [
+    "T2M",
+    "T2M_MIN"
+   ]
+  ],
+  [
+   "Do the mountains of Nepal get less white powder?",
+   [
+    "SNODP",
+    "PRECTOTCORR"
+   ]
+  ],
+  [
+   "Is the air over Shanghai full of car fumes?",
+   [
+    "OMI_NO2",
+    "AOD_55"
+   ]
+  ],
+  [
+   "Are thunderstorms dumping more water on Bangladesh?",
+   [
+    "PRECTOTCORR",
+    "GPM_RAIN"
+   ]
+  ],
+  [
+   "Is there more moisture in the air above Brazil?",
+   [
+    "QV2M",
+    "PW",
+    "RH2M"
+   ]
+  ],
+  [
+   "Is the land surface in Australia heating up?",
+   [
+    "TS",
+    "MODIS_LST"
+   ]
+  ],
+  [
+   "Are the hills of Scotland draining more water?",
+   [
+    "GLDAS_RUNOFF"
+   ]
+  ],
+  [
+   "Is the ozone shield recovering over the South Pole?",
+   [
+    "TO3"
+   ]
+  ],
+  [
+   "Has the sunshine dimmed over China?",
+   [
+    "ALLSKY_SFC_SW_DWN"
+   ]
+  ],
+  [
+   "Is the steppe of Mongolia turning brown?",
+   [
+    "MODIS_NDVI"
+   ]
+  ],
+  [
+   "Is the weather in Dubai becoming more stifling?",
+   [
+    "T2M",
+    "T2M_MAX",
+    "RH2M"
+   ]
+  ],
+  [
+   "Does Kenya get less wet season rain?",
+   [
+    "PRECTOTCORR",
+    "GPM_RAIN"
+   ]
+  ],
+  [
+   "Is the air in Mexico City getting cleaner?",
+   [
+    "AOD_55",
+    "OMI_NO2"
+   ]
+  ],
+  [
+   "Is less moisture rising from the fields in France?",
+   [
+    "EVLAND",
+    "GLDAS_EVAP"
+   ]
+  ],
+  [
+   "Are the coasts of Bangladesh being swallowed by the ocean?",
+   [
+    "NA:sea level"
+   ]
+  ],
+  [
+   "What will the climate of Spain be like in 30 years?",
+   [
+    "NA:forecast"
+   ]
+  ],
+  [
+   "Is the aquifer under California depleted?",
+   [
+    "NA:groundwater"
+   ]
+  ],
+  [
+   "Are the rivers of Pakistan bursting their banks?",
+   [
+    "NA:flood"
+   ]
+  ],
+  [
+   "Are wheat crops failing in Australia?",
+   [
+    "NA:yield"
+   ]
+  ],
+  [
+   "Are the ice fields of Patagonia retreating?",
+   [
+    "NA:glacier"
+   ]
+  ],
+  [
+   "Is the Caspian Sea drying up?",
+   [
+    "NA:water level"
+   ]
+  ],
+  [
+   "How many people live in Lagos?",
+   []
+  ],
+  [
+   "Is Paris a good place for a holiday?",
+   []
+  ],
+  [
+   "How far is the Moon?",
+   []
+  ],
+  [
+   "Are wages rising in Germany?",
+   []
+  ],
+  [
+   "What language do they speak in Brazil?",
+   []
+  ],
+  [
+   "Is the stock market going up in Japan?",
+   []
+  ],
+  [
+   "Are there more cars in Delhi?",
+   []
+  ],
+  [
+   "When was Rome founded?",
+   []
+  ]
+ ]
+}
