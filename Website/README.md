@@ -60,7 +60,36 @@ build_world.py and build_nasa_tiles.py     → precomputed map layers
   as a reference. **Share comparison** opens a link containing both places, the measurement, and
   the selected dates.
 
-## Guided experiments
+## Investigation workflow
+
+1. Choose a place, measurement, and period in Explore. Open the investigation workspace
+   below the chart to check a suggested explanation or write your own. For a custom
+   explanation, choose which measurement is the proposed driver and which direction of
+   change you expect to see.
+2. Review the evidence map. Each link records a prediction, its original period, and the
+   result on shared observed months. A weakened lead shows the directions and rates that
+   contradict the prediction. Run the suggested rival when available, or add your own
+   rival and select the original lead to reuse its observed months. The rival can use
+   fewer months if its measurement has gaps.
+3. For a relationship between different measurements, the workspace can also show how
+   their monthly departures move together after removing seasonal cycles and linear trends.
+   For a custom lead, choose a lag in advance. This correlation describes the overlapping
+   record. Shared drivers can still explain the pattern.
+4. For a dated intervention, use **Study a dated event** to bring the outcome into Compare.
+   Choose an unaffected reference place, the first full month after the event, and equal
+   one-, two-, or three-year windows. The tool subtracts the change in the reference place
+   from the change in the affected place. It also repeats that calculation with an earlier
+   start date to show how much the two places were already diverging. All three windows
+   use the same calendar positions observed at both places. A causal interpretation requires
+   a credible reference and comparable paths in the absence of the event.
+5. Save the dated comparison to the investigation and download the notes. The workspace
+   holds its entries for the current page session. Export the notes before reloading.
+
+The suggested soil-wetness rival checks precipitation minus evaporation against root-zone
+wetness on the three-way overlap. Runoff, irrigation, and water storage remain possible
+explanations.
+
+## Guided London case
 
 **London NO₂.** The case tests whether central London’s Ultra Low Emission Zone, launched on
 8 April 2019, contributed to lower roadside nitrogen dioxide. The user makes a prediction, checks
@@ -76,19 +105,6 @@ comparison. Carrying the earlier gap forward reduces the estimated difference. T
 inform the causal interpretation and leave room for London-specific changes or early responses
 to the policy. The authors’ augmented synthetic-control model has its own estimates.
 [Study and method](https://pmc.ncbi.nlm.nih.gov/articles/PMC12545172/)
-
-**Explore leads.** `experiments.js` holds prediction and rival-explanation text for a few linked
-measurements. Compare the series on the same observed months. A lead is weakened when both trends
-have reliable directions and the direction combination disagrees with the stated prediction.
-The finding then shows the contrary observations, proposes a rival mechanism, and suggests
-which evidence could separate the two. When the rival has a runnable check, it uses observations
-shared with the original test and reports how many of those months it could use.
-For a weakened root-zone wetness and precipitation prediction, **Test rival with evaporation**
-compares soil wetness with the trend in monthly precipitation minus evaporation. The result
-shows each rate on the three-way overlap. This check leaves questions about runoff, irrigation,
-and water storage open.
-The ordinary Explore results help screen hypotheses. The London case uses a control design
-to estimate a policy effect.
 
 ### Rebuild the London comparison
 
@@ -161,6 +177,8 @@ much to the repository's history.
 | `stats.js` | Trend and significance math (copy of `Task4/stats.py`) |
 | `investigation.js` | Date selection, matched monthly records, and uncertainty for the difference in trends |
 | `experiments.js` | Related-measurement predictions and London gap and sensitivity calculations |
+| `workbench.js` | Investigation ledger, lagged residual association, and matched intervention windows |
+| `workbench-view.js` | Explore workspace, reviewable evidence map, and notes export |
 | `london-case.js`, `build_london_case.py` | London experiment view and reproducible preprocessing of the fitted comparison |
 | `nasa.js` | Reads one square's monthly series from a NASA tile file |
 | `build_nasa_grids.py`, `build_nasa_tiles.py` | Download the NASA datasets to 1° grids; then trends, tiles and map layers (`data/nasa/`) |

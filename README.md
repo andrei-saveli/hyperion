@@ -27,8 +27,11 @@ changes under different assumptions. The case uses published roadside study data
    The **Raw monthly** option shows seasonal variation.
 3. Open **Compare** to estimate the difference in trends over months observed at both locations.
    Try **Check the latest 15 years** to see how the finding depends on the period.
-4. Choose **Test a lead** where ByteMe has a related measurement or a second source. The evidence
-   can fit the prediction, weaken it, or leave the question open.
+4. Use the **Investigation workspace** to check a suggested explanation or add your own. The
+   evidence map keeps each result, the measurements that weaken it, and any rival checks.
+5. For a dated event, choose **Study a dated event** and compare with an unaffected reference
+   place. Check whether the places were already diverging, then save the result and download
+   your investigation notes.
 
 The app fits season-adjusted linear trends. Its results describe the recorded change and its uncertainty.
 See the [website guide](Website/README.md) for the analysis, sources, and local checks.

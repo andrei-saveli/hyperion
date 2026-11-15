@@ -34,10 +34,10 @@ let VARS = [], POWER_VARS = [], NASA = null, NOT_AVAILABLE = [], WORLD = null, L
 const state = {
   lat: null, lon: null, name: "", code: "T2M",
   raw: false, loading: false, error: null, layer: true, scanOpen: false,
-  fullRecord: null, analysis: null, period: null, selectedLead: null,
+  fullRecord: null, analysis: null, period: null,
 };
 const compare = {
-  code: "AOD_55", period: null, records: null,
+  code: "AOD_55", period: null, records: null, intervention: null, caseFile: null,
   a: { name: "Beijing (China)", lat: 40.0, lon: 116.25 },
   b: { name: "Delhi (India)", lat: 28.5, lon: 77.5 },
 };
@@ -341,7 +341,6 @@ function buildVariableSelect(groups) {
 }
 function selectVariable(code) {
   state.code = code;
-  state.selectedLead = null;
   $("var-select").value = code;
   showExplorePeriod();
   writeHash(); refreshWorldLayer(); renderScan(); renderDetail();
@@ -363,7 +362,7 @@ async function selectPlace(lat, lon, name, code, fly, period = state.period) {
   const ticket = ++selectionTicket;
   Object.assign(state, {
     lat, lon, name: name || coordText(lat, lon), period,
-    loading: true, error: null, fullRecord: null, analysis: null, selectedLead: null,
+    loading: true, error: null, fullRecord: null, analysis: null,
   });
   if (code) { state.code = code; $("var-select").value = code; }
   showExplorePeriod();
@@ -693,131 +692,6 @@ function bindDetailChart(el, r, s, v, reference) {
   drawChart("chart", r, s, v, state.raw, undefined, reference);
 }
 
-// ------------------------------------------------------------------ follow up on the current finding
-function renderFollowUps(measurement) {
-  const panel = $("follow-ups");
-  if (!state.analysis) {
-    panel.hidden = true;
-    panel.replaceChildren();
-    return;
-  }
-  const full = state.fullRecord;
-  const choices = ByteMeExperiments.relatedLeads(measurement.code, full.series);
-  const partner = partnerOf(measurement);
-  if (partner && full.series[partner.code]?.values.some(Number.isFinite)) {
-    choices.push({
-      from: measurement.code, to: partner.code, label: "Check another source", expectedSign: 1,
-      prediction: "If the products agree about the direction of change, both should show the same direction over their shared months.",
-      alternative: "Differences in coverage, resolution, or how a product defines the measurement can explain a disagreement.",
-      nextEvidence: "Check the product descriptions for differences in spatial coverage and what each instrument measures.",
-    });
-  }
-  panel.hidden = choices.length === 0;
-  if (panel.hidden) return;
-  panel.innerHTML = `<h3>Test a lead</h3><div class="lead-options">${choices.map(({ to, label }) =>
-    `<button type="button" class="pill${state.selectedLead === to ? " on" : ""}" data-lead="${to}"
-      aria-pressed="${state.selectedLead === to}">${escapeHTML(label)}</button>`).join("")}</div>
-    <div class="lead-evidence"></div>`;
-
-  panel.querySelectorAll("[data-lead]").forEach((button) => {
-    button.addEventListener("click", () => {
-      state.selectedLead = button.dataset.lead;
-      renderFollowUps(measurement);
-      panel.querySelector(".lead-evidence h4")?.focus({ preventScroll: true });
-    });
-  });
-  const lead = choices.find(({ to }) => to === state.selectedLead);
-  if (lead) renderLeadEvidence(panel.querySelector(".lead-evidence"), lead);
-}
-
-function renderLeadEvidence(panel, lead) {
-  const { paired, fits, verdict } = ByteMeExperiments.assessLead(
-    lead, state.analysis.series[lead.from], state.analysis.series[lead.to],
-  );
-  const headlines = {
-    consistent: "The records fit this prediction",
-    weakened: "The trends weaken this explanation",
-    insufficient: "The evidence leaves this lead open",
-  };
-  const evidence = {
-    consistent: "Both measurements have a clear direction over the same months, and their directions fit the prediction.",
-    insufficient: "The trend tests do not give both measurements a clear, reliable direction over this period.",
-  };
-  const finding = verdict === "weakened" ? leadCounterEvidence(lead, fits) : evidence[verdict];
-  const coverage = paired?.count
-    ? `${dateSpan(paired.first, paired.last)} · ${paired.count} shared observations`
-    : "No months with usable observations in both records.";
-  const chartSlots = [lead.from, lead.to].map((code, index) => {
-    const id = index === 0 ? "lead-chart-a" : "lead-chart-b";
-    return `<div><h4>${escapeHTML(variable(code).name)}</h4><div id="${id}" class="chart"></div></div>`;
-  }).join("");
-  const rival = verdict === "weakened" ? ByteMeExperiments.rivalLead(lead, state.analysis.series) : null;
-  const explanation = verdict === "weakened"
-    ? `<div class="lead-rival">
-        <h4>A rival explanation</h4>
-        <p>${escapeHTML(lead.alternative)}</p>
-        ${rival ? `<button type="button" class="pill" data-test-rival>Test rival with ${escapeHTML(variable(rival.to).name.toLowerCase())}</button>` : ""}
-        <div data-rival-result aria-live="polite"></div>
-        <p class="meta">${escapeHTML(lead.nextEvidence)}</p>
-      </div>`
-    : `<p>${escapeHTML(lead.alternative)}</p>`;
-  panel.innerHTML = `<p>${escapeHTML(lead.prediction)}</p>
-    <div class="experiment-finding">
-      <h4 tabindex="-1">${headlines[verdict]}</h4>
-      <p class="meta">${coverage}</p>
-      ${paired?.count ? `<p>${verdict === "weakened" ? "<strong>Counter-evidence</strong> · " : ""}${escapeHTML(finding)}</p>` : ""}
-      ${verdict === "weakened" ? "" : explanation}
-    </div>
-    ${verdict === "weakened" ? explanation : ""}
-    ${fits.length ? `<div class="lead-charts">${chartSlots}</div>` : ""}`;
-  if (rival) {
-    panel.querySelector("[data-test-rival]").addEventListener("click", () =>
-      renderRivalResult(panel.querySelector("[data-rival-result]"), rival, paired)
-    );
-  }
-  if (!fits.length) return;
-  [lead.from, lead.to].forEach((code, index) => {
-    const v = variable(code), id = index === 0 ? "lead-chart-a" : "lead-chart-b";
-    const series = { dates: paired.dates, values: paired.values[index] };
-    const reference = { dates: state.fullRecord.series[code]?.dates, fit: state.fullRecord.results[code] };
-    drawChart(id, fits[index], series, v, false, undefined, reference);
-  });
-}
-
-function leadCounterEvidence(lead, fits) {
-  const names = [variable(lead.from).name, lead.targetName ?? variable(lead.to).name];
-  const [first, second] = names.map((name, index) => {
-    const verb = fits[index].direction === "increase" ? "rose" : "fell";
-    return `${name} ${verb}`;
-  });
-  const prediction = lead.expectedSign === 1 ? "the same direction" : "opposite directions";
-  return `${first}, while ${second}. The prediction called for ${prediction}.`;
-}
-
-function renderRivalResult(panel, rival, originalPair) {
-  const { paired, fits, verdict, componentFits } = ByteMeExperiments.assessRival(rival, originalPair, state.analysis.series);
-  const findings = {
-    consistent: "The trends fit this rival prediction. The mechanism still needs a more direct test.",
-    weakened: "The trends also weaken this rival explanation.",
-    insufficient: "The observations leave this rival explanation open.",
-  };
-  const evidence = verdict === "weakened" ? ` ${leadCounterEvidence(rival, fits)}` : "";
-  const waterEvidence = componentFits?.every((fit) => Number.isFinite(fit.slope_per_decade))
-    ? `<p>Change per decade over those months</p>
-      <ul>
-        <li>Precipitation ${num(componentFits[0].slope_per_decade)} mm/day</li>
-        <li>Evaporation ${num(componentFits[1].slope_per_decade)} mm/day</li>
-        <li>Precipitation minus evaporation ${num(fits[1].slope_per_decade)} mm/day</li>
-        <li>Root-zone wetness ${num(fits[0].slope_per_decade)} percentage points</li>
-      </ul>
-      <p>Runoff, irrigation, and changes in water storage can still affect root-zone wetness.</p>`
-    : "";
-  panel.innerHTML = `<p>${escapeHTML(rival.prediction)}</p>
-    <p><strong>${findings[verdict]}</strong>${escapeHTML(evidence)}</p>
-    <p class="meta">${paired?.count ?? 0} of the original ${originalPair.count} observed months could be used.</p>
-    ${waterEvidence}`;
-}
-
 // ------------------------------------------------------------------ charts
 function chartAnomalies(r, s, reference) {
   if (r.verdict !== "insufficient" || !reference?.fit) return r.anomaly;
@@ -1047,17 +921,32 @@ function buildSearch() {
 function buildCompare(groups) {
   $("cmp-var").innerHTML = optionsHTML(groups);
   $("cmp-var").value = compare.code;
-  $("cmp-var").addEventListener("change", (e) => { compare.code = e.target.value; loadComparison(); });
+  $("cmp-var").addEventListener("change", (e) => {
+    compare.code = e.target.value;
+    compare.caseFile = null;
+    loadComparison();
+  });
   for (const side of COMPARE_SIDES) {
     $(`cmp-${side}`).value = compare[side].name;
     placePicker($(`cmp-${side}`), $(`cmp-${side}-list`), (hit) => {
       compare[side] = { name: hit.name || hit.label, lat: hit.lat, lon: hit.lon };
+      if (side === "a") compare.caseFile = null;
       $(`cmp-${side}`).value = compare[side].name;
       loadComparison();
     }, false);
   }
   $("cmp-use").addEventListener("click", () => useExploreInCompare(false));
   bindPeriod("compare-period", setComparePeriod);
+  $("intervention-form").addEventListener("submit", (event) => {
+    event.preventDefault();
+    const { start, windowMonths } = event.currentTarget.elements;
+    if (!periodOf(start.value, "")) {
+      $("intervention-finding").textContent = "Enter an event month as YYYY-MM.";
+      return;
+    }
+    compare.intervention = { month: start.value, months: Number(windowMonths.value) };
+    renderIntervention();
+  });
   loadComparison();
 }
 
@@ -1066,6 +955,9 @@ function useExploreInCompare(scroll) {
   compare.a = { name: state.name, lat: state.lat, lon: state.lon };
   compare.code = state.code;
   compare.period = state.period;
+  compare.caseFile = ByteMeWorkbench.openCase(state);
+  compare.intervention = null;
+  $("intervention-form").reset();
   $("cmp-a").value = state.name;
   $("cmp-var").value = state.code;
   loadComparison();
@@ -1109,6 +1001,7 @@ async function loadComparison() {
   const measurement = variable(compare.code);
   const ticket = ++compareTicket;
   compare.records = null;
+  renderIntervention();
   showPeriod("compare-period", compare.period, null, "Reading the selected records…");
   $("compare-finding").innerHTML = `<p class="loading"><span class="spinner"></span>Finding months observed in both places…</p>`;
   for (const side of COMPARE_SIDES) {
@@ -1149,10 +1042,9 @@ function describeComparison(fit, lowSignal, units, aName, bName) {
 }
 
 function renderCompare() {
-  const { requests, full, fullFit } = compare.records;
+  const { full, fullFit } = compare.records;
   const measurement = variable(compare.code);
-  const [a, b] = requests;
-  const selected = compare.period ? matchMonths(a.value, b.value, compare.period) : full;
+  const selected = selectedComparison();
   const fit = compare.period ? fitComparison(selected, measurement.percent) : fullFit;
   const coverage = full?.count
     ? `Shared record · ${dateSpan(full.first, full.last)} · ${full.count} months observed in both places`
@@ -1160,6 +1052,67 @@ function renderCompare() {
   showPeriod("compare-period", compare.period, full?.count ? full : null, coverage);
   renderComparisonFinding(measurement, selected, fit);
   renderComparisonCharts(measurement, selected, fit);
+  renderIntervention(selected);
+}
+
+function selectedComparison() {
+  if (!compare.records) return null;
+  const { full, requests: [a, b] } = compare.records;
+  return compare.period ? matchMonths(a.value, b.value, compare.period) : full;
+}
+
+function renderIntervention(paired = selectedComparison()) {
+  const output = $("intervention-finding");
+  output.replaceChildren();
+  if (!compare.intervention) return;
+  if (!compare.records) {
+    output.textContent = "Waiting for the two records.";
+    return;
+  }
+  const measurement = variable(compare.code);
+  if (comparisonCell(compare.a, measurement) === comparisonCell(compare.b, measurement)) {
+    output.textContent = "Both places use the same grid cell for this measurement. Choose a reference place in a different cell.";
+    return;
+  }
+  const { month, months } = compare.intervention;
+  const study = ByteMeWorkbench.interventionComparison(paired, month, months);
+  if (!study) {
+    output.textContent = `This selection needs ${2 * months} calendar months before ${month} and ${months} months from ${month} onward, with observations in both places in the same calendar positions. Adjust the period or window length.`;
+    return;
+  }
+  const { units } = measurement;
+  const finding = Math.abs(study.placebo) >= Math.abs(study.difference)
+    ? "The places diverged by at least this much before the event. That weakens the case that the event explains the later change."
+    : "The gap shifted less in the earlier comparison. Check that B was unaffected and look for other changes at A around the event.";
+  output.innerHTML = `<div class="experiment-finding">
+    <h4>Change in the A–B gap after ${month}</h4>
+    <p><strong>${num(study.difference)} ${escapeHTML(units)}</strong> · ${study.count} of ${months} month positions observed in every window.</p>
+    <p>Earlier baseline ${num(study.earlier)} → just before event ${num(study.before)} → after event ${num(study.after)} ${escapeHTML(units)}.</p>
+    <p>The earlier comparison uses a pretend start date ${months} months before the event. The gap shifted by ${num(study.placebo)} ${escapeHTML(units)}.</p>
+    <p>${finding}</p>
+    ${study.count < months ? "<p>Missing months limit this estimate to the observed part of each window.</p>" : ""}
+    <p class="meta">A causal interpretation requires the two places to have followed comparable paths without the event. Try another credible reference place or window length to see how sensitive the estimate is.</p>
+    ${compare.caseFile ? '<button class="pill" type="button" data-save-study>Save to investigation</button>' : ""}
+  </div>`;
+  const save = output.querySelector("[data-save-study]");
+  save?.addEventListener("click", () => {
+    const title = `${measurement.name} at ${compare.a.name} vs ${compare.b.name}, event ${month}`;
+    const summary = `${measurement.source}. ${study.count} of ${months} matched month positions per window. A–B gap ${num(study.earlier)} ${units} in the earlier baseline, ${num(study.before)} ${units} just before the event, and ${num(study.after)} ${units} after. A–B shift after event ${num(study.difference)} ${units}. Earlier shift ${num(study.placebo)} ${units}. ${finding}`;
+    const studies = compare.caseFile.studies;
+    if (!studies.some((saved) => saved.title === title && saved.summary === summary)) studies.push({ title, summary });
+    save.textContent = "Saved to investigation";
+    save.disabled = true;
+    if (state.analysis && ByteMeWorkbench.openCase(state) === compare.caseFile) renderFollowUps(measurement);
+  });
+}
+
+function comparisonCell({ lat, lon }, measurement) {
+  if (measurement.dataset === "nasa") {
+    const { tile, square } = ByteMeNasa.locate(lat, lon, NASA.tile);
+    return `${tile}:${square}`;
+  }
+  const cell = snap(lat, lon);
+  return `${cell.lat},${cell.lon}`;
 }
 
 function renderComparisonFinding(measurement, selected, fit) {

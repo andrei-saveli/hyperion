@@ -173,6 +173,19 @@
     <p class="meta period-error" data-error role="alert"></p>
   </form>
   <div id="compare-finding" class="box compare-finding" aria-live="polite"></div>
+  <details class="box workbench-form" id="dated-intervention">
+    <summary>Study a dated intervention</summary>
+    <p>Use A for the affected place and B for a comparable place that the event did not affect.
+      Choose a start month from your research before looking at the result.</p>
+    <form id="intervention-form" class="workbench-fields">
+      <label>First full month after the change<input name="start" type="month" placeholder="YYYY-MM" required></label>
+      <label>Length of each window<select name="windowMonths">
+        <option value="12">1 year</option><option value="24">2 years</option><option value="36">3 years</option>
+      </select></label>
+      <button type="submit" class="pill on">Compare before and after</button>
+    </form>
+    <div id="intervention-finding" aria-live="polite"></div>
+  </details>
   <div class="compare">
     <div class="box" id="cmp-panel-a"></div>
     <div class="box" id="cmp-panel-b"></div>
@@ -225,6 +238,8 @@
 <script src="nasa.js"></script>
 <script src="investigation.js"></script>
 <script src="experiments.js"></script>
+<script src="workbench.js"></script>
+<script src="workbench-view.js"></script>
 <script src="app.js"></script>
 <script src="london-case.js"></script>
 <script src="globe.js"></script>

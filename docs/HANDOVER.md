@@ -30,7 +30,13 @@ with a Newey–West adjustment. The follow-up compares the latest 15 years with 
   search terms, source metadata, and second-source pairs.
 - `Website/experiments.js` holds related-measurement predictions and the calculations for the
   London NO₂ experiment. The experiment UI is in `Website/london-case.js`. The
-  [website guide](../Website/README.md#guided-experiments) documents the study data and rebuild.
+  [website guide](../Website/README.md#guided-london-case) documents the study data and rebuild.
+- `Website/workbench.js` keeps the investigation ledger in memory by location and measurement.
+  Each lead holds its original selected records so edits to the period picker cannot change
+  old results. The module also computes descriptive lagged associations and matched before
+  and after intervention comparisons. `Website/workbench-view.js` renders Explore's workspace
+  and exports the ledger. The workspace and Compare views publish into the
+  same ledger when Compare was opened from an investigation.
 
 Use these checks after a website change.
 
@@ -43,7 +49,9 @@ node Website/tests/test_experiments.js
 
 In the browser, try Svalbard air temperature from 2001 to 2015. Open Compare, select a short
 window, then recheck the full shared record. Reopen a shared URL to check that it restores the
-places, measurement, and selected months.
+places, measurement, and selected months. In Explore, add a custom explanation and reopen its
+entry after changing the date selection. Open a dated comparison from that workspace and save
+it to the notes.
 In the London experiment, make a prediction, inspect the held-out weeks, then run the comparison
 and toggle both sensitivity checks.
 
