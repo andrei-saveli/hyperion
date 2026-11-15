@@ -126,7 +126,6 @@ inBrowser(async (page, url) => {
   });
   await page.evaluate(() => placePicker($("search"), $("suggestions"), (hit) => { window.picked = hit; }, true));
   const search = page.locator("#search");
-  const first = page.locator("#suggestions [data-i]").first();
   for (const [query, expected] of [
     ["44.4, 26.1", { lat: 44.4, lon: 26.1, code: null }],
     ["black sea", { lat: 43, lon: 35, code: null }],
@@ -134,8 +133,11 @@ inBrowser(async (page, url) => {
     ["paris, texas", { lat: 33.66, lon: -95.56, code: null }],
     ["Is air temperature rising in Paris, Texas?", { lat: 33.66, lon: -95.56, code: "T2M" }],
   ]) {
+    // Press Enter, as a visitor does: only then may Nominatim be asked (its rules forbid search-as-you-type)
+    await page.evaluate(() => { window.picked = null; });
     await search.fill(query);
-    await first.click();
+    await search.press("Enter");
+    await page.waitForFunction(() => window.picked, null, { timeout: 30000 });
     assert.deepEqual(await page.evaluate(() => ({ lat: picked.lat, lon: picked.lon, code: picked.variable?.code || null })), expected, query);
   }
   // A broken or missing generated index must leave geocoding and place selection working.

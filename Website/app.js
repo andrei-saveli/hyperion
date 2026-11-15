@@ -6,7 +6,7 @@
 // - Trend math: stats.js, a tested copy of the project's Python code (stats.py).
 // - Measurements and their plain-language definitions: data/variables.json.
 // - World overview squares: data/world.json, built once by build_world.py with the Python code.
-// - Place names: Open-Meteo geocoding (search) and BigDataCloud (name of a clicked point).
+// - Place names: Photon, Open-Meteo and (on Enter or pick) Nominatim; a clicked point is named by Photon.
 
 const COLOURS = { up: "#ec7a6a", down: "#2d8bb5", neutral: "#b2bcb8", ink: "#141a19", deep: "#0e5e63" };
 const START_YEAR = 1981;
@@ -16,7 +16,21 @@ const MAP_STYLE = "https://tiles.openfreemap.org/styles/positron";
 const GEOCODER = "https://geocoding-api.open-meteo.com/v1/search";
 const GEOCODER_2 = "https://photon.komoot.io/api/";
 const NOMINATIM = "https://nominatim.openstreetmap.org";   // outlines of countries and regions
-const REVERSE = "https://api.bigdatacloud.net/data/reverse-geocode-client";
+const REVERSE = "https://photon.komoot.io/reverse";        // names a clicked point (OpenStreetMap data)
+// Third-party services can be switched off without changing the code: data/services.json
+// (e.g. {"nominatim": false} if OpenStreetMap asks us to stop using its public Nominatim server).
+const SERVICES = { nominatim: true };
+let CAPITALS = [];                                           // data/capitals.json: countries and their capitals
+
+// fetch() that gives up after `ms` milliseconds, so a slow service can't leave the page waiting forever
+async function fetchJSON(url, ms = 10000) {
+  const stop = new AbortController(), timer = setTimeout(() => stop.abort(), ms);
+  try {
+    const reply = await fetch(url, { signal: stop.signal });
+    if (!reply.ok) throw new Error(`${new URL(url).hostname} answered ${reply.status}`);
+    return await reply.json();
+  } finally { clearTimeout(timer); }
+}
 const CELL = { lat: 0.5, lon: 0.625 };                  // size of one MERRA-2 grid square
 
 // Demo cases, chosen from real results (see README). Also lit up on the hero globe.
@@ -186,9 +200,7 @@ async function downloadPower(lat, lon, endYear) {
   const parts = await Promise.all(groups.map(async (group) => {
     const url = `${POWER}?parameters=${group.join(",")}&community=AG` +
       `&longitude=${lon}&latitude=${lat}&start=${START_YEAR}&end=${endYear}&format=JSON`;
-    const reply = await fetch(url);
-    if (!reply.ok) throw new Error(`NASA POWER answered ${reply.status}`);
-    return (await reply.json()).properties.parameter;
+    return (await fetchJSON(url, 90000)).properties.parameter;     // NASA POWER can be slow: wait up to 90 s
   }));
   return Object.assign({}, ...parts);
 }
@@ -416,8 +428,12 @@ Promise.all([
   fetch("data/world.json").then((r) => (r.ok ? r.json() : null)).catch(() => null),   // optional overview
   fetch(MAP_STYLE).then((r) => (r.ok ? r.json() : null)).catch(() => null),             // optional detailed map
   fetch("data/nasa/index.json").then((r) => (r.ok ? r.json() : null)).catch(() => null),  // optional satellite grids
-]).then(([catalogue, land, world, mapStyle, nasa]) => {
+  fetch("data/services.json").then((r) => (r.ok ? r.json() : {})).catch(() => ({})),      // optional on/off switches
+  fetch("data/capitals.json").then((r) => (r.ok ? r.json() : null)).catch(() => null),    // optional "capital of ..."
+]).then(([catalogue, land, world, mapStyle, nasa, services, capitals]) => {
   NASA = nasa;
+  Object.assign(SERVICES, services);
+  CAPITALS = (capitals && capitals.countries) || [];
   // measurements from the satellite grids are only offered when those grids are present
   catalogue.variables = catalogue.variables.filter((v) => v.dataset !== "nasa" || (nasa && nasa.variables[v.code]));
   POWER_VARS = catalogue.variables.filter((v) => v.dataset !== "nasa");
@@ -549,11 +565,12 @@ async function selectPlace(lat, lon, name, code, fly) {
 }
 
 // A readable name for a clicked point ("Bucharest, Romania", "North Atlantic Ocean").
-// Tries BigDataCloud first, then OpenStreetMap's Nominatim; if both fail the coordinates are shown.
+// Tries Photon first, then OpenStreetMap's Nominatim; if both fail the coordinates are shown.
 async function nameOf(lat, lon) {
   try {
-    const j = await (await fetch(`${REVERSE}?latitude=${lat}&longitude=${lon}&localityLanguage=en`)).json();
-    const parts = [j.city || j.locality || j.principalSubdivision, j.countryName].filter(Boolean);
+    const f = ((await fetchJSON(`${REVERSE}?lat=${lat}&lon=${lon}&lang=en`)).features || [])[0];
+    const p = (f && f.properties) || {};
+    const parts = [p.city || (["city", "town", "village"].includes(p.type) ? p.name : null) || p.county || p.state || p.name, p.country].filter(Boolean);
     if (parts.length) return [...new Set(parts)].join(", ");
   } catch (e) { /* try the second service */ }
   try {
@@ -588,7 +605,10 @@ function buildMap(detailedStyle) {
     container: "map",
     style: detailedStyle || outlineStyle(),
     center: [10, 25], zoom: 1.1, minZoom: 0.5, maxZoom: 9,
-    attributionControl: { compact: true }, dragRotate: false, pitchWithRotate: false,
+    attributionControl: { compact: true, customAttribution: [
+      "Data: NASA POWER, NASA Earthdata",
+      "Place search: Photon, Nominatim (© OpenStreetMap contributors), Open-Meteo (GeoNames, CC BY 4.0)"] },
+    dragRotate: false, pitchWithRotate: false,
   });
   map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "bottom-right");
   map.getCanvas().style.cursor = "crosshair";
@@ -952,7 +972,11 @@ const REGIONS = [
 const regionHit = ([key, name, lat, lon, box]) => ({ name, lat, lon, box, regionKey: key, kind: box ? "large" : "region" });
 
 function coordinatesIn(text) {
-  const pair = text.match(/^\s*(-?\d+(?:\.\d+)?)[\s,;]+(-?\d+(?:\.\d+)?)\s*$/);
+  // "44.4, 26.1" on its own, or inside a question ("temperature at 44.4, 26.1"); inside a question at
+  // least one number needs a decimal point, so years such as "2004, 2019" are never read as a place
+  const pair = text.match(/^\s*(-?\d+(?:\.\d+)?)[\s,;]+(-?\d+(?:\.\d+)?)\s*$/) ||
+    text.match(/(?:^|[^\d.-])(-?\d{1,2}\.\d+)\s*[,;]\s*(-?\d{1,3}(?:\.\d+)?)(?![\d.])/) ||
+    text.match(/(?:^|[^\d.-])(-?\d{1,2})\s*[,;]\s*(-?\d{1,3}\.\d+)(?![\d.])/);
   if (!pair || Math.abs(+pair[1]) > 90 || Math.abs(+pair[2]) > 180) return null;
   const lat = +pair[1], lon = +pair[2];
   return { name: null, label: coordText(lat, lon), lat, lon };
@@ -1007,8 +1031,87 @@ function maskPlaces(source, hints) {
   }, source);
 }
 
-// Read a question: which measurement, what we don't have, which words might name a place
+// ------------------------------------------------------------------ spelling mistakes
+// "Is the temprature rising?" -> "temperature". Only used when the question as typed finds no
+// measurement. A word is corrected only to a word the search knows (a measurement keyword, phrase or
+// name), only by typing slips (a letter missing, extra, wrong or two letters swapped): one slip for
+// words of 6-8 letters, two for longer ones, none for shorter ones (short real words such as "speak"
+// sit one slip away from search words such as "peak"). The first letter must match, and exactly one
+// known word may be that close. Words that may be places are never changed: words
+// written with a capital letter, country and capital names, and our named regions. Two words written
+// together are split ("windspeed" -> "wind speed").
+let vocabulary = null, vocabularyOf = null, phrasesKnown = null;
+function knownWords() {
+  if (vocabularyOf !== VARS) {
+    const all = [];
+    VARS.forEach((v) => all.push(...words(v.keywords || ""), ...words(v.weak || ""), ...words(v.name), ...listOf(v.phrases).flatMap(words)));
+    Object.values(FAMILIES).forEach((f) => all.push(...words(f.words || "")));
+    NOT_AVAILABLE.forEach((n) => all.push(...words(n.words || ""), ...listOf(n.phrases).flatMap(words)));
+    vocabulary = new Set(all.filter((w) => w.length >= 3 && !FILLER.has(w) && !/\d/.test(w)));
+    phrasesKnown = new Set([...VARS.flatMap((v) => listOf(v.phrases)), ...NOT_AVAILABLE.flatMap((n) => listOf(n.phrases))]);
+    vocabularyOf = VARS;
+  }
+  return vocabulary;
+}
+function placeWords() {
+  const all = new Set();
+  CAPITALS.forEach((e) => [e.country, ...e.aliases, ...e.capitals.map((c) => c.name)].forEach((n) => words(n).forEach((w) => all.add(w))));
+  REGIONS.forEach(([key]) => words(key).forEach((w) => all.add(w)));
+  Object.keys(FEATURES).concat(Object.keys(FEATURE_ALIASES)).forEach((w) => all.add(w));
+  return all;
+}
+// Typing slips between two words (letters missing, extra, wrong, or two neighbours swapped)
+function slips(a, b, most) {
+  if (Math.abs(a.length - b.length) > most) return most + 1;
+  const d = Array.from({ length: a.length + 1 }, (_, i) => [i, ...Array(b.length).fill(0)]);
+  for (let j = 1; j <= b.length; j++) d[0][j] = j;
+  for (let i = 1; i <= a.length; i++) {
+    for (let j = 1; j <= b.length; j++) {
+      d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) d[i][j] = Math.min(d[i][j], d[i - 2][j - 2] + 1);
+    }
+  }
+  return d[a.length][b.length];
+}
+// -> { text, changes: [[typed, read as], ...] } or null when nothing needs correcting
+function correctSpelling(text) {
+  const known = knownWords(), places = placeWords();
+  const capitalised = new Set((text.match(/\p{Lu}[\p{L}'’-]*/gu) || []).map((w) => TEXT(w).trim()));
+  const changes = [];
+  const fixed = text.replace(/[\p{L}'’-]+/gu, (raw) => {
+    const w = TEXT(raw).trim();
+    if (w.length < 6 || known.has(w) || FILLER.has(w) || places.has(w) || capitalised.has(w)) return raw;
+    for (let i = 3; i <= w.length - 3; i++) {                  // two known words written together
+      const pair = w.slice(0, i) + " " + w.slice(i);              // "windspeed", or "sealevel" (a known phrase)
+      if ((known.has(w.slice(0, i)) && known.has(w.slice(i))) || phrasesKnown.has(pair)) { changes.push([raw, pair]); return pair; }
+    }
+    const most = w.length >= 9 ? 2 : 1;
+    let best = null, bestSlips = most + 1, tie = false;
+    known.forEach((k) => {
+      if (k.length < 4 || k[0] !== w[0]) return;
+      const n = slips(w, k, most);
+      if (n < bestSlips) { best = k; bestSlips = n; tie = false; } else if (n === bestSlips && k !== best) tie = true;
+    });
+    if (!best || bestSlips > most || tie) return raw;
+    changes.push([raw, best]);
+    return best;
+  });
+  return changes.length ? { text: fixed, changes } : null;
+}
+
+// Read a question, correcting spelling mistakes when the question as typed finds no measurement
 function understand(text) {
+  const q = understandText(text);
+  if (q.variable || q.missing) return q;
+  const fixed = correctSpelling(text);
+  if (!fixed) return q;
+  const q2 = understandText(fixed.text);
+  if (!q2.variable && !q2.missing) return q;
+  return Object.assign(q2, { corrected: fixed.changes, correctedText: fixed.text });
+}
+
+// Read a question: which measurement, what we don't have, which words might name a place
+function understandText(text) {
   text = text.replace(/(\p{Ll})(\p{Lu})/gu, "$1 $2");   // "BlackSea" -> "Black Sea"
   const t = TEXT(text);
   const directPlace = coordinatesIn(text);
@@ -1128,8 +1231,8 @@ const SKIP_KINDS = new Set(["highway", "building", "shop", "amenity", "office", 
 async function geocode(name) {
   const found = [];
   const [photon, meteo] = await Promise.all([
-    fetch(`${GEOCODER_2}?q=${encodeURIComponent(name)}&limit=6&lang=en`).then((r) => r.json()).catch(() => null),
-    fetch(`${GEOCODER}?name=${encodeURIComponent(name)}&count=5&language=en&format=json`).then((r) => r.json()).catch(() => null),
+    fetchJSON(`${GEOCODER_2}?q=${encodeURIComponent(name)}&limit=6&lang=en`).catch(() => null),
+    fetchJSON(`${GEOCODER}?name=${encodeURIComponent(name)}&count=5&language=en&format=json`).catch(() => null),
   ]);
   ((photon && photon.features) || []).forEach((f) => {
     const p = f.properties;
@@ -1195,33 +1298,51 @@ function splitGlued(word) {
   return key ? `${word.slice(0, -key.length)} ${key}` : word;
 }
 const featureWordOf = (text) => {
-  for (const w of words(text)) { const k = FEATURE_ALIASES[w] || w; if (FEATURES[k]) return k; }
+  const ws = words(text);
+  if (["city", "town", "village"].includes(ws.at(-1))) return null;    // "Salt Lake City" is a city, not a lake
+  for (const w of ws) { const k = FEATURE_ALIASES[w] || w; if (FEATURES[k]) return k; }
   return null;
 };
 
+// Nominatim's usage policy (operations.osmfoundation.org/policies/nominatim): at most one request per
+// second, results cached, and no search-as-you-type. So we ask it only when the visitor presses Enter or
+// picks a result, wait our turn between requests, and keep answers in the browser for 30 days.
 const nominatimCache = new Map();
 let nominatimFree = 0;   // when the next Nominatim request may start
+const STORE_DAYS = 30, STORE_MAX = 200000;   // keep answers for 30 days; skip very big outlines
+function stored(key) {
+  try {
+    const item = JSON.parse(localStorage.getItem(key) || "null");
+    return item && Date.now() - item.t < STORE_DAYS * 86400000 ? item.v : undefined;
+  } catch (e) { return undefined; }
+}
+function store(key, value) {
+  try { const text = JSON.stringify({ t: Date.now(), v: value }); if (text.length < STORE_MAX) localStorage.setItem(key, text); } catch (e) { /* storage full or blocked */ }
+}
 function nominatim(path) {
+  if (!SERVICES.nominatim) return Promise.resolve(null);
   if (!nominatimCache.has(path)) {
+    const kept = stored("nominatim:" + path);
+    if (kept !== undefined) { nominatimCache.set(path, Promise.resolve(kept)); return nominatimCache.get(path); }
     const wait = Math.max(0, nominatimFree - Date.now());
     nominatimFree = Date.now() + wait + 1100;
     nominatimCache.set(path, new Promise((r) => setTimeout(r, wait))
-      .then(() => fetch(`${NOMINATIM}${path}`)).then((r) => r.json()).catch(() => null));
+      .then(() => fetchJSON(`${NOMINATIM}${path}`, 15000)).then((j) => { store("nominatim:" + path, j); return j; }).catch(() => null));
   }
   return nominatimCache.get(path);
 }
 
 // Features of the kind named in `text` ("Volga River" -> rivers called Volga). Both services are
 // asked: Nominatim ranks by importance, Photon knows some big outlines Nominatim misses (Caspian Sea).
-async function findFeatures(text) {
+async function findFeatures(text, explicit = false) {
   const kind = featureWordOf(text);
   if (!kind) return [];
   const fits = (category, type) => FEATURES[kind].some(([c, t]) => category === c && type === t);
-  const search = async (q) => ((await nominatim(`/search?q=${encodeURIComponent(q)}&format=jsonv2&limit=10&accept-language=en`)) || [])
+  const search = async (q) => (explicit ? (await nominatim(`/search?q=${encodeURIComponent(q)}&format=jsonv2&limit=10&accept-language=en`)) || [] : [])
     .filter((x) => fits(x.category, x.type));
   const [nominatimHits, photon] = await Promise.all([
     search(text),
-    fetch(`${GEOCODER_2}?q=${encodeURIComponent(text)}&limit=10&lang=en`).then((r) => r.json()).catch(() => null),
+    fetchJSON(`${GEOCODER_2}?q=${encodeURIComponent(text)}&limit=10&lang=en`).catch(() => null),
   ]);
   let found = nominatimHits;
   // "Volga River" mostly finds small pieces of the river; the bare name "Volga" finds the whole river
@@ -1254,15 +1375,24 @@ async function findFeatures(text) {
 const samePlace = (p, q) => p.name.split(",")[0] === q.name.split(",")[0] && Math.abs(p.lat - q.lat) < 1 && Math.abs(p.lon - q.lon) < 1;
 
 // Find places by name: "lat, lon" typed directly, our short list of famous regions, then the geocoders
-async function findPlaces(text) {
+// Short names of countries ("UK", "USA", "Holland") -> the name the place services know
+const SEARCH_NAME = { "People's Republic of China": "China", "Kingdom of the Netherlands": "Netherlands" };
+function countryName(text) {
+  const t = TEXT(text).trim();
+  const e = CAPITALS.find((c) => c.aliases.some((a) => TEXT(a).trim() === t));
+  return e ? SEARCH_NAME[e.country] || e.country : null;
+}
+
+async function findPlaces(text, explicit = false) {
   const direct = coordinatesIn(text);
   if (direct) return [direct];
+  text = countryName(text) || text;
   // order: features with a real outline ("Volga River", "Lake Baikal"), then our region boxes
   // ("Gobi"), then features that are only a point, then towns and other places
-  let features = await findFeatures(text);
+  let features = await findFeatures(text, explicit);
   if (!features.length && !featureWordOf(text)) {          // "blacksea" -> try "black sea"
     const split = words(text).map(splitGlued).join(" ");
-    if (split !== TEXT(text).trim()) features = (await findFeatures(split)).filter((f) => f.kind === "large");
+    if (split !== TEXT(text).trim()) features = (await findFeatures(split, explicit)).filter((f) => f.kind === "large");
   }
   const outlined = features.filter((f) => f.kind === "large" && f.osm && f.osm[0] !== "N");
   const regions = REGIONS.filter(([key]) => TEXT(text).includes(` ${key}`)).map(regionHit);
@@ -1270,21 +1400,39 @@ async function findPlaces(text) {
   return found.filter((p, i) => found.findIndex((q) => q.name === p.name || samePlace(p, q)) === i).slice(0, 6);
 }
 
+// "the capital of Peru", "capital city of the UK", "Niger's capital" -> the capital (every one, when a
+// country has several). Countries and capitals come from data/capitals.json (Wikidata).
+function capitalHits(question) {
+  if (!CAPITALS.length) return [];
+  const t = TEXT(question);
+  const names = (e) => [e.country, ...e.aliases].map((n) => TEXT(n).trim());
+  let found = null, best = 0;
+  const after = t.match(/ capital(?: city)? of (?:the )?(.+)$/), before = t.match(/^(.*?) capital(?: city)? /);
+  CAPITALS.forEach((e) => names(e).forEach((n) => {
+    const hit = (after && (" " + after[1] + " ").startsWith(" " + n + " ")) || (before && (before[1] + " ").endsWith(" " + n + " ") );
+    if (hit && n.length > best) { found = e; best = n.length; }    // the longest name wins ("south sudan" over "sudan")
+  }));
+  if (!found) return [];
+  return found.capitals.map((c) => ({ name: `${c.name}, ${found.country}`, lat: c.lat, lon: c.lon, kind: "place" }));
+}
+
 // Places for a whole question: famous regions in it, then each candidate name, then single words
-async function placesForQuestion(question, q) {
+async function placesForQuestion(question, q, explicit = false) {
   if (q.directPlace) return [q.directPlace];
+  const capitals = capitalHits(question);                  // "the capital of Peru", "Niger's capital"
+  if (capitals.length) return capitals;
   const regions = REGIONS.filter(([key]) => TEXT(question).includes(` ${key}`)).map(regionHit);
   // a named feature that isn't one of our regions ("Amazon River" is not the Amazon rainforest;
   // "Lake Mead" is our Lake Mead)
   const namesFeature = (q.namedPlaces || []).some((c) => featureWordOf(c) && !regions.some((r) => TEXT(c).trim() === r.regionKey));
   if (regions.length && !namesFeature) return regions.filter((p, i) => regions.findIndex((r) => r.name === p.name) === i);
   for (const candidate of q.placeCandidates) {
-    const places = await findPlaces(candidate);
+    const places = await findPlaces(candidate, explicit);
     if (places.length) return places;
   }
   for (const word of [...q.leftoverWords].sort((a, b) => b.length - a.length)) {   // "romania cold winters" -> word by word
     if (word.length < 3) continue;
-    const places = await findPlaces(word);
+    const places = await findPlaces(word, explicit);
     if (places.length) return places;
   }
   return [];
@@ -1293,21 +1441,24 @@ async function placesForQuestion(question, q) {
 // Turns an <input> into a place picker with a list of suggestions.
 // withQuestions = true also understands "is Romania getting warmer?" (the main search box).
 function placePicker(input, list, onPick, withQuestions) {
-  let timer = null, ticket = 0, hits = [], enterPressed = false;
+  let timer = null, ticket = 0, hits = [], enterPressed = false, searchedText = null;
   const hide = () => (list.style.display = "none");
   const show = (html) => { list.innerHTML = html; list.style.display = "block"; };
-  const run = async () => {
+  // explicit = the visitor pressed Enter: only then is OpenStreetMap's Nominatim asked too (its rules
+  // don't allow search-as-you-type), which finds rivers, seas and mountains the other services miss
+  const run = async (explicit = false) => {
     const text = input.value.trim(), mine = ++ticket;
     if (!text) { hide(); return; }
     const q = withQuestions ? understand(text) : null;
     const hasLocation = q && (q.directPlace || q.placeCandidates.length || q.leftoverWords.length);
-    const placesJob = q ? (hasLocation ? placesForQuestion(text, q) : null) : findPlaces(text);
+    const placesJob = q ? (hasLocation ? placesForQuestion(text, q, explicit) : null) : findPlaces(text, explicit);
     if (q && needsMeaning(q)) {
       show(`<button disabled>Reading your question…</button>`);
       await readByMeaning(q, text);
       if (mine !== ticket) return;               // the visitor kept typing
     }
     const notes = [];
+    if (q && q.corrected) notes.push(`<button disabled>Read ${q.corrected.map(([a, b]) => `“${escapeHTML(a)}” as “${escapeHTML(b)}”`).join(", ")}<span class="why">Spelling corrected</span></button>`);
     if (q && q.byMeaning && !q.closestOnly) notes.push(`<button disabled>${q.byMeaning.hybrid ? "Matched using keywords and meaning" : "Read by meaning"} as “${escapeHTML(q.variable.name)}”<span class="why">Closest description: “${escapeHTML(q.byMeaning.nearest)}”</span></button>`);
     if (q && q.missing) notes.push(`<button disabled>${escapeHTML(q.missing.say)}<span class="why">${q.variable ? "Closest we have: " + q.variable.name : "Try another measurement"}</span></button>`);
     if (q && q.asksWhy) notes.push(`<button disabled>ByteMe shows what changed and how sure we are, not why.<span class="why">Finding the cause needs a separate investigation</span></button>`);
@@ -1324,6 +1475,7 @@ function placePicker(input, list, onPick, withQuestions) {
       ? notesHTML + hits.map((h, i) => `<button data-i="${i}">${escapeHTML(h.name || h.label)}<span class="why">${h.variable ? h.variable.name + " · " : ""}${coordText(h.lat, h.lon)}</span></button>`).join("")
       : notesHTML + `<button disabled>No place found. Try a city, country or region, or click the map<span class="why">Examples: Bucharest · Sahel · Great Barrier Reef · 44.4, 26.1</span></button>`);
     list.querySelectorAll("[data-i]").forEach((b) => b.addEventListener("click", () => { hide(); onPick(hits[+b.dataset.i], text, q); }));
+    if (explicit) searchedText = text;
     if (enterPressed && hits.length) { enterPressed = false; list.querySelector("[data-i]").click(); }   // Enter was pressed while we searched
   };
   input.addEventListener("input", () => {
@@ -1338,7 +1490,9 @@ function placePicker(input, list, onPick, withQuestions) {
     if (e.key === "Escape") hide();
     if (e.key === "Enter") {
       const first = list.querySelector("[data-i]");
-      if (first && list.style.display !== "none") first.click(); else { enterPressed = true; clearTimeout(timer); run(); }
+      // pick the first result if it came from a full (Enter) search of this text; otherwise search fully first
+      if (first && list.style.display !== "none" && searchedText === input.value.trim()) first.click();
+      else { enterPressed = true; clearTimeout(timer); run(true); }
     }
   });
   document.addEventListener("click", (e) => { if (e.target !== input && !list.contains(e.target)) hide(); });
@@ -1364,7 +1518,7 @@ function fusedTopic(lexical, semantic) {
 }
 
 async function readByMeaning(q, text) {
-  let question = text;
+  let question = q.correctedText || text;
   q.namedPlaces.forEach((name) => { question = question.split(name).join(" "); });
   question = question.replace(/\b(1[89]\d\d|20\d\d)\b/g, " ");
   const m = await ByteMeMeaning.match(question, VARS, NOT_AVAILABLE);
@@ -1559,15 +1713,16 @@ function balanceSheet(res, outcome) {
     ...res.drivers.map((d) => ({ label: variable(d.code).name, sub: d.alibi && d.alibi.p > 0.1 ? "link not distinguishable from chance" : "accounted for", value: d.trend, low: d.low, high: d.high })),
     { label: "Left over", sub: res.left.result.verdict === "significant" ? "still a significant trend" : "no longer a significant trend", value: res.left.trend, low: res.left.low, high: res.left.high, left: true }];
   const max = Math.max(...rows.flatMap((r) => [r.value, r.low, r.high].filter(Number.isFinite).map(Math.abs)), 1e-9);
-  const W = 520, mid = W / 2, x = (v) => mid + (v / max) * (mid - 6);
+  // positions in % of the track, so the bars fit any screen width (zero in the middle)
+  const mid = 50, x = (v) => mid + (v / max) * (mid - 1.5);
   return `<div class="sheet">${rows.map((r) => {
     const a = x(Math.min(0, r.value)), b = x(Math.max(0, r.value));
     const fill = r.ink ? "var(--ink)" : r.left ? "repeating-linear-gradient(45deg,#9aa5a2 0 3px,#d9e0dd 3px 7px)" : r.value * res.observed.trend > 0 ? "var(--deep)" : "var(--down)";
     return `<div class="sheet-row${r.left ? " left" : ""}">
       <div class="sheet-name">${escapeHTML(r.label)}<small>${escapeHTML(r.sub)}</small></div>
-      <div class="sheet-track"><span class="zero" style="left:${mid}px"></span>
-        <span class="bar" style="left:${a}px;width:${Math.max(2, b - a)}px;background:${fill}"></span>
-        ${Number.isFinite(r.low) ? `<span class="whisker" style="left:${x(r.low)}px;width:${Math.max(1, x(r.high) - x(r.low))}px"></span>` : ""}</div>
+      <div class="sheet-track"><span class="zero" style="left:${mid}%"></span>
+        <span class="bar" style="left:${a}%;width:${Math.max(0.4, b - a)}%;background:${fill}"></span>
+        ${Number.isFinite(r.low) ? `<span class="whisker" style="left:${x(r.low)}%;width:${Math.max(0.2, x(r.high) - x(r.low))}%"></span>` : ""}</div>
       <div class="sheet-val num">${signed(r.value, outcome.units)}<small>${r.ink ? "per decade" : `${Number.isFinite(r.low) ? `${num(r.low)} to ${num(r.high)}` : ""}`}</small></div>
     </div>`;
   }).join("")}</div>`;
@@ -1773,12 +1928,12 @@ function similarFor() {
 function nameOfSquare(m) {
   const key = `${m.lat},${m.lon}`;
   // A 5-degree square is region-sized, so it is named after its state or province and country.
-  // Only Nominatim is asked (rate-limited, one request per second), so the names arrive one by one.
-  if (!similarNames.has(key)) similarNames.set(key, nominatim(`/reverse?lat=${m.lat}&lon=${m.lon}&zoom=5&format=jsonv2&accept-language=en`).then((j) => {
-    const a = (j && j.address) || {};
-    const parts = [a.state || a.region || a.province || a.county, a.country].filter(Boolean);
+  // Photon is asked (not Nominatim: its rules forbid systematic look-ups); names arrive as they come.
+  if (!similarNames.has(key)) similarNames.set(key, fetchJSON(`${REVERSE}?lat=${m.lat}&lon=${m.lon}&lang=en`).then((j) => {
+    const p = ((j.features || [])[0] || {}).properties || {};
+    const parts = [p.state || p.county || p.name, p.country].filter(Boolean);
     return parts.length ? [...new Set(parts)].join(", ") : coordText(m.lat, m.lon);   // open sea or an unnamed coast
-  }));
+  }).catch(() => coordText(m.lat, m.lon)));
   return similarNames.get(key);
 }
 

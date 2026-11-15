@@ -33,6 +33,29 @@ server.listen(0, async () => {
     }
     console.log(`${label}: ${right}/${cases.length} right measurement`);
   }
+  // spelling: corrected only to known search words, never place names
+  await page.waitForFunction(() => CAPITALS.length > 100, null, { timeout: 30000 });
+  const spelling = [["Is the temprature rising in Madrid?", "T2M"], ["Is polution getting worse in Delhi?", "AOD_55"],
+    ["precipitaion trend in Kenya", "PRECTOTCORR"], ["Is the windspeed dropping?", "WS10M"], ["sealevel in miami", "SEA_LEVEL"],
+    ["evaporaton in iran", "EVLAND"], ["is the tempreture going up in chile", "T2M"]];
+  for (const [question, want] of spelling) {
+    const got = await page.evaluate((q) => { const u = understand(q); return u.variable && u.variable.code; }, question);
+    if (got !== want) { failures++; console.log(`FAIL spelling: ${question} -> ${got} (want ${want})`); }
+  }
+  const untouched = ["is chile getting drier", "Is it hot in nice?", "rain in lima"];   // place names stay as typed
+  for (const question of untouched) {
+    const fixed = await page.evaluate((q) => understand(q).corrected || null, question);
+    if (fixed) { failures++; console.log(`FAIL spelling changed a place: ${question} -> ${JSON.stringify(fixed)}`); }
+  }
+  // "capital of ..." places
+  const capitals = [["How much water fell near Niger's capital?", "Niamey"], ["Is the capital of Australia warmer?", "Canberra"],
+    ["Is the capital city of the UK rainier?", "London"], ["Is South Sudan's capital hotter?", "Juba"], ["is the capital of peru humid", "Lima"],
+    ["Is the capital of South Africa warmer?", "Pretoria"], ["Is Paris getting warmer?", null]];
+  for (const [question, want] of capitals) {
+    const got = await page.evaluate((q) => { const c = capitalHits(q); return c.length ? c[0].name.split(",")[0] : null; }, question);
+    if (got !== want) { failures++; console.log(`FAIL capital: ${question} -> ${got} (want ${want})`); }
+  }
+  console.log(`spelling and capitals: ${spelling.length + untouched.length + capitals.length} checks`);
   await browser.close();
   server.close();
   process.exit(failures ? 1 : 0);
