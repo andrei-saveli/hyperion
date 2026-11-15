@@ -119,6 +119,30 @@ build_world.py (run once, Python, stats.py) ─► data/world.json ─► colour
   - Names typed as one word are split: "BlackSea" → "Black Sea", and "blacksea" is retried as "black
     sea" when nothing else matches ("Chelsea" stays Chelsea). "Sea" also matches lakes called seas
     (the Dead Sea).
+- **Spelling mistakes:** when a question as typed finds no measurement, words are corrected to the
+  nearest word the search knows ("temprature" → temperature, "precipitaion" → precipitation,
+  "windspeed" → wind speed). Only words of 6 letters or more, one typing slip (two for words of 9+
+  letters), same first letter, and only when exactly one known word is that close; words written with
+  a capital letter, country and capital names and our regions are never changed. The suggestion list
+  says what was corrected.
+- **Riddle places:** "the capital of Peru", "Niger's capital", "the capital city of the UK" go to the
+  capital (`data/capitals.json`, 197 countries from Wikidata, rebuilt by `build_capitals.py`); a country
+  with several capitals offers each one. "UK", "USA", "Holland"... are searched as the full country name.
+  Coordinates are also found inside a question ("temperature at 44.4, 26.1"). A name ending in "City"
+  ("Salt Lake City") is a city, not a lake.
+- **Place services and their rules:** while typing, Photon and Open-Meteo suggest places; Nominatim
+  (outlines; rivers, seas and mountains by name) is asked only after Enter or a pick, as its usage policy
+  requires, at most once per second, with answers kept in the browser for 30 days. Every request gives
+  up after a time limit, so a slow service can't freeze the search.
+- **Whole-search benchmark** (`tests/test_search_e2e.js` + `tests/search_e2e_questions.json`, needs
+  Playwright and internet): measurement *and* place, first suggestion, as after pressing Enter. 30
+  tuning and 30 held-out everyday questions with typos, lowercase names and riddles (held-out written
+  before the changes and never tuned on):
+
+  | | Before | After |
+  |---|---|---|
+  | Tuning: right measurement and place | 17/30 | (being measured) |
+  | Held out: right measurement and place | 25/30 | (being measured) |
 - **Direct answer:** a question gets an answer card right under the search box, for example
   "**Yes.** Air temperature in Romania is rising: +0.57 °C per decade since 1981". It checks the
   direction asked ("warmer", "drier", "cleaner"...) and answers *Yes*, *No, the opposite*, *Maybe*
@@ -296,11 +320,14 @@ python3 Website/tests/make_reference.py
 ```
 
 ## Put it online
-Upload the whole `Website/` folder to any static hosting: the free Space Apps domain hosting,
-GitHub Pages, Netlify, etc.
+Any static hosting works; the recommended free option is Cloudflare Pages connected to the GitHub
+repository (output directory `Website`, no build command). Step by step, the outside services and
+their rules: [docs/DEPLOY.md](../docs/DEPLOY.md).
 
 ## Notes
-- Needs internet: NASA POWER (the data), Photon, Open-Meteo, BigDataCloud and Nominatim (place names and outlines), OpenFreeMap
+- Needs internet: NASA POWER (the data), Photon and Open-Meteo (place names while typing, the name of a
+  clicked point), Nominatim (outlines; rivers, seas and mountains by name, only after Enter or a pick,
+  as its rules require; switch it off in `data/services.json`), OpenFreeMap
   (the detailed map), Google Fonts and jsDelivr (fonts and the two libraries). If the detailed map
   can't load, the built-in land outline is used instead.
 - Demo cases (chosen from real results): Svalbard air temperature (+0.69 °C per decade),

@@ -1,0 +1,20 @@
+# Response headers for Netlify and Cloudflare Pages (other hosts ignore this file).
+# Data files never change once published, except when the team rebuilds them; a day of caching
+# keeps the site fast without serving stale data for long. The search model never changes.
+
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: geolocation=(), camera=(), microphone=()
+
+/data/nasa/*
+  Cache-Control: public, max-age=86400
+
+/models/*
+  Cache-Control: public, max-age=2592000
+
+/vendor/*
+  Cache-Control: public, max-age=2592000
+
+/vendor/transformers/*.wasm
+  Content-Type: application/wasm

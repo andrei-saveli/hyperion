@@ -1,0 +1,4 @@
+{
+ "note": "Switches for outside services, read when the page loads. Set nominatim to false if OpenStreetMap asks us to stop using its public Nominatim server: the site keeps working (countries and rivers are then found by Photon and Open-Meteo only, without outlines from Nominatim).",
+ "nominatim": true
+}
