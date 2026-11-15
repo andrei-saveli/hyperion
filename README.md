@@ -14,7 +14,7 @@ python3 -m http.server 8000 --directory Website
 ```
 
 Then open http://localhost:8000. Nothing to install: the site is plain HTML and JavaScript.
-To put it online, upload the `Website/` folder to any static hosting.
+To put it online: [docs/DEPLOY.md](docs/DEPLOY.md) (any static host; Cloudflare Pages recommended).
 
 ## What it does
 

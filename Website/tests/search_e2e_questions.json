@@ -1,0 +1,763 @@
+{
+ "note": "Whole search (measurement + place, first suggestion) on everyday questions: typos, lowercase names, riddle places ('the capital of Peru'), areas. place: expected centre and how far (km) the first suggestion may be from it. tuning: used while improving the search. heldout: written before any change and never tuned on. Run: node Website/tests/test_search_e2e.js (needs Playwright and internet for the place-name services).",
+ "tuning": [
+  [
+   "Is the temprature rising in Madrid?",
+   [
+    "T2M",
+    "T2M_MAX",
+    "T2M_MIN",
+    "AIRS_T2M"
+   ],
+   {
+    "lat": 40.42,
+    "lon": -3.7,
+    "km": 120
+   }
+  ],
+  [
+   "Is polution getting worse in Delhi?",
+   [
+    "AOD_55",
+    "OMI_NO2",
+    "MERRA2_PM25"
+   ],
+   {
+    "lat": 28.61,
+    "lon": 77.21,
+    "km": 120
+   }
+  ],
+  [
+   "precipitaion trend in Kenya",
+   [
+    "PRECTOTCORR",
+    "GPM_RAIN"
+   ],
+   {
+    "lat": 0.2,
+    "lon": 37.9,
+    "km": 700
+   }
+  ],
+  [
+   "is paris getting hotter",
+   [
+    "T2M",
+    "T2M_MAX",
+    "T2M_MIN",
+    "AIRS_T2M"
+   ],
+   {
+    "lat": 48.86,
+    "lon": 2.35,
+    "km": 120
+   }
+  ],
+  [
+   "rain in new york",
+   [
+    "PRECTOTCORR",
+    "GPM_RAIN"
+   ],
+   {
+    "lat": 40.71,
+    "lon": -74.0,
+    "km": 150
+   }
+  ],
+  [
+   "How much water fell near Niger's capital?",
+   [
+    "PRECTOTCORR",
+    "GPM_RAIN"
+   ],
+   {
+    "lat": 13.51,
+    "lon": 2.11,
+    "km": 120
+   }
+  ],
+  [
+   "Is the capital of Australia getting warmer?",
+   [
+    "T2M",
+    "T2M_MAX",
+    "T2M_MIN",
+    "AIRS_T2M"
+   ],
+   {
+    "lat": -35.28,
+    "lon": 149.13,
+    "km": 120
+   }
+  ],
+  [
+   "Is snow dept falling in the Alps?",
+   [
+    "SNODP",
+    "FRSNO"
+   ],
+   {
+    "lat": 46.5,
+    "lon": 10.0,
+    "km": 400
+   }
+  ],
+  [
+   "Is the humidty rising in Singapore?",
+   [
+    "RH2M",
+    "QV2M",
+    "T2MDEW"
+   ],
+   {
+    "lat": 1.35,
+    "lon": 103.82,
+    "km": 120
+   }
+  ],
+  [
+   "Is Rio de Janeiro getting more rain?",
+   [
+    "PRECTOTCORR",
+    "GPM_RAIN"
+   ],
+   {
+    "lat": -22.91,
+    "lon": -43.2,
+    "km": 120
+   }
+  ],
+  [
+   "Is Ho Chi Minh City getting hotter?",
+   [
+    "T2M",
+    "T2M_MAX",
+    "T2M_MIN",
+    "AIRS_T2M"
+   ],
+   {
+    "lat": 10.82,
+    "lon": 106.63,
+    "km": 120
+   }
+  ],
+  [
+   "Is sea level rising around the Maldives?",
+   [
+    "SEA_LEVEL"
+   ],
+   {
+    "lat": 3.2,
+    "lon": 73.2,
+    "km": 500
+   }
+  ],
+  [
+   "Is the Great Barrier Reef warming?",
+   [
+    "TS",
+    "T2M"
+   ],
+   {
+    "lat": -18.3,
+    "lon": 147.7,
+    "km": 900
+   }
+  ],
+  [
+   "Is the vegitation greener in the Sahel?",
+   [
+    "MODIS_NDVI"
+   ],
+   {
+    "lat": 14.5,
+    "lon": 5.0,
+    "km": 1500
+   }
+  ],
+  [
+   "Is the wind getting stronger in patagonia?",
+   [
+    "WS10M",
+    "WS10M_MAX"
+   ],
+   {
+    "lat": -45.0,
+    "lon": -69.0,
+    "km": 900
+   }
+  ],
+  [
+   "Is the ozone layer recovering over antarctica?",
+   [
+    "TO3"
+   ],
+   {
+    "lat": -82.0,
+    "lon": 0.0,
+    "km": 2500
+   }
+  ],
+  [
+   "Is Salt Lake City drier?",
+   [
+    "PRECTOTCORR",
+    "GPM_RAIN",
+    "GWETROOT",
+    "GWETTOP",
+    "GLDAS_SOILM",
+    "GWETPROF",
+    "RH2M"
+   ],
+   {
+    "lat": 40.76,
+    "lon": -111.89,
+    "km": 120
+   }
+  ],
+  [
+   "Is the capital of Kenya getting more polluted?",
+   [
+    "AOD_55",
+    "OMI_NO2",
+    "MERRA2_PM25"
+   ],
+   {
+    "lat": -1.29,
+    "lon": 36.82,
+    "km": 120
+   }
+  ],
+  [
+   "Is evaporation increasing in Spain?",
+   [
+    "EVLAND",
+    "GLDAS_EVAP"
+   ],
+   {
+    "lat": 40.0,
+    "lon": -3.7,
+    "km": 600
+   }
+  ],
+  [
+   "temperature at 44.4, 26.1",
+   [
+    "T2M",
+    "T2M_MAX",
+    "T2M_MIN",
+    "AIRS_T2M"
+   ],
+   {
+    "lat": 44.4,
+    "lon": 26.1,
+    "km": 60
+   }
+  ],
+  [
+   "Is soil moisture droping in Ukraine?",
+   [
+    "GWETROOT",
+    "GWETTOP",
+    "GLDAS_SOILM",
+    "GWETPROF"
+   ],
+   {
+    "lat": 49.0,
+    "lon": 32.0,
+    "km": 700
+   }
+  ],
+  [
+   "Is the Dead Sea area getting hotter?",
+   [
+    "T2M",
+    "T2M_MAX",
+    "T2M_MIN",
+    "AIRS_T2M",
+    "TS"
+   ],
+   {
+    "lat": 31.5,
+    "lon": 35.5,
+    "km": 150
+   }
+  ],
+  [
+   "Are frost days decreasing in Finland?",
+   [
+    "FROST_DAYS"
+   ],
+   {
+    "lat": 64.0,
+    "lon": 26.0,
+    "km": 700
+   }
+  ],
+  [
+   "Is Lake Victoria warming?",
+   [
+    "TS",
+    "T2M"
+   ],
+   {
+    "lat": -1.0,
+    "lon": 33.0,
+    "km": 300
+   }
+  ],
+  [
+   "Is the tempreture going up in Tokyo?",
+   [
+    "T2M",
+    "T2M_MAX",
+    "T2M_MIN",
+    "AIRS_T2M"
+   ],
+   {
+    "lat": 35.68,
+    "lon": 139.69,
+    "km": 120
+   }
+  ],
+  [
+   "Is Lagos more humid now?",
+   [
+    "RH2M",
+    "QV2M",
+    "T2MDEW"
+   ],
+   {
+    "lat": 6.52,
+    "lon": 3.38,
+    "km": 120
+   }
+  ],
+  [
+   "Is the capital of Canada getting snowier?",
+   [
+    "SNODP",
+    "PRECSNOLAND",
+    "FRSNO"
+   ],
+   {
+    "lat": 45.42,
+    "lon": -75.7,
+    "km": 120
+   }
+  ],
+  [
+   "Is cloud cover increasing over the UK?",
+   [
+    "CLOUD_AMT"
+   ],
+   {
+    "lat": 54.0,
+    "lon": -2.0,
+    "km": 600
+   }
+  ],
+  [
+   "is sunshine increasing in california",
+   [
+    "ALLSKY_SFC_SW_DWN"
+   ],
+   {
+    "lat": 37.0,
+    "lon": -120.0,
+    "km": 700
+   }
+  ],
+  [
+   "Is the Amazon rainforest getting drier?",
+   [
+    "PRECTOTCORR",
+    "GPM_RAIN",
+    "GWETROOT",
+    "GWETTOP",
+    "GLDAS_SOILM",
+    "GWETPROF",
+    "RH2M"
+   ],
+   {
+    "lat": -3.0,
+    "lon": -60.0,
+    "km": 1500
+   }
+  ]
+ ],
+ "heldout": [
+  [
+   "Is the temperture rising in Berlin?",
+   [
+    "T2M",
+    "T2M_MAX",
+    "T2M_MIN",
+    "AIRS_T2M"
+   ],
+   {
+    "lat": 52.52,
+    "lon": 13.4,
+    "km": 120
+   }
+  ],
+  [
+   "Is air polution increasing in Lahore?",
+   [
+    "AOD_55",
+    "OMI_NO2",
+    "MERRA2_PM25"
+   ],
+   {
+    "lat": 31.55,
+    "lon": 74.34,
+    "km": 120
+   }
+  ],
+  [
+   "Is rainfal decreasing in Morocco?",
+   [
+    "PRECTOTCORR",
+    "GPM_RAIN"
+   ],
+   {
+    "lat": 31.8,
+    "lon": -7.0,
+    "km": 600
+   }
+  ],
+  [
+   "is lima getting warmer",
+   [
+    "T2M",
+    "T2M_MAX",
+    "T2M_MIN",
+    "AIRS_T2M"
+   ],
+   {
+    "lat": -12.05,
+    "lon": -77.04,
+    "km": 120
+   }
+  ],
+  [
+   "snow in colorado",
+   [
+    "SNODP",
+    "FRSNO",
+    "PRECSNOLAND"
+   ],
+   {
+    "lat": 39.0,
+    "lon": -105.5,
+    "km": 500
+   }
+  ],
+  [
+   "Is the capital of Peru getting more humid?",
+   [
+    "RH2M",
+    "QV2M",
+    "T2MDEW"
+   ],
+   {
+    "lat": -12.05,
+    "lon": -77.04,
+    "km": 120
+   }
+  ],
+  [
+   "Is Egypt's capital getting hotter?",
+   [
+    "T2M",
+    "T2M_MAX",
+    "T2M_MIN",
+    "AIRS_T2M"
+   ],
+   {
+    "lat": 30.04,
+    "lon": 31.24,
+    "km": 120
+   }
+  ],
+  [
+   "Is the capital of Japan getting more rain?",
+   [
+    "PRECTOTCORR",
+    "GPM_RAIN"
+   ],
+   {
+    "lat": 35.68,
+    "lon": 139.69,
+    "km": 120
+   }
+  ],
+  [
+   "Is the windspeed dropping in the Netherlands?",
+   [
+    "WS10M",
+    "WS10M_MAX"
+   ],
+   {
+    "lat": 52.2,
+    "lon": 5.3,
+    "km": 300
+   }
+  ],
+  [
+   "Is Buenos Aires getting warmer nights?",
+   [
+    "T2M_MIN"
+   ],
+   {
+    "lat": -34.6,
+    "lon": -58.38,
+    "km": 120
+   }
+  ],
+  [
+   "Is the sea level rising near New Orleans?",
+   [
+    "SEA_LEVEL"
+   ],
+   {
+    "lat": 29.95,
+    "lon": -90.07,
+    "km": 250
+   }
+  ],
+  [
+   "Is vegetation browning in Mongolia?",
+   [
+    "MODIS_NDVI"
+   ],
+   {
+    "lat": 46.8,
+    "lon": 103.0,
+    "km": 900
+   }
+  ],
+  [
+   "Are heatwaves getting worse in greece",
+   [
+    "T2M_MAX"
+   ],
+   {
+    "lat": 39.0,
+    "lon": 22.0,
+    "km": 500
+   }
+  ],
+  [
+   "Is the dust increasing in the Gobi desert?",
+   [
+    "MERRA2_DUST",
+    "AOD_55",
+    "MERRA2_DUST25"
+   ],
+   {
+    "lat": 43.0,
+    "lon": 105.0,
+    "km": 900
+   }
+  ],
+  [
+   "Is precipitation changing in Cape Town?",
+   [
+    "PRECTOTCORR",
+    "GPM_RAIN"
+   ],
+   {
+    "lat": -33.92,
+    "lon": 18.42,
+    "km": 120
+   }
+  ],
+  [
+   "Is the Mediterranean Sea warming?",
+   [
+    "TS"
+   ],
+   {
+    "lat": 35.0,
+    "lon": 18.0,
+    "km": 1500
+   }
+  ],
+  [
+   "Is the soil getting dryer in Australia?",
+   [
+    "GWETROOT",
+    "GWETTOP",
+    "GLDAS_SOILM",
+    "GWETPROF"
+   ],
+   {
+    "lat": -25.0,
+    "lon": 134.0,
+    "km": 1500
+   }
+  ],
+  [
+   "Is humidiy rising in Bangkok?",
+   [
+    "RH2M",
+    "QV2M",
+    "T2MDEW"
+   ],
+   {
+    "lat": 13.75,
+    "lon": 100.5,
+    "km": 120
+   }
+  ],
+  [
+   "Is the capital of Brazil getting drier?",
+   [
+    "PRECTOTCORR",
+    "GPM_RAIN",
+    "GWETROOT",
+    "GWETTOP",
+    "GLDAS_SOILM",
+    "GWETPROF",
+    "RH2M"
+   ],
+   {
+    "lat": -15.79,
+    "lon": -47.88,
+    "km": 120
+   }
+  ],
+  [
+   "Is Mount Kilimanjaro losing snow?",
+   [
+    "SNODP",
+    "FRSNO"
+   ],
+   {
+    "lat": -3.07,
+    "lon": 37.35,
+    "km": 120
+   }
+  ],
+  [
+   "rain in sao paulo",
+   [
+    "PRECTOTCORR",
+    "GPM_RAIN"
+   ],
+   {
+    "lat": -23.55,
+    "lon": -46.63,
+    "km": 120
+   }
+  ],
+  [
+   "Is the ozone layer thinning over the arctic?",
+   [
+    "TO3"
+   ],
+   {
+    "lat": 80.0,
+    "lon": 0.0,
+    "km": 2500
+   }
+  ],
+  [
+   "Is it getting cloudier in Ireland?",
+   [
+    "CLOUD_AMT"
+   ],
+   {
+    "lat": 53.4,
+    "lon": -8.0,
+    "km": 300
+   }
+  ],
+  [
+   "Is the sea ice declining in Hudson Bay?",
+   [
+    "FRSEAICE"
+   ],
+   {
+    "lat": 60.0,
+    "lon": -85.0,
+    "km": 700
+   }
+  ],
+  [
+   "Is methane increasing over Siberia?",
+   [
+    "AIRS_CH4"
+   ],
+   {
+    "lat": 60.0,
+    "lon": 100.0,
+    "km": 2000
+   }
+  ],
+  [
+   "Is the capital of Nigeria getting hotter?",
+   [
+    "T2M",
+    "T2M_MAX",
+    "T2M_MIN",
+    "AIRS_T2M"
+   ],
+   {
+    "lat": 9.06,
+    "lon": 7.49,
+    "km": 120
+   }
+  ],
+  [
+   "Is it raining less in Chile's capital?",
+   [
+    "PRECTOTCORR",
+    "GPM_RAIN"
+   ],
+   {
+    "lat": -33.45,
+    "lon": -70.67,
+    "km": 120
+   }
+  ],
+  [
+   "Is snowfall decreasing in the Rocky Mountains?",
+   [
+    "PRECSNOLAND",
+    "SNODP"
+   ],
+   {
+    "lat": 45.0,
+    "lon": -112.0,
+    "km": 1200
+   }
+  ],
+  [
+   "Is the PM2.5 falling in Seoul?",
+   [
+    "MERRA2_PM25"
+   ],
+   {
+    "lat": 37.57,
+    "lon": 126.98,
+    "km": 120
+   }
+  ],
+  [
+   "Is evaporaton rising in Iran?",
+   [
+    "EVLAND",
+    "GLDAS_EVAP"
+   ],
+   {
+    "lat": 32.4,
+    "lon": 53.7,
+    "km": 800
+   }
+  ]
+ ]
+}

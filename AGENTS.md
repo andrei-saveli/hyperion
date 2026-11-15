@@ -188,8 +188,11 @@ accounts for; it never says "cause").
   pollution, upper air...). `absent_if_constant` = "Not found here" instead of "no trend"; `nearest` =
   nearest sea square within 200 km for coastal towns; `where` = says where a measurement exists.
 - 🔎 **Search:** keyword rules (phrases, keywords, families, `not_available` notes with the closest
-  measurement), place names via Photon, Open-Meteo and Nominatim (countries, regions, rivers, seas),
-  then a local sentence model for questions without keywords. Rebuild its index with
+  measurement), spelling correction when nothing matches (only to known search words, never place
+  names), "capital of X" places from `Website/data/capitals.json` (Wikidata, `build_capitals.py`), place
+  names via Photon and Open-Meteo while typing and Nominatim only after Enter or a pick (its usage policy
+  forbids search-as-you-type; answers cached 30 days; switch: `Website/data/services.json`), then a local
+  sentence model for questions without keywords. Whole-search benchmark: `node Website/tests/test_search_e2e.js`. Rebuild its index with
   `node Website/scripts/build_meaning_index.js` after editing catalogue text. Checks:
   `node Website/tests/test_search.js`, `node Website/tests/test_meaning.js` (Playwright).
 - 🗺️ **Areas:** countries and regions are averaged over their outline (`Website/area.js`); rivers along
@@ -209,6 +212,9 @@ accounts for; it never says "cause").
   `docs/CAUSALITY_REVIEW.md`, `docs/TREND_DETECTIVE_HANDOVER.md`.
 - 🗄️ **Archive:** the Streamlit versions, Giovanni data (still used as test data by
   `Website/tests/make_reference.py`), the four task folders and the original plan and handshakes.
+- 🚀 **Going online:** `docs/DEPLOY.md` (Cloudflare Pages from GitHub recommended; `Website/_headers`,
+  404 page, favicon, sharing image; outside services and their rules). Never use BigDataCloud's free
+  client API for clicked points (it is only for a device's own location).
 - ✅ Tests: `node Website/tests/test_{stats,nasa,area,decompose,investigation,similar}.js`,
   `python3 -m pytest -q Website/tests/test_stats_py.py`.
 
