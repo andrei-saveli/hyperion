@@ -255,6 +255,7 @@ function buildCases() {
     `<button class="case" data-case="${i}"><span>${c.q}<small>${c.name} · ${variable(c.code).name}</small></span><span class="arrow">→</span></button>`).join("");
   $("cases").querySelectorAll("button").forEach((b) => b.addEventListener("click", () => {
     const c = CASES[+b.dataset.case];
+    state.question = { text: c.q, code: c.code, intent: intentOf(c.q), season: null, kind: "place" };
     selectPlace(c.lat, c.lon, c.name, c.code, true);
     $("explore").scrollIntoView({ behavior: "smooth" });
   }));
@@ -265,10 +266,10 @@ async function selectPlace(lat, lon, name, code, fly) {
   const cell = snap(lat, lon);
   Object.assign(state, { lat: cell.lat, lon: cell.lon, name: name || coordText(cell.lat, cell.lon), loading: true, error: null, place: null });
   if (code) { state.code = code; $("var-select").value = code; }
-  writeHash(); refreshWorldLayer(); placeMarker(); renderScan(); renderDetail();
+  writeHash(); refreshWorldLayer(); placeMarker(); renderScan(); renderDetail(); renderAnswer();
   if (fly && map) map.flyTo({ center: [cell.lon, cell.lat], zoom: Math.max(map.getZoom(), 2.6), duration: 1200 });
   if (!name) nameOf(cell.lat, cell.lon).then((found) => {
-    if (found && state.lat === cell.lat && state.lon === cell.lon) { state.name = found; writeHash(); renderScan(); renderDetail(); }
+    if (found && state.lat === cell.lat && state.lon === cell.lon) { state.name = found; writeHash(); renderScan(); renderDetail(); renderAnswer(); }
   });
   try {
     const place = await loadPlace(cell.lat, cell.lon);
@@ -279,7 +280,7 @@ async function selectPlace(lat, lon, name, code, fly) {
     state.error = "We couldn't reach NASA's data service just now.";
   }
   state.loading = false;
-  renderScan(); renderDetail();
+  renderScan(); renderDetail(); renderAnswer();
 }
 
 // A readable name for a clicked point ("Bucharest, Romania", "North Atlantic Ocean").
@@ -332,7 +333,7 @@ function buildMap(detailedStyle) {
       (map.getStyle().layers.find((l) => l.type === "symbol") || {}).id);   // squares go under the place labels
     placeMarker();
   });
-  map.on("click", (e) => selectPlace(e.lngLat.lat, e.lngLat.wrap().lng, null, null, false));
+  map.on("click", (e) => { state.question = null; selectPlace(e.lngLat.lat, e.lngLat.wrap().lng, null, null, false); });
   map.on("move", placeBrackets);
   map.on("mousemove", showTip);
   map.on("mouseout", () => ($("map-tip").style.display = "none"));
@@ -604,7 +605,8 @@ const FILLER = new Set(("is are was were the a an of in on at to and or does do 
   "i'm i've i'd it's don't doing " +
   "chart charts graph map maps typically usually people same different faster slower rate rates historical history " +
   "making make made goes going gone come comes coming out off into onto as total totals inputs input losses loss school project poster " +
-  "measured measure model output report reports land air ground water sky plants plant").split(" "));
+  "measured measure model output report reports land air ground water sky plants plant " +
+  "summer summers summertime winter winters wintertime spring springs autumn autumns season seasons").split(" "));
 
 // Well-known regions that a place-name search doesn't find well
 const REGIONS = [
@@ -679,6 +681,14 @@ function understand(text) {
 
 // Look a name up in two free place-name services: Photon (OpenStreetMap: good for lakes, dams,
 // islands, regions) and Open-Meteo (GeoNames: good for towns and cities). Photon's best answers first.
+// A place much wider than one NASA grid square (about 1 degree), e.g. a country or a big region.
+// Photon gives each area's extent as [west, north, east, south].
+function isLarge(p) {
+  if (p.osm_value === "country") return true;
+  if (!p.extent) return false;
+  const [w, n, e, s] = p.extent;
+  return Math.abs(e - w) > 1.5 || Math.abs(n - s) > 1.5;
+}
 const SKIP_KINDS = new Set(["highway", "building", "shop", "amenity", "office", "railway", "leisure", "tourism", "craft", "historic"]);
 async function geocode(name) {
   const found = [];
@@ -690,11 +700,13 @@ async function geocode(name) {
     const p = f.properties;
     if (!p.name || SKIP_KINDS.has(p.osm_key)) return;
     found.push({ name: [p.name, p.state !== p.name ? p.state : null, p.country !== p.name ? p.country : null].filter(Boolean).join(", "),
-                 lat: f.geometry.coordinates[1], lon: f.geometry.coordinates[0] });
+                 lat: f.geometry.coordinates[1], lon: f.geometry.coordinates[0],
+                 kind: isLarge(p) ? "large" : "place" });
   });
   ((meteo && meteo.results) || []).forEach((p) => found.push({
     name: [p.name, p.admin1 !== p.name ? p.admin1 : null, p.country !== p.name ? p.country : null].filter(Boolean).join(", "),
-    lat: p.latitude, lon: p.longitude }));
+    lat: p.latitude, lon: p.longitude,
+    kind: p.feature_code === "PCLI" ? "large" : "place" }));
   // drop repeats: same name, or practically the same spot
   return found.filter((p, i) => found.findIndex((q) => q.name === p.name || (Math.abs(q.lat - p.lat) < 0.2 && Math.abs(q.lon - p.lon) < 0.2)) === i);
 }
@@ -705,14 +717,14 @@ async function findPlaces(text) {
   if (direct && Math.abs(+direct[1]) <= 90 && Math.abs(+direct[2]) <= 180) {
     return [{ name: null, label: coordText(+direct[1], +direct[2]), lat: +direct[1], lon: +direct[2] }];   // name is looked up after picking
   }
-  const found = REGIONS.filter(([key]) => TEXT(text).includes(` ${key}`)).map(([, name, lat, lon]) => ({ name, lat, lon }));
+  const found = REGIONS.filter(([key]) => TEXT(text).includes(` ${key}`)).map(([, name, lat, lon]) => ({ name, lat, lon, kind: "region" }));
   found.push(...(await geocode(text)));
   return found.filter((p, i) => found.findIndex((q) => q.name === p.name) === i).slice(0, 6);
 }
 
 // Places for a whole question: famous regions in it, then each candidate name, then single words
 async function placesForQuestion(question, q) {
-  const regions = REGIONS.filter(([key]) => TEXT(question).includes(` ${key}`)).map(([, name, lat, lon]) => ({ name, lat, lon }));
+  const regions = REGIONS.filter(([key]) => TEXT(question).includes(` ${key}`)).map(([, name, lat, lon]) => ({ name, lat, lon, kind: "region" }));
   if (regions.length) return regions.filter((p, i) => regions.findIndex((r) => r.name === p.name) === i);
   for (const candidate of q.placeCandidates) {
     const places = await findPlaces(candidate);
@@ -729,7 +741,7 @@ async function placesForQuestion(question, q) {
 // Turns an <input> into a place picker with a list of suggestions.
 // withQuestions = true also understands "is Romania getting warmer?" (the main search box).
 function placePicker(input, list, onPick, withQuestions) {
-  let timer = null, ticket = 0, hits = [];
+  let timer = null, ticket = 0, hits = [], enterPressed = false;
   const hide = () => (list.style.display = "none");
   const show = (html) => { list.innerHTML = html; list.style.display = "block"; };
   const run = async () => {
@@ -751,19 +763,123 @@ function placePicker(input, list, onPick, withQuestions) {
     show(hits.length
       ? notesHTML + hits.map((h, i) => `<button data-i="${i}">${escapeHTML(h.name || h.label)}<span class="why">${h.variable ? h.variable.name + " · " : ""}${coordText(h.lat, h.lon)}</span></button>`).join("")
       : notesHTML + `<button disabled>No place found. Try a city, country or region, or click the map<span class="why">Examples: Bucharest · Sahel · Great Barrier Reef · 44.4, 26.1</span></button>`);
-    list.querySelectorAll("[data-i]").forEach((b) => b.addEventListener("click", () => { hide(); onPick(hits[+b.dataset.i]); }));
+    list.querySelectorAll("[data-i]").forEach((b) => b.addEventListener("click", () => { hide(); onPick(hits[+b.dataset.i], text, q); }));
+    if (enterPressed && hits.length) { enterPressed = false; list.querySelector("[data-i]").click(); }   // Enter was pressed while we searched
   };
-  input.addEventListener("input", () => { clearTimeout(timer); timer = setTimeout(run, 350); });
+  input.addEventListener("input", () => { enterPressed = false; clearTimeout(timer); timer = setTimeout(run, 350); });
   input.addEventListener("focus", () => { if (input.value.trim()) run(); });
   input.addEventListener("keydown", (e) => {
     if (e.key === "Escape") hide();
-    if (e.key === "Enter") { const first = list.querySelector("[data-i]"); if (first) first.click(); else { clearTimeout(timer); run(); } }
+    if (e.key === "Enter") {
+      const first = list.querySelector("[data-i]");
+      if (first && list.style.display !== "none") first.click(); else { enterPressed = true; clearTimeout(timer); run(); }
+    }
   });
   document.addEventListener("click", (e) => { if (e.target !== input && !list.contains(e.target)) hide(); });
 }
 
 function buildSearch() {
-  placePicker($("search"), $("suggestions"), (hit) => selectPlace(hit.lat, hit.lon, hit.name, hit.variable ? hit.variable.code : null, true), true);
+  placePicker($("search"), $("suggestions"), (hit, text, q) => {
+    state.question = { text, code: hit.variable ? hit.variable.code : null, intent: intentOf(text), season: seasonOf(text),
+                       kind: hit.kind || "place", asksWhy: q.asksWhy, missing: q.missing };
+    selectPlace(hit.lat, hit.lon, hit.name, state.question.code, true);
+    setTimeout(() => $("answer").scrollIntoView({ behavior: "smooth", block: "center" }), 50);
+  }, true);
+}
+
+// ------------------------------------------------------------------ answering the question
+// The search box gets a direct answer in words: does the data show what the question asks about?
+// Which way does the question point? "warmer", "more polluted" -> up; "colder", "drier", "cleaner" -> down.
+const UP_WORDS = new Set(("more increase increasing increased rising rise rises higher warmer warming hotter heating wetter " +
+  "windier humid humider muggier polluted dirtier greener growing gaining thicker deeper bigger stronger sunnier cloudier").split(" "));
+const DOWN_WORDS = new Set(("less fewer decrease decreasing decreased declining decline dropping lower colder cooler cooling " +
+  "drier dryer drying drought droughts cleaner melting melt shrinking disappearing vanishing thinner smaller weaker").split(" "));
+function intentOf(text) {
+  let up = 0, down = 0;
+  words(text).forEach((w) => { if (UP_WORDS.has(w)) up++; if (DOWN_WORDS.has(w)) down++; });
+  return Math.sign(up - down);
+}
+
+// "in summer", "winters": use only those months (summer is June-August north of the equator, December-February south)
+const SEASONS = { summer: [[6, 7, 8], [12, 1, 2], "June–August", "December–February"],
+                  winter: [[12, 1, 2], [6, 7, 8], "December–February", "June–August"],
+                  spring: [[3, 4, 5], [9, 10, 11], "March–May", "September–November"],
+                  autumn: [[9, 10, 11], [3, 4, 5], "September–November", "March–May"] };
+function seasonOf(text) {
+  const w = words(text);
+  return Object.keys(SEASONS).find((s) => w.some((x) => x.startsWith(s))) || null;
+}
+function seasonOnly(series, season, lat, v) {
+  const [north, south, northLabel, southLabel] = SEASONS[season];
+  const months = lat >= 0 ? north : south;
+  const values = series.values.map((x, i) => (months.includes(series.dates[i].month) ? x : null));
+  return { result: ByteMeStats.analyze(series.dates, values, v.percent), label: lat >= 0 ? northLabel : southLabel };
+}
+
+const lowerFirst = (s) => (/^[A-Z][a-z]/.test(s) ? s[0].toLowerCase() + s.slice(1) : s);
+function relatedChips(v) {
+  return (v.related || []).map(variable).filter(Boolean).map((x) => {
+    const r = state.place.results[x.code];
+    return `<button class="chip" data-code="${x.code}">${dotHTML(r)}${x.name}<small>${r ? verdictText(r) : "No data here"}</small></button>`;
+  }).join("");
+}
+
+function renderAnswer() {
+  const el = $("answer"), q = state.question;
+  if (!q || state.error) { el.style.display = "none"; return; }
+  el.style.display = "flex";
+  if (state.loading || !state.place) {
+    el.innerHTML = `<span class="tag">Your question</span><p class="asked">“${escapeHTML(q.text)}”</p>
+      <div class="loading"><span class="spinner"></span>Reading NASA data for ${escapeHTML(state.name)}…</div>`;
+    return;
+  }
+  const v = q.code && variable(q.code);
+  const notes = [];
+  if (q.missing) notes.push(escapeHTML(q.missing.say));
+  if (q.asksWhy) notes.push("ByteMe shows what changed and how sure we are, not why: finding the cause needs a separate investigation.");
+  if (q.kind === "large") {
+    notes.push(`${escapeHTML(state.name)} is a large area: these numbers are for one NASA grid square near its centre ` +
+      `(about ${v && v.dataset === "nasa" ? 110 : 55} km wide). Click the map to check other parts.`);
+  }
+
+  if (!v) {   // a place without a measurement: show the strongest changes there
+    const top = VARS.map((x) => ({ x, r: state.place.results[x.code] }))
+      .filter((e) => e.r && e.r.verdict === "significant").sort((a, b) => a.r.p_value - b.r.p_value).slice(0, 4);
+    el.innerHTML = `<span class="tag">Your question</span><p class="asked">“${escapeHTML(q.text)}”</p>
+      <h3>${top.length ? `The clearest changes in ${escapeHTML(state.name)}` : `No clear changes found in ${escapeHTML(state.name)}`}</h3>
+      <div class="chips">${top.map(({ x, r }) => `<button class="chip" data-code="${x.code}">${dotHTML(r)}${x.name}<small>${num(r.slope_per_decade)} ${x.units} per decade</small></button>`).join("")}</div>
+      ${notes.map((n) => `<p class="answer-note">${n}</p>`).join("")}
+      <p class="answer-note">Ask about something specific, for example “is ${escapeHTML(state.name.split(",")[0])} getting drier?”</p>`;
+  } else {
+    const series = state.place.series[v.code];
+    const seasonal = q.season && series ? seasonOnly(series, q.season, state.lat, v) : null;
+    const r = seasonal ? seasonal.result : state.place.results[v.code];
+    const subject = `${seasonal ? q.season[0].toUpperCase() + q.season.slice(1) + " " + lowerFirst(v.name) : v.name} in ${escapeHTML(state.name)}`;
+    let headline, detail = "";
+    if (!r) headline = `There's no ${lowerFirst(v.name)} data for this place.`;
+    else if (r.verdict === "insufficient") headline = `Not enough data yet to tell how ${lowerFirst(v.name)} is changing here.`;
+    else {
+      const dir = r.direction === "increase" ? 1 : -1, moving = dir > 0 ? "rising" : "falling";
+      if (r.verdict === "significant" && q.intent === -dir) headline = `<b>No, the opposite.</b> ${subject} is ${moving}.`;
+      else if (r.verdict === "significant") headline = `<b>Yes.</b> ${subject} is ${moving}.`;
+      else if (r.verdict === "possible") headline = `<b>Maybe.</b> ${subject} may be ${moving}, but it isn't significant yet.`;
+      else headline = `<b>No clear change yet.</b> ${subject} shows no clear trend.`;
+      detail = `${num(r.slope_per_decade)} ${v.units} per decade since ${r.start.slice(0, 4)} ` +
+        `(about ${num(r.total_change)} ${v.units}${r.percent_change !== null ? `, ${num(r.percent_change)}%` : ""} in total) · p-value ${pText(r.p_value)}`;
+      if (seasonal) notes.unshift(`Only ${seasonal.label} months are used here; the chart below shows every month.`);
+      const second = !seasonal && secondOpinion(state.place, v);
+      if (second && second.agreement === "agree") notes.unshift(`Confirmed by a second, independent NASA source: ${second.other.source}.`);
+      if (second && second.agreement !== "agree") notes.unshift(`${second.other.source} is a second source for this: ${AGREEMENT_TEXT[second.agreement].toLowerCase()}`);
+      if (r.verdict === "none") notes.push("No clear trend doesn't mean nothing changed: the record may be too short or too noisy to tell.");
+    }
+    el.innerHTML = `<span class="tag">Your question</span><p class="asked">“${escapeHTML(q.text)}”</p>
+      <h3>${headline}</h3>${detail ? `<p class="answer-numbers">${detail}</p>` : ""}
+      ${notes.map((n) => `<p class="answer-note">${n}</p>`).join("")}
+      ${(v.related || []).length ? `<div class="related"><span class="tag plain">Related measurements to check here</span><div class="chips">${relatedChips(v)}</div></div>` : ""}
+      <button class="pill" id="to-evidence">See the evidence ↓</button>`;
+    $("to-evidence").addEventListener("click", () => { selectVariable(v.code); $("detail").scrollIntoView({ behavior: "smooth" }); });
+  }
+  el.querySelectorAll(".chip").forEach((b) => b.addEventListener("click", () => { selectVariable(b.dataset.code); $("detail").scrollIntoView({ behavior: "smooth" }); }));
 }
 
 // ------------------------------------------------------------------ compare two places
