@@ -1,5 +1,5 @@
 {
- "note": "Everyday questions and the measurement(s) that count as right. tuning: used while improving the search. heldout: written before changing it and never tuned on. Run: node Website/tests/test_search.js The questions about the 26 terrain-specific measurements (sea level, sea ice, snowfall, dust...) were added with them; their held-out half was written before any keyword was changed in response to it. Three of the new held-out questions were missed at first (48/52 with them); keywords were then added for them, so they were moved to tuning. The 22 pollution questions (fine particles, soot, SO2, formaldehyde...) were added with those measurements; the held-out half was written before any keyword was changed in response to it. Two of the pollution held-out questions were missed at first (8/10); keywords were then added for them, so they were moved to tuning. Six pollution measurements were later withdrawn as untrustworthy (MERRA-2 soot, sulfate, SO2 and CO at ground level; OMI formaldehyde and aerosol index); their questions now expect the closest measurement we show (smoke, sulfate haze, OMI SO2, AIRS CO, and organic particles or haze).",
+ "note": "Everyday questions and the measurement(s) that count as right. tuning: used while improving the search. heldout: written before changing it and never tuned on. Run: node Website/tests/test_search.js The questions about the 26 terrain-specific measurements (sea level, sea ice, snowfall, dust...) were added with them; their held-out half was written before any keyword was changed in response to it. Three of the new held-out questions were missed at first (48/52 with them); keywords were then added for them, so they were moved to tuning. The 22 pollution questions (fine particles, soot, SO2, formaldehyde...) were added with those measurements; the held-out half was written before any keyword was changed in response to it. Two of the pollution held-out questions were missed at first (8/10); keywords were then added for them, so they were moved to tuning. Six pollution measurements were later withdrawn as untrustworthy (MERRA-2 soot, sulfate, SO2 and CO at ground level; OMI formaldehyde and aerosol index); their questions now expect the closest measurement we show (smoke, sulfate haze, OMI SO2, AIRS CO, and organic particles or haze). Carbon dioxide isn't measured: those questions expect the 'not in our data' note, which offers methane (AIRS_CH4).",
  "tuning": [
   [
    "Is Romania getting warmer?",
@@ -645,6 +645,18 @@
    "Are volcanic gases increasing over Iceland?",
    [
     "OMI_SO2"
+   ]
+  ],
+  [
+   "Is carbon dioxide rising in Shanghai?",
+   [
+    "AIRS_CH4"
+   ]
+  ],
+  [
+   "Is CO2 increasing over Germany?",
+   [
+    "AIRS_CH4"
    ]
   ]
  ],

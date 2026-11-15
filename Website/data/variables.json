@@ -1423,7 +1423,7 @@
    "group": "Pollution",
    "source": "AIRS (Aqua satellite)",
    "percent": true,
-   "definition": "How much carbon monoxide (CO, a gas from fires, engines and stoves) is in the air about 5.5 km up, in parts per billion, measured from space by AIRS. It travels far, so it also shows smoke from distant fires. (We have no carbon monoxide measurement at ground level.)",
+   "definition": "Carbon monoxide (CO), not carbon dioxide (CO₂): a poisonous gas from fires, engines and stoves. How much of it is in the air about 5.5 km up, in parts per billion, measured from space by AIRS. It travels far, so it also shows smoke from distant fires. (We have no carbon monoxide measurement at ground level.)",
    "keywords": "monoxide",
    "phrases": "carbon monoxide, carbon monoxide high up, carbon monoxide aloft, carbon monoxide at ground level, car fumes, exhaust gas",
    "examples": "carbon monoxide gas from fires and car engines, fumes from burning carried by the wind",
@@ -1643,6 +1643,13 @@
   }
  ],
  "not_available": [
+  {
+   "words": "co2",
+   "phrases": "carbon dioxide, co 2, carbon emissions, carbon pollution",
+   "say": "Carbon dioxide (CO₂) isn't in our data set: NASA's monthly CO₂ maps (OCO-2) cover only 2015–2022, shorter than the 10 years we need for a trend. The closest greenhouse gas we measure is methane. (Carbon monoxide, CO, is a different gas.)",
+   "closest": "AIRS_CH4",
+   "examples": "carbon dioxide building up in the atmosphere, CO2 from burning fossil fuels"
+  },
   {
    "words": "forecast forecasts predict prediction projected projection projections",
    "say": "ByteMe measures how things changed in the past; it doesn't forecast the future.",
