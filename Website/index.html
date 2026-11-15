@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>ByteMe · Earth System Trend Detective</title>
-  <meta name="description" content="Is Earth changing? Explore 24 years of NASA data by region and see what is changing, how fast, and whether it is statistically significant.">
+  <meta name="description" content="Is Earth changing? Explore up to 45 years of NASA data for any place on Earth and see what is changing, how fast, and whether it is statistically significant.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -16,7 +16,7 @@
 <header class="top">
   <a class="logo" href="#"><span class="mark">B/</span><span>ByteMe</span></a>
   <nav class="menu">
-    <a href="#explore">Explore</a><a href="#compare">Compare</a><a href="#method">Method</a><a href="#about">About</a>
+    <a href="#explore">Explore</a>
   </nav>
 </header>
 
@@ -25,108 +25,79 @@
   <div>
     <span class="tag">Earth system trend detective</span>
     <h1>Is Earth changing where you look?</h1>
-    <p class="lead">Pick a region and a NASA measurement. We remove the seasons, fit a straight-line
-      trend through 24 years of monthly data, and test whether the change is real, or just noise.</p>
+    <p class="lead">Pick any place on the planet and a NASA measurement. We remove the seasons, fit a
+      straight-line trend through up to 45 years of monthly data, and test whether the change is real,
+      or just noise.</p>
     <a class="btn" href="#explore"><span>Start exploring</span><span class="arrow">↓</span></a>
   </div>
   <div class="globe-wrap">
-    <canvas id="globe" aria-label="Rotating globe made of satellite pixels; our three study regions are highlighted"></canvas>
+    <canvas id="globe" aria-label="Rotating globe made of satellite pixels; the demo cases are highlighted"></canvas>
     <div class="cases">
       <span class="tag">Try a case</span>
-      <button class="case" data-place="lake_mead" data-code="TEMP"><span>Is the desert getting hotter?<small>Lake Mead · air temperature</small></span><span class="arrow">→</span></button>
-      <button class="case" data-place="svalbard" data-code="TEMP"><span>Is the Arctic warming?<small>Svalbard · air temperature</small></span><span class="arrow">→</span></button>
-      <button class="case" data-place="niamey" data-code="SOILM"><span>Is the Sahel's soil drying?<small>Niamey · soil moisture</small></span><span class="arrow">→</span></button>
-      <button class="case" data-place="niamey" data-code="EVAP"><span>Not significant… yet?<small>Niamey · evaporation</small></span><span class="arrow">→</span></button>
+      <div id="cases"></div>
     </div>
   </div>
 </section>
 
-<!-- 2. Explore: map + result -->
+<!-- 2. Explore: search + map + what is changing here + the evidence -->
 <section id="explore">
   <div class="section-head">
-    <div><span class="tag">Explore</span><h2>Choose a measurement, then a region</h2></div>
-    <p class="muted" style="max-width:440px;margin:0">Regions are coloured by their trend. Same colour, same direction;
-      striped means no clear trend yet. Click one to see the evidence.</p>
+    <div><span class="tag">Explore</span><h2>Choose any place, see what is changing</h2></div>
+    <p class="muted" style="max-width:460px;margin:0">Search for a place or click the map. We read the NASA record
+      for that spot and test every measurement for a trend. The coloured squares show where the chosen
+      measurement is rising or falling around the world.</p>
   </div>
   <div class="controls">
-    <div class="vars" id="vars"></div>
     <div class="search">
-      <input id="search" type="search" placeholder="Ask a question, e.g. is the desert drying out?" autocomplete="off">
+      <input id="search" type="search" placeholder="Search any place, or ask: is Romania getting warmer?" autocomplete="off" aria-label="Search a place or ask a question">
       <div class="suggestions" id="suggestions"></div>
     </div>
+    <label class="var-pick"><span>Measurement</span><select id="var-select" aria-label="Measurement"></select></label>
   </div>
+  <form class="period-controls" id="explore-period" aria-label="Period to test">
+    <label>From <input name="from" type="month" placeholder="YYYY-MM" aria-label="Test from month"></label>
+    <label>To <input name="to" type="month" placeholder="YYYY-MM" aria-label="Test to month"></label>
+    <button class="pill on" type="submit">Test this period</button>
+    <button class="pill" type="button" data-reset>Whole record</button>
+    <p class="meta" data-coverage></p>
+    <p class="meta period-error" data-error role="alert"></p>
+  </form>
+  <div class="box answer" id="answer" aria-live="polite"></div>
   <div class="explore">
     <div class="box map-wrap">
       <div id="map"></div>
       <div class="brackets" id="brackets"><i></i><i></i><i></i><i></i></div>
-      <div class="map-tools"><button class="pill" id="world">World view</button></div>
+      <div class="map-tools">
+        <button class="pill on" id="layer" title="Show or hide the world trend squares">World trends</button>
+        <button class="pill" id="world">World view</button>
+      </div>
+      <div class="map-tip" id="map-tip"></div>
       <div class="map-legend">
+        <div class="legend-title" id="legend-title"></div>
         <div><span class="swatch" style="background:var(--up)"></span>Significant increase</div>
         <div><span class="swatch" style="background:var(--down)"></span>Significant decrease</div>
-        <div><span class="swatch" style="background:var(--up);opacity:.55"></span>Possible, not significant yet</div>
-        <div><span class="swatch" style="background:repeating-linear-gradient(45deg,var(--neutral) 0 2px,#fff 2px 5px)"></span>No clear trend yet</div>
+        <div><span class="swatch" style="background:var(--up);opacity:.4"></span><span class="swatch" style="background:var(--down);opacity:.4;margin-left:-4px"></span>Possible, not significant yet</div>
+        <div><span class="swatch" style="background:#fff"></span>No clear trend (left blank)</div>
       </div>
     </div>
-    <div class="box panel" id="panel"></div>
+    <div class="box panel" id="scan"></div>
   </div>
+  <div class="box detail" id="detail"></div>
+  <div class="box investigate" id="investigate" aria-live="polite"></div>
+  <div class="box similar" id="similar" aria-live="polite"></div>
 </section>
 
-<!-- 3. Compare -->
-<section id="compare">
-  <div class="section-head">
-    <div><span class="tag">Compare</span><h2>Same measurement, two regions</h2></div>
-    <p class="muted" style="max-width:440px;margin:0">Same data source, same years, same method and the same scale,
-      so the only difference is the place.</p>
-  </div>
-  <div class="compare-controls">
-    <label>Measurement<select id="cmp-var"></select></label>
-    <label>Region A<select id="cmp-a"></select></label>
-    <label>Region B<select id="cmp-b"></select></label>
-  </div>
-  <div class="compare">
-    <div class="box" id="cmp-panel-a"></div>
-    <div class="box" id="cmp-panel-b"></div>
-  </div>
-  <p class="insight">Trends depend on the place: the same measurement can rise in one region and stay flat,
-    or fall, in another. A trend shows <em>what</em> changed, not <em>why</em>.</p>
-</section>
-
-<!-- 4. Method -->
-<section id="method">
-  <div class="section-head">
-    <div><span class="tag">Method</span><h2>How we decide if a change is real</h2></div>
-    <p class="muted" style="max-width:440px;margin:0">Simple, transparent statistics, the same for every region and
-      measurement. A straight line is a simplification, and we say so.</p>
-  </div>
-  <div class="steps">
-    <div class="box"><span class="num">01</span><h4>Remove the seasons</h4><p>Every January minus the average January, and so on. What's left shows the long-term drift without the summer–winter swing.</p></div>
-    <div class="box"><span class="num">02</span><h4>Fit a straight line</h4><p>Its slope is the change per decade; slope × record length is the total change.</p></div>
-    <div class="box"><span class="num">03</span><h4>Measure the uncertainty</h4><p>A 95% range for the rate and a t-test p-value. Below 0.05 we call it significant.</p></div>
-    <div class="box"><span class="num">04</span><h4>Correct for memory</h4><p>A warm month is often followed by another, so 288 months hold less information than it seems. We account for that.</p></div>
-    <div class="box"><span class="num">05</span><h4>Get a second opinion</h4><p>The seasonal Mann-Kendall test checks for a steady rise or fall without assuming a bell curve.</p></div>
-  </div>
-</section>
-
-<footer id="about">
-  <div class="foot">
-    <div><span class="tag">About</span><p style="margin:0">ByteMe is a NASA Space Apps Challenge project by the Byte Me Analytics team:
-      a tool that helps students become Earth system trend detectives.</p><span class="muted" style="color:#bdbdb6">© 2026 Byte Me Analytics</span></div>
-    <div><span class="tag">Data</span><ul>
-      <li><a href="https://giovanni.gsfc.nasa.gov/giovanni/">NASA Giovanni</a></li>
-      <li><a href="https://disc.gsfc.nasa.gov/datasets/M2IMNXASM_5.12.4/summary">MERRA-2 · air temperature</a></li>
-      <li><a href="https://disc.gsfc.nasa.gov/datasets/GPM_3IMERGM_07/summary">GPM IMERG · rainfall</a></li>
-      <li><a href="https://disc.gsfc.nasa.gov/datasets/GLDAS_NOAH025_M_2.1/summary">GLDAS · soil moisture, evaporation</a></li></ul></div>
-    <div><span class="tag">Explore</span><ul>
-      <li><a href="#explore">Map and results</a></li><li><a href="#compare">Compare regions</a></li>
-      <li><a href="#method">Method</a></li><li><a href="https://github.com/andrei-saveli/hyperion">Source code</a></li></ul></div>
-    <div><span class="tag">Note</span><p style="margin:0;font-size:14px">Monthly data 2001–2024, averaged over each region's box.
-      Trends are straight-line summaries. They show what changed, not why. Map outline: Natural Earth (public domain).</p>
-      <span class="muted" style="color:#bdbdb6" id="built"></span></div>
-  </div>
-</footer>
+<footer class="mini-footer">© 2026 Byte Me Analytics</footer>
 
 <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.35.2/plotly.min.js"></script>
+<script src="stats.js"></script>
+<script src="investigation.js"></script>
+<script src="decompose.js"></script>
+<script src="similar.js"></script>
+<script src="meaning.js"></script>
+<script src="nasa.js"></script>
+<script src="area.js"></script>
 <script src="app.js"></script>
 <script src="globe.js"></script>
 </body>

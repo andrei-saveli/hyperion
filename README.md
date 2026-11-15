@@ -1,96 +1,56 @@
-# Hyperion: Earth System Trend Detective
+# ByteMe: Earth System Trend Detective
 
-**NASA Space Apps Challenge**, *Be An Earth System Trend Detective!*
+**NASA Space Apps Challenge**, *Be An Earth System Trend Detective!* · Team **Byte Me Analytics**
 
-> 🧭 **New here (person or AI chat)? Read [docs/HANDOVER.md](docs/HANDOVER.md) first.**
->
-> 🚀 **Team members:** read [docs/PLAN.md](docs/PLAN.md) (who does what, when) and
-> [docs/HANDSHAKES.md](docs/HANDSHAKES.md) (how our parts fit together).
-> 🤖 **AI coding agents:** read [AGENTS.md](AGENTS.md) first.
->
-> 🛰️ **Data person:** use the
-> [Giovanni data handover](docs/PERSON_2_DATA_GIOVANNI_HANDOVER.md) and the
-> [websites and data list](docs/WEBSITES_AND_DATA.md).
-> 🔎 **Person 3:** see [Task3](Task3/README.md) for Searchlight and the Person 3 handover.
+Ask a question in plain words ("Is the air in Delhi getting more polluted?", "Is sea level rising in
+Venice?") or click any place on Earth. ByteMe reads NASA's monthly records for that place, removes the
+seasons, fits a straight-line trend and tells you **what** is changing, **where**, **how much**, and
+whether the change is **statistically significant**.
 
----
+## Run it
 
-## The challenge in plain words
+```bash
+python3 -m http.server 8000 --directory Website
+```
 
-NASA satellites and computer models have measured the Earth for more than 20 years: temperature,
-rain, soil moisture, air pollution and much more. The data is public but hard to use: there are
-thousands of variables, and the files are large and technical.
+Then open http://localhost:8000. Nothing to install: the site is plain HTML and JavaScript.
+To put it online, upload the `Website/` folder to any static hosting.
 
-We're building **a website that lets a student or curious adult investigate whether something on
-Earth is changing.** It answers four questions:
+## What it does
 
-| Question | Example answer |
+| Step | What the visitor sees |
 |---|---|
-| **What** is changing? | Air temperature |
-| **Where**? | Svalbard, in the Arctic |
-| **How much**? | +0.65 °C per decade |
-| **Is it real or just noise?** | Significant: the 95% interval doesn't include zero |
+| **Ask** | A search box that understands places (cities, countries, rivers, seas) and questions. Keyword rules first, then a small language model that runs in the browser for questions worded without keywords. |
+| **Answer** | A direct answer (*Yes* / *No, the opposite* / *Maybe* / *No clear change yet*) with the change per decade, total change and p-value. |
+| **Evidence** | The monthly record with seasons removed, the trend line and its 95% band; a second test (seasonal Mann-Kendall); a second data source where one exists. |
+| **What is changing here** | Every one of the 56 measurements tested for the chosen place, strongest evidence first. |
+| **Investigate** | How much of a trend possible drivers statistically account for, and what's left (never a claim about causes). |
+| **Places changing like this one** | The five regions of the planet whose pattern of change is most similar. |
 
-Data goes up and down naturally: seasons, wet years, dry years. A **trend** is the steady drift
-underneath all that wobble. A **significance test** tells us whether the drift is strong enough
-that it's very unlikely to be random chance.
+**56 measurements** from NASA POWER (MERRA-2 and CERES, asked live, no login) and prepared NASA
+satellite and model grids: GPM rain, GLDAS soil water, MODIS greenness and land temperature, OMI NO₂
+and SO₂, AIRS methane and carbon monoxide, sea level from satellite altimeters, MERRA-2
+fine particles (PM2.5), dust, smoke and more. Six pollution products we downloaded were left out because their trends can't be trusted (see `Website/README.md`). Countries and regions are averaged over their outline.
 
-## How it works for the user
-
-1. **Search or pick**: type a question (*"is the desert drying out?"*) or choose a place and a
-   variable. Every variable has a one-line plain definition.
-2. **See the data**: monthly NASA data since 2001, with a "remove seasons" switch.
-3. **Get the verdict**: a trend line with a shaded uncertainty band, and a card:
-   🟢 significant · 🟡 possible, not significant yet · ⚪ no clear trend · ⚫ not enough data,
-   with the change per decade, total change, p-value and a plain-language explanation.
-4. **Compare** two places side by side.
-5. **Learn**: a guided demo and a "How it works" page explain trends and significance.
-
-We say **what** changed, never claim **why**: a trend line can't prove a cause.
-
-## Under the hood
-
-```
-NASA Giovanni (MERRA-2, GPM, GLDAS, OMI: monthly averages over a box per place)
-        │  downloaded ahead of time and saved as CSV files
-        ▼
-stats.py   remove the seasons → straight-line trend → 95% interval + t-test, Mann-Kendall
-        ▼
-app.py     Streamlit website: search, chart, verdict card, compare, guided demo
-```
-
-**Statistics in one paragraph.** For each month we subtract that calendar month's average, which
-removes the seasons and leaves **anomalies**. A straight line fitted to the anomalies gives the
-**rate of change**. The **95% interval** and **t-test** show how sure we are, corrected for the fact
-that one month is similar to the next (which otherwise makes trends look more certain than they
-are). The **Mann-Kendall test** double-checks for a steady rise or fall without assuming a bell
-curve. As the challenge suggests, we stick to **linear trends**: a straight line is a
-simplification, and we say so.
-
-## Run it (once the code exists)
-
-```bash
-pip install -r requirements.txt
-```
-
-```bash
-streamlit run app.py
-```
+**Statistics:** each calendar month's average is estimated together with the trend line (removing the
+seasons), the slope's 95% interval and t-test are corrected for month-to-month memory, and the seasonal
+Mann-Kendall test with Sen's slope double-checks the result. As the challenge suggests, we stick to
+linear trends and say plainly that a straight line is a simplification.
 
 ## Repository
 
 ```
-AGENTS.md            instructions for AI coding agents (and humans)
-docs/PLAN.md         roles, tasks, timeline, starter prompts
-docs/HANDSHAKES.md   interfaces between the 4 parts
-app.py, charts.py    website (Frontend)
-scripts/, data_io.py data download + loading (Data)
-search.py, explain.py, pages/  search, explanations, guided demo (Search + explainability)
-stats.py, tests/     trend + significance (Trend & integration)
-data/                places, variables, monthly CSVs, sources
+Website/        the site (index.html, app.js, ...) and its Python build scripts. Start with Website/README.md
+docs/           presentation deck and script, design reviews, data sources
+archive/        earlier versions: Streamlit apps, Giovanni data, the team's first task folders
+AGENTS.md       instructions for AI coding agents and the team's decisions
 ```
 
+Tests: `node Website/tests/test_stats.js` (website math = Python math), `python3 -m pytest -q
+Website/tests/test_stats_py.py`, and the other `Website/tests/test_*.js` files (some need Playwright).
+
 ## Data sources
-Main source: [NASA Giovanni](https://giovanni.gsfc.nasa.gov) (fallback: [NASA POWER](https://power.larc.nasa.gov)).
-Other NASA and partner resources from the
-challenge are listed in [AGENTS.md](AGENTS.md#resources).
+
+[NASA POWER](https://power.larc.nasa.gov) and NASA Earthdata (GES DISC, PO.DAAC, LP DAAC) through
+OPeNDAP. Details and dataset versions: [Website/README.md](Website/README.md). Other NASA and partner
+resources from the challenge are listed in [AGENTS.md](AGENTS.md#resources).

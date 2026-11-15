@@ -1,0 +1,1008 @@
+{
+ "note": "Everyday questions and the measurement(s) that count as right. tuning: used while improving the search. heldout: written before changing it and never tuned on. Run: node Website/tests/test_search.js The questions about the 26 terrain-specific measurements (sea level, sea ice, snowfall, dust...) were added with them; their held-out half was written before any keyword was changed in response to it. Three of the new held-out questions were missed at first (48/52 with them); keywords were then added for them, so they were moved to tuning. The 22 pollution questions (fine particles, soot, SO2, formaldehyde...) were added with those measurements; the held-out half was written before any keyword was changed in response to it. Two of the pollution held-out questions were missed at first (8/10); keywords were then added for them, so they were moved to tuning. Six pollution measurements were later withdrawn as untrustworthy (MERRA-2 soot, sulfate, SO2 and CO at ground level; OMI formaldehyde and aerosol index); their questions now expect the closest measurement we show (smoke, sulfate haze, OMI SO2, AIRS CO, and organic particles or haze).",
+ "tuning": [
+  [
+   "Is Romania getting warmer?",
+   [
+    "AIRS_T2M",
+    "T2M"
+   ]
+  ],
+  [
+   "temperature in Paris",
+   [
+    "AIRS_T2M",
+    "T2M"
+   ]
+  ],
+  [
+   "Are heatwaves getting worse in Spain?",
+   [
+    "T2M_MAX"
+   ]
+  ],
+  [
+   "Are the hottest days getting hotter in Texas?",
+   [
+    "T2M_MAX"
+   ]
+  ],
+  [
+   "Are nights getting warmer in Cairo?",
+   [
+    "T2M_MIN"
+   ]
+  ],
+  [
+   "Is there less frost in Finland?",
+   [
+    "T2M_MIN"
+   ]
+  ],
+  [
+   "Is the sea surface warming near Hawaii?",
+   [
+    "TS"
+   ]
+  ],
+  [
+   "Is the ocean getting warmer off Peru?",
+   [
+    "TS"
+   ]
+  ],
+  [
+   "Is the ground getting hotter in the Sahara?",
+   [
+    "MODIS_LST",
+    "TS"
+   ]
+  ],
+  [
+   "land surface temperature in Phoenix",
+   [
+    "MODIS_LST"
+   ]
+  ],
+  [
+   "What does the AIRS satellite say about temperature in Siberia?",
+   [
+    "AIRS_T2M"
+   ]
+  ],
+  [
+   "satellite temperature measurements over Greenland",
+   [
+    "AIRS_T2M",
+    "MODIS_LST"
+   ]
+  ],
+  [
+   "Is it raining less in Kenya?",
+   [
+    "GPM_RAIN",
+    "PRECTOTCORR"
+   ]
+  ],
+  [
+   "Is it raining more in Bangladesh?",
+   [
+    "GPM_RAIN",
+    "PRECTOTCORR"
+   ]
+  ],
+  [
+   "Is the monsoon getting weaker in India?",
+   [
+    "GPM_RAIN",
+    "PRECTOTCORR"
+   ]
+  ],
+  [
+   "GPM rainfall in Brazil",
+   [
+    "GPM_RAIN"
+   ]
+  ],
+  [
+   "satellite rainfall over Indonesia",
+   [
+    "GPM_RAIN"
+   ]
+  ],
+  [
+   "Is California getting more droughts?",
+   [
+    "GLDAS_SOILM",
+    "GPM_RAIN",
+    "GWETROOT",
+    "GWETTOP",
+    "PRECTOTCORR"
+   ]
+  ],
+  [
+   "Is the soil drying out in Australia?",
+   [
+    "GLDAS_SOILM",
+    "GWETROOT",
+    "GWETTOP"
+   ]
+  ],
+  [
+   "soil moisture in Ukraine",
+   [
+    "GLDAS_SOILM",
+    "GWETROOT"
+   ]
+  ],
+  [
+   "Is the topsoil getting drier in Kansas?",
+   [
+    "GWETTOP"
+   ]
+  ],
+  [
+   "GLDAS soil moisture in Iowa",
+   [
+    "GLDAS_SOILM"
+   ]
+  ],
+  [
+   "Is more water evaporating in Spain?",
+   [
+    "EVLAND",
+    "GLDAS_EVAP"
+   ]
+  ],
+  [
+   "evapotranspiration trend in Egypt",
+   [
+    "EVLAND",
+    "GLDAS_EVAP"
+   ]
+  ],
+  [
+   "GLDAS evaporation in Mali",
+   [
+    "GLDAS_EVAP"
+   ]
+  ],
+  [
+   "Is runoff increasing in Norway?",
+   [
+    "GLDAS_RUNOFF"
+   ]
+  ],
+  [
+   "Are rivers carrying more water in Canada?",
+   [
+    "GLDAS_RUNOFF"
+   ]
+  ],
+  [
+   "Is more water draining off the land in Japan?",
+   [
+    "GLDAS_RUNOFF"
+   ]
+  ],
+  [
+   "Is it getting more humid in Florida?",
+   [
+    "QV2M",
+    "RH2M"
+   ]
+  ],
+  [
+   "Is the air getting more muggy in Singapore?",
+   [
+    "QV2M",
+    "RH2M"
+   ]
+  ],
+  [
+   "water vapour over the Amazon",
+   [
+    "PW",
+    "QV2M"
+   ]
+  ],
+  [
+   "Is there more moisture in the air over India?",
+   [
+    "PW",
+    "QV2M",
+    "RH2M"
+   ]
+  ],
+  [
+   "precipitable water over Brazil",
+   [
+    "PW"
+   ]
+  ],
+  [
+   "Is there less snow in the Alps?",
+   [
+    "SNODP"
+   ]
+  ],
+  [
+   "Is the snowpack shrinking in Colorado?",
+   [
+    "SNODP"
+   ]
+  ],
+  [
+   "Is it getting windier in Chicago?",
+   [
+    "WS10M"
+   ]
+  ],
+  [
+   "Are winds getting stronger in Patagonia?",
+   [
+    "WS10M"
+   ]
+  ],
+  [
+   "air pressure trend in London",
+   [
+    "PS"
+   ]
+  ],
+  [
+   "Is the ozone layer recovering over Antarctica?",
+   [
+    "TO3"
+   ]
+  ],
+  [
+   "Is there more UV in Australia?",
+   [
+    "ALLSKY_SFC_UV_INDEX"
+   ]
+  ],
+  [
+   "Is the air getting hazier in Beijing?",
+   [
+    "AOD_55"
+   ]
+  ],
+  [
+   "Is there more dust in the air over Iraq?",
+   [
+    "AOD_55",
+    "MERRA2_DUST"
+   ]
+  ],
+  [
+   "Is wildfire smoke increasing in California?",
+   [
+    "AOD_55",
+    "MERRA2_SMOKE"
+   ]
+  ],
+  [
+   "Is air pollution getting worse in Delhi?",
+   [
+    "AOD_55",
+    "OMI_NO2"
+   ]
+  ],
+  [
+   "Is pollution falling in Los Angeles?",
+   [
+    "AOD_55",
+    "OMI_NO2"
+   ]
+  ],
+  [
+   "NO2 in Madrid",
+   [
+    "OMI_NO2"
+   ]
+  ],
+  [
+   "Is traffic pollution decreasing in Paris?",
+   [
+    "OMI_NO2"
+   ]
+  ],
+  [
+   "nitrogen dioxide over Tehran",
+   [
+    "OMI_NO2"
+   ]
+  ],
+  [
+   "Is it getting sunnier in Germany?",
+   [
+    "ALLSKY_SFC_SW_DWN"
+   ]
+  ],
+  [
+   "solar radiation in Chile",
+   [
+    "ALLSKY_SFC_SW_DWN"
+   ]
+  ],
+  [
+   "Are there more clouds over Ireland?",
+   [
+    "CLOUD_AMT"
+   ]
+  ],
+  [
+   "Is it getting cloudier in Seattle?",
+   [
+    "CLOUD_AMT"
+   ]
+  ],
+  [
+   "Is the Amazon getting less green?",
+   [
+    "MODIS_NDVI"
+   ]
+  ],
+  [
+   "Are forests disappearing in Borneo?",
+   [
+    "MODIS_NDVI"
+   ]
+  ],
+  [
+   "Is vegetation growing in the Sahel?",
+   [
+    "MODIS_NDVI"
+   ]
+  ],
+  [
+   "Is the desert getting greener in Saudi Arabia?",
+   [
+    "MODIS_NDVI"
+   ]
+  ],
+  [
+   "NDVI in Ethiopia",
+   [
+    "MODIS_NDVI"
+   ]
+  ],
+  [
+   "Are crops doing better in Ukraine?",
+   [
+    "GWETROOT",
+    "MODIS_NDVI"
+   ]
+  ],
+  [
+   "Is it getting colder in Moscow?",
+   [
+    "AIRS_T2M",
+    "T2M"
+   ]
+  ],
+  [
+   "climate change in Bucharest",
+   [
+    "AIRS_T2M",
+    "T2M"
+   ]
+  ],
+  [
+   "Is sea level rising in the Maldives?",
+   [
+    "SEA_LEVEL"
+   ]
+  ],
+  [
+   "Is the sea ice shrinking in the Arctic Ocean?",
+   [
+    "FRSEAICE"
+   ]
+  ],
+  [
+   "Is there less snow cover in the Alps?",
+   [
+    "FRSNO"
+   ]
+  ],
+  [
+   "Is snowfall decreasing in Colorado?",
+   [
+    "PRECSNOLAND"
+   ]
+  ],
+  [
+   "Are there fewer frost days in Germany?",
+   [
+    "FROST_DAYS"
+   ]
+  ],
+  [
+   "Is the Greenland ice sheet melting faster?",
+   [
+    "MERRA2_ICEMELT"
+   ]
+  ],
+  [
+   "Is the soil temperature rising in Iowa?",
+   [
+    "TSOIL1"
+   ]
+  ],
+  [
+   "Is the permafrost warming in Siberia?",
+   [
+    "TSOIL5"
+   ]
+  ],
+  [
+   "Is the deep soil drying out in Spain?",
+   [
+    "GWETPROF"
+   ]
+  ],
+  [
+   "Is groundwater declining in Punjab?",
+   [
+    "GLDAS_TWS"
+   ]
+  ],
+  [
+   "Is the surface getting darker in the Arctic? albedo",
+   [
+    "ALLSKY_SRF_ALB"
+   ]
+  ],
+  [
+   "Is the day-night temperature range shrinking in India?",
+   [
+    "T2M_RANGE"
+   ]
+  ],
+  [
+   "Do people in Dubai need more air conditioning?",
+   [
+    "CDD18_3"
+   ]
+  ],
+  [
+   "Is the heating need falling in Poland?",
+   [
+    "HDD18_3"
+   ]
+  ],
+  [
+   "Is the dew point rising in Houston?",
+   [
+    "T2MDEW"
+   ]
+  ],
+  [
+   "Is the tropopause getting higher over the tropics? tropopause height",
+   [
+    "TROPPB"
+   ]
+  ],
+  [
+   "Is the tropopause temperature changing over Kenya?",
+   [
+    "TROPT"
+   ]
+  ],
+  [
+   "Is the stratosphere cooling over Europe?",
+   [
+    "AIRS_T50"
+   ]
+  ],
+  [
+   "Are the strongest winds getting stronger in Ireland?",
+   [
+    "WS10M_MAX"
+   ]
+  ],
+  [
+   "Are dust storms increasing in the Sahara?",
+   [
+    "MERRA2_DUST"
+   ]
+  ],
+  [
+   "Is there more wildfire smoke over California?",
+   [
+    "MERRA2_SMOKE"
+   ]
+  ],
+  [
+   "Is sulfate haze falling over China?",
+   [
+    "MERRA2_SULFATE"
+   ]
+  ],
+  [
+   "Is methane rising over Siberia?",
+   [
+    "AIRS_CH4"
+   ]
+  ],
+  [
+   "Is carbon monoxide decreasing over Europe?",
+   [
+    "AIRS_CO"
+   ]
+  ],
+  [
+   "Is the greenhouse effect getting stronger in Canada? heat radiation",
+   [
+    "ALLSKY_SFC_LW_DWN"
+   ]
+  ],
+  [
+   "Is the UV index rising in New Zealand?",
+   [
+    "ALLSKY_SFC_UV_INDEX"
+   ]
+  ],
+  [
+   "Are the seas rising around Bangladesh?",
+   [
+    "SEA_LEVEL"
+   ]
+  ],
+  [
+   "Are aquifers running low in Saudi Arabia?",
+   [
+    "GLDAS_TWS"
+   ]
+  ],
+  [
+   "Is the ground reflecting less sunlight in Greenland?",
+   [
+    "ALLSKY_SRF_ALB"
+   ]
+  ],
+  [
+   "Is PM2.5 falling in Beijing?",
+   [
+    "MERRA2_PM25"
+   ]
+  ],
+  [
+   "Is fine particulate matter rising in Delhi?",
+   [
+    "MERRA2_PM25"
+   ]
+  ],
+  [
+   "Is there less black carbon over Europe?",
+   [
+    "MERRA2_SMOKE"
+   ]
+  ],
+  [
+   "Is diesel soot decreasing in London?",
+   [
+    "MERRA2_SMOKE"
+   ]
+  ],
+  [
+   "Is crop burning smoke increasing in Punjab?",
+   [
+    "MERRA2_OC"
+   ]
+  ],
+  [
+   "Are sulfate particles at ground level falling in Germany?",
+   [
+    "MERRA2_SULFATE"
+   ]
+  ],
+  [
+   "Is fine dust rising in Cairo?",
+   [
+    "MERRA2_DUST25"
+   ]
+  ],
+  [
+   "Is sulfur dioxide at ground level dropping in the United States?",
+   [
+    "OMI_SO2"
+   ]
+  ],
+  [
+   "Is carbon monoxide at ground level falling in Mexico City?",
+   [
+    "AIRS_CO"
+   ]
+  ],
+  [
+   "Is sulfur dioxide decreasing over China?",
+   [
+    "OMI_SO2"
+   ]
+  ],
+  [
+   "Is formaldehyde increasing over the Amazon?",
+   [
+    "MERRA2_OC"
+   ]
+  ],
+  [
+   "Is the aerosol index rising over Siberia?",
+   [
+    "AOD_55"
+   ]
+  ],
+  [
+   "Has particulate pollution gone down in Poland?",
+   [
+    "MERRA2_PM25"
+   ]
+  ],
+  [
+   "Are volcanic gases increasing over Iceland?",
+   [
+    "OMI_SO2"
+   ]
+  ]
+ ],
+ "heldout": [
+  [
+   "Has it become hotter in Athens over the years?",
+   [
+    "AIRS_T2M",
+    "T2M"
+   ]
+  ],
+  [
+   "Are summer heat waves more extreme in Italy?",
+   [
+    "T2M_MAX"
+   ]
+  ],
+  [
+   "Are nighttime temperatures rising in Mexico City?",
+   [
+    "T2M_MIN"
+   ]
+  ],
+  [
+   "Is it freezing less often in Montreal?",
+   [
+    "T2M_MIN"
+   ]
+  ],
+  [
+   "How warm is the sea getting near the Maldives?",
+   [
+    "TS"
+   ]
+  ],
+  [
+   "Is the land surface heating up in Australia according to MODIS?",
+   [
+    "MODIS_LST"
+   ]
+  ],
+  [
+   "Does the AIRS instrument show warming over Alaska?",
+   [
+    "AIRS_T2M"
+   ]
+  ],
+  [
+   "Are rainy seasons getting wetter in Nigeria?",
+   [
+    "GPM_RAIN",
+    "PRECTOTCORR"
+   ]
+  ],
+  [
+   "Is precipitation declining in Morocco?",
+   [
+    "GPM_RAIN",
+    "PRECTOTCORR"
+   ]
+  ],
+  [
+   "What do GPM satellites show for rainfall in Vietnam?",
+   [
+    "GPM_RAIN"
+   ]
+  ],
+  [
+   "Are the fields getting drier in Argentina?",
+   [
+    "GLDAS_SOILM",
+    "GWETROOT",
+    "GWETTOP"
+   ]
+  ],
+  [
+   "Is surface soil wetness changing in Turkey?",
+   [
+    "GWETTOP"
+   ]
+  ],
+  [
+   "How much water is in the root zone in Iran?",
+   [
+    "GLDAS_SOILM",
+    "GWETROOT"
+   ]
+  ],
+  [
+   "Is evaporation rising in Kazakhstan?",
+   [
+    "EVLAND",
+    "GLDAS_EVAP"
+   ]
+  ],
+  [
+   "Is surface runoff changing in Poland?",
+   [
+    "GLDAS_RUNOFF"
+   ]
+  ],
+  [
+   "Is the air in Houston becoming more humid?",
+   [
+    "QV2M",
+    "RH2M"
+   ]
+  ],
+  [
+   "Has specific humidity increased in Thailand?",
+   [
+    "QV2M"
+   ]
+  ],
+  [
+   "Are snowfalls leaving less snow on the ground in Utah?",
+   [
+    "SNODP"
+   ]
+  ],
+  [
+   "Is snow depth falling in Hokkaido?",
+   [
+    "SNODP"
+   ]
+  ],
+  [
+   "Have windy days become more common in Denmark?",
+   [
+    "WS10M"
+   ]
+  ],
+  [
+   "Is the ozone hole shrinking?",
+   [
+    "TO3"
+   ]
+  ],
+  [
+   "Is dust from the desert increasing over Niger?",
+   [
+    "AOD_55",
+    "MERRA2_DUST"
+   ]
+  ],
+  [
+   "Is the sky smokier in Siberia?",
+   [
+    "AOD_55"
+   ]
+  ],
+  [
+   "Is nitrogen dioxide pollution going down in Milan?",
+   [
+    "OMI_NO2"
+   ]
+  ],
+  [
+   "Is there less NO2 over Beijing now?",
+   [
+    "OMI_NO2"
+   ]
+  ],
+  [
+   "Are we getting more sunshine in Portugal?",
+   [
+    "ALLSKY_SFC_SW_DWN"
+   ]
+  ],
+  [
+   "Is cloud cover changing over Scotland?",
+   [
+    "CLOUD_AMT"
+   ]
+  ],
+  [
+   "Is the vegetation browning in Mongolia?",
+   [
+    "MODIS_NDVI"
+   ]
+  ],
+  [
+   "Has the Congo forest lost greenness?",
+   [
+    "MODIS_NDVI"
+   ]
+  ],
+  [
+   "Is it getting cooler in Antarctica?",
+   [
+    "AIRS_T2M",
+    "T2M"
+   ]
+  ],
+  [
+   "How fast is the ocean level going up near Miami?",
+   [
+    "SEA_LEVEL"
+   ]
+  ],
+  [
+   "Is there less floating ice in Hudson Bay?",
+   [
+    "FRSEAICE"
+   ]
+  ],
+  [
+   "Is Antarctica losing its sea ice?",
+   [
+    "FRSEAICE"
+   ]
+  ],
+  [
+   "Is less of Norway covered in snow?",
+   [
+    "FRSNO"
+   ]
+  ],
+  [
+   "Are blizzards bringing less snow to Minnesota?",
+   [
+    "PRECSNOLAND",
+    "SNODP"
+   ]
+  ],
+  [
+   "Does Japan get fewer days with frost?",
+   [
+    "FROST_DAYS"
+   ]
+  ],
+  [
+   "Are the ice caps of Iceland melting?",
+   [
+    "MERRA2_ICEMELT"
+   ]
+  ],
+  [
+   "Is the frozen ground thawing in Alaska?",
+   [
+    "TSOIL5"
+   ]
+  ],
+  [
+   "Is the water table dropping in California?",
+   [
+    "GLDAS_TWS"
+   ]
+  ],
+  [
+   "Is the difference between day and night shrinking in Mexico?",
+   [
+    "T2M_RANGE"
+   ]
+  ],
+  [
+   "Are heating bills going down in Sweden?",
+   [
+    "HDD18_3"
+   ]
+  ],
+  [
+   "Is the demand for air conditioners growing in Delhi?",
+   [
+    "CDD18_3"
+   ]
+  ],
+  [
+   "Are sand storms getting worse in Iraq?",
+   [
+    "MERRA2_DUST"
+   ]
+  ],
+  [
+   "Is smoke from forest fires increasing in Siberia?",
+   [
+    "MERRA2_SMOKE"
+   ]
+  ],
+  [
+   "Is coal pollution dropping over Germany?",
+   [
+    "MERRA2_SULFATE"
+   ]
+  ],
+  [
+   "Are greenhouse gases building up over the Amazon?",
+   [
+    "AIRS_CH4"
+   ]
+  ],
+  [
+   "Is it getting colder high up where planes fly over France?",
+   [
+    "TROPT"
+   ]
+  ],
+  [
+   "Is the sunburn risk rising in Chile?",
+   [
+    "ALLSKY_SFC_UV_INDEX"
+   ]
+  ],
+  [
+   "Are wind storms stronger in Scotland?",
+   [
+    "WS10M_MAX"
+   ]
+  ],
+  [
+   "Is the air we breathe getting cleaner in Los Angeles?",
+   [
+    "MERRA2_PM25"
+   ]
+  ],
+  [
+   "Is there more soot in the air in Lagos?",
+   [
+    "MERRA2_SMOKE"
+   ]
+  ],
+  [
+   "Is stubble burning getting worse in Haryana?",
+   [
+    "MERRA2_OC"
+   ]
+  ],
+  [
+   "Is SO2 from smelters falling in Norilsk?",
+   [
+    "OMI_SO2"
+   ]
+  ],
+  [
+   "Are VOCs rising over Houston?",
+   [
+    "MERRA2_OC"
+   ]
+  ],
+  [
+   "Is dusty air getting worse in Riyadh?",
+   [
+    "MERRA2_DUST",
+    "MERRA2_DUST25"
+   ]
+  ],
+  [
+   "Is there more smoke and dust seen from space over Australia?",
+   [
+    "AOD_55"
+   ]
+  ],
+  [
+   "Are car fumes at street level decreasing in Paris?",
+   [
+    "AIRS_CO",
+    "OMI_NO2"
+   ]
+  ]
+ ]
+}
