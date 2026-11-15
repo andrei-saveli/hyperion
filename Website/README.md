@@ -34,6 +34,16 @@ build_world.py (run once, Python, Task4/stats.py) ─► data/world.json ─► 
      ("Hoover Dam"), then the leftover words. Each is looked up in Photon (OpenStreetMap, good for
      lakes, dams, islands) and Open-Meteo (GeoNames, good for towns).
   "Why" questions get the reminder that we show what changed, not why.
+- **Direct answer:** a question gets an answer card right under the search box, for example
+  "**Yes.** Air temperature in Romania is rising: +0.57 °C per decade since 1981". It checks the
+  direction asked ("warmer", "drier", "cleaner"...) and answers *Yes*, *No, the opposite*, *Maybe*
+  (possible, not significant yet) or *No clear change yet*. It also:
+  - uses only that season's months when the question names one ("hotter in summer": June–August
+    north of the equator, December–February south of it);
+  - says when the place is much larger than one grid square (a country or big region), so the
+    numbers describe the square near its centre;
+  - adds the second-source result and a few related measurements to check (`related` in
+    `variables.json`). These are suggestions to look at, never claims about causes.
 - **How good is the search?** Checked on Task3's search benchmark questions (agent-written drafts,
   not real students yet). Rules were tuned on the 144 draft questions and then tested once on the
   48 fresh questions, which were kept aside:

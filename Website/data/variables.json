@@ -1,5 +1,5 @@
 {
- "note": "The measurements ByteMe offers. One shared list: the website (app.js) and the Python scripts (build_world.py, tests) both read it. 'code' is the NASA POWER parameter name. 'scale' multiplies the raw value (soil wetness 0-1 becomes percent). 'percent' says whether a percent change makes sense (zero means 'none of it'). Search: 'phrases' (several words, strong match) and 'keywords' (single words) link a question to a measurement. Avoid very general words such as water, air or ground: they appear in questions about many measurements. 'not_available' lists things people ask for that this data set does not have, with what to say and the closest measurement we do have. Measurements with \"dataset\": \"nasa\" come from data/nasa/ (built by build_nasa_grids.py); 'pair' names the NASA POWER measurement they double-check.",
+ "note": "The measurements ByteMe offers. One shared list: the website (app.js) and the Python scripts (build_world.py, tests) both read it. 'code' is the NASA POWER parameter name. 'scale' multiplies the raw value (soil wetness 0-1 becomes percent). 'percent' says whether a percent change makes sense (zero means 'none of it'). Search: 'phrases' (several words, strong match) and 'keywords' (single words) link a question to a measurement. Avoid very general words such as water, air or ground: they appear in questions about many measurements. 'not_available' lists things people ask for that this data set does not have, with what to say and the closest measurement we do have. Measurements with \"dataset\": \"nasa\" come from data/nasa/ (built by build_nasa_grids.py); 'pair' names the NASA POWER measurement they double-check. 'related' lists measurements worth checking next (shown under an answer; never a claim about causes).",
  "groups": [
   "Temperature",
   "Water",
@@ -17,7 +17,12 @@
    "percent": false,
    "definition": "How warm the air is 2 metres above the ground, averaged over day and night.",
    "keywords": "temperature temperatures hot hotter warm warmer warmed warming warmth cold colder cooling heat climate degrees",
-   "phrases": "air temperature, near-ground air, near-surface air, 2-m air, 2 m air, two metres, above the ground, warmth of the air, near surface temperature, air-temperature, near-surface air"
+   "phrases": "air temperature, near-ground air, near-surface air, 2-m air, 2 m air, two metres, above the ground, warmth of the air, near surface temperature, air-temperature, near-surface air",
+   "related": [
+    "T2M_MAX",
+    "T2M_MIN",
+    "AIRS_T2M"
+   ]
   },
   {
    "code": "T2M_MAX",
@@ -28,7 +33,11 @@
    "percent": false,
    "definition": "The highest air temperature reached during each month.",
    "keywords": "maximum hottest heatwave heatwaves highs",
-   "phrases": "maximum temperature, daily maximum, hottest days, hottest temperature, days above, over forty degrees, above 40"
+   "phrases": "maximum temperature, daily maximum, hottest days, hottest temperature, days above, over forty degrees, above 40",
+   "related": [
+    "T2M",
+    "T2M_MIN"
+   ]
   },
   {
    "code": "T2M_MIN",
@@ -39,7 +48,12 @@
    "percent": false,
    "definition": "The lowest air temperature reached during each month.",
    "keywords": "minimum coldest frost frosts freeze freezing nights lows",
-   "phrases": "minimum temperature, coldest nights, coldest temperature"
+   "phrases": "minimum temperature, coldest nights, coldest temperature",
+   "related": [
+    "T2M",
+    "T2M_MAX",
+    "SNODP"
+   ]
   },
   {
    "code": "TS",
@@ -50,7 +64,11 @@
    "percent": false,
    "definition": "How warm the ground or the sea surface itself is (its 'skin').",
    "keywords": "sst ocean sea",
-   "phrases": "surface temperature, skin temperature, sea surface, sea-surface, ocean surface, at the surface, ground temperature"
+   "phrases": "surface temperature, skin temperature, sea surface, sea-surface, ocean surface, at the surface, ground temperature",
+   "related": [
+    "MODIS_LST",
+    "T2M"
+   ]
   },
   {
    "code": "AIRS_T2M",
@@ -65,7 +83,11 @@
    "keywords": "airs",
    "dataset": "nasa",
    "product": "AIRS3STM v7.0",
-   "landing": "https://disc.gsfc.nasa.gov/datasets/AIRS3STM_7.0/summary"
+   "landing": "https://disc.gsfc.nasa.gov/datasets/AIRS3STM_7.0/summary",
+   "related": [
+    "T2M",
+    "MODIS_LST"
+   ]
   },
   {
    "code": "MODIS_LST",
@@ -80,7 +102,11 @@
    "keywords": "modis lst",
    "dataset": "nasa",
    "product": "MOD11C3 v061",
-   "landing": "https://lpdaac.usgs.gov/products/mod11c3v061/"
+   "landing": "https://lpdaac.usgs.gov/products/mod11c3v061/",
+   "related": [
+    "TS",
+    "MODIS_NDVI"
+   ]
   },
   {
    "code": "PRECTOTCORR",
@@ -91,7 +117,12 @@
    "percent": true,
    "definition": "How much rain and snow fall each day on average.",
    "keywords": "rain rains raining rainfall rainy precipitation downpour downpours wet wetter drought droughts monsoon storms",
-   "phrases": "from the sky, rain or snow, water equivalent, rain and snow"
+   "phrases": "from the sky, rain or snow, water equivalent, rain and snow",
+   "related": [
+    "GPM_RAIN",
+    "GWETROOT",
+    "EVLAND"
+   ]
   },
   {
    "code": "EVLAND",
@@ -102,7 +133,12 @@
    "percent": true,
    "definition": "How much water moves from the ground and plants into the air each day. Land only.",
    "keywords": "evaporation evaporate evaporates evaporating evaporated evapotranspiration transpiration",
-   "phrases": "into the air from, to the air from, back into the air, back to the air, returns to the air, to the atmosphere, into the atmosphere, giving off, gives off, given off, sent back, water loss, loss to the air, lost to the atmosphere, becoming vapor, becoming vapour, releases into the air, going out"
+   "phrases": "into the air from, to the air from, back into the air, back to the air, returns to the air, to the atmosphere, into the atmosphere, giving off, gives off, given off, sent back, water loss, loss to the air, lost to the atmosphere, becoming vapor, becoming vapour, releases into the air, going out",
+   "related": [
+    "GLDAS_EVAP",
+    "PRECTOTCORR",
+    "GWETROOT"
+   ]
   },
   {
    "code": "RH2M",
@@ -113,7 +149,11 @@
    "percent": false,
    "definition": "How close the air is to holding all the water vapour it can (100% = saturated).",
    "keywords": "humidity humid muggy damp",
-   "phrases": "relative humidity, percentage of the moisture, close to saturation"
+   "phrases": "relative humidity, percentage of the moisture, close to saturation",
+   "related": [
+    "QV2M",
+    "T2M"
+   ]
   },
   {
    "code": "QV2M",
@@ -124,7 +164,11 @@
    "percent": true,
    "definition": "Grams of water vapour in each kilogram of air near the ground.",
    "keywords": "vapour vapor",
-   "phrases": "water vapour, water vapor, specific humidity, moisture in the air"
+   "phrases": "water vapour, water vapor, specific humidity, moisture in the air",
+   "related": [
+    "RH2M",
+    "PW"
+   ]
   },
   {
    "code": "PW",
@@ -135,7 +179,11 @@
    "percent": true,
    "definition": "If all the water vapour above you fell as rain at once, how deep the layer would be.",
    "keywords": "precipitable",
-   "phrases": "precipitable water, whole air column, air column, column of air"
+   "phrases": "precipitable water, whole air column, air column, column of air",
+   "related": [
+    "QV2M",
+    "PRECTOTCORR"
+   ]
   },
   {
    "code": "GPM_RAIN",
@@ -150,7 +198,11 @@
    "keywords": "gpm imerg",
    "dataset": "nasa",
    "product": "GPM_3IMERGM v07",
-   "landing": "https://disc.gsfc.nasa.gov/datasets/GPM_3IMERGM_07/summary"
+   "landing": "https://disc.gsfc.nasa.gov/datasets/GPM_3IMERGM_07/summary",
+   "related": [
+    "PRECTOTCORR",
+    "GLDAS_RUNOFF"
+   ]
   },
   {
    "code": "GLDAS_EVAP",
@@ -165,7 +217,11 @@
    "keywords": "gldas",
    "dataset": "nasa",
    "product": "GLDAS_NOAH025_M v2.1",
-   "landing": "https://disc.gsfc.nasa.gov/datasets/GLDAS_NOAH025_M_2.1/summary"
+   "landing": "https://disc.gsfc.nasa.gov/datasets/GLDAS_NOAH025_M_2.1/summary",
+   "related": [
+    "EVLAND",
+    "GLDAS_SOILM"
+   ]
   },
   {
    "code": "GLDAS_RUNOFF",
@@ -179,7 +235,11 @@
    "keywords": "runoff run-off drainage streamflow",
    "dataset": "nasa",
    "product": "GLDAS_NOAH025_M v2.1",
-   "landing": "https://disc.gsfc.nasa.gov/datasets/GLDAS_NOAH025_M_2.1/summary"
+   "landing": "https://disc.gsfc.nasa.gov/datasets/GLDAS_NOAH025_M_2.1/summary",
+   "related": [
+    "GPM_RAIN",
+    "GLDAS_SOILM"
+   ]
   },
   {
    "code": "GWETTOP",
@@ -191,7 +251,11 @@
    "percent": false,
    "definition": "How wet the top 5 cm of soil is: 0% is completely dry, 100% is fully soaked.",
    "keywords": "topsoil",
-   "phrases": "top layer, topsoil, top centimetre, top centimeter, top 1 cm, top 5 cm, surface soil, surface-only soil, skin of dirt, thin skin, upper soil"
+   "phrases": "top layer, topsoil, top centimetre, top centimeter, top 1 cm, top 5 cm, surface soil, surface-only soil, skin of dirt, thin skin, upper soil",
+   "related": [
+    "GWETROOT",
+    "PRECTOTCORR"
+   ]
   },
   {
    "code": "GWETROOT",
@@ -203,7 +267,12 @@
    "percent": false,
    "definition": "How wet the soil is where plant roots grow (top metre): 0% dry, 100% soaked. Land only.",
    "keywords": "soil moisture roots root rooting dirt crops crop farming farmland agriculture dry drier drying",
-   "phrases": "root zone, root-zone, rooting layer, root layer, where plants root, where plant roots, crop roots, for plants, plant-accessible, soil moisture, soil water, water in the soil, moisture in the soil, water stored, water held, water retained, left in the ground, water storage, rooting-layer"
+   "phrases": "root zone, root-zone, rooting layer, root layer, where plants root, where plant roots, crop roots, for plants, plant-accessible, soil moisture, soil water, water in the soil, moisture in the soil, water stored, water held, water retained, left in the ground, water storage, rooting-layer",
+   "related": [
+    "GLDAS_SOILM",
+    "PRECTOTCORR",
+    "EVLAND"
+   ]
   },
   {
    "code": "SNODP",
@@ -214,7 +283,11 @@
    "percent": true,
    "definition": "How deep the snow lying on the ground is. Land only.",
    "keywords": "snow snowy snowpack ski skiing",
-   "phrases": "snow depth, snow on the ground, layer of snow, snow cover, snowpack thickness"
+   "phrases": "snow depth, snow on the ground, layer of snow, snow cover, snowpack thickness",
+   "related": [
+    "T2M_MIN",
+    "PRECTOTCORR"
+   ]
   },
   {
    "code": "GLDAS_SOILM",
@@ -229,7 +302,11 @@
    "keywords": "gldas",
    "dataset": "nasa",
    "product": "GLDAS_NOAH025_M v2.1",
-   "landing": "https://disc.gsfc.nasa.gov/datasets/GLDAS_NOAH025_M_2.1/summary"
+   "landing": "https://disc.gsfc.nasa.gov/datasets/GLDAS_NOAH025_M_2.1/summary",
+   "related": [
+    "GWETROOT",
+    "MODIS_NDVI"
+   ]
   },
   {
    "code": "MODIS_NDVI",
@@ -243,7 +320,12 @@
    "keywords": "greenness green greener vegetation ndvi leafy forest forests deforestation crops",
    "dataset": "nasa",
    "product": "MOD13C2 v061",
-   "landing": "https://lpdaac.usgs.gov/products/mod13c2v061/"
+   "landing": "https://lpdaac.usgs.gov/products/mod13c2v061/",
+   "related": [
+    "GWETROOT",
+    "PRECTOTCORR",
+    "MODIS_LST"
+   ]
   },
   {
    "code": "WS10M",
@@ -254,7 +336,10 @@
    "percent": true,
    "definition": "How fast the air moves 10 metres above the ground.",
    "keywords": "wind winds windy windier breeze breezy gust gusts",
-   "phrases": "wind speed"
+   "phrases": "wind speed",
+   "related": [
+    "PS"
+   ]
   },
   {
    "code": "PS",
@@ -265,7 +350,10 @@
    "percent": false,
    "definition": "The weight of the air above pressing on the surface.",
    "keywords": "pressure barometer barometric",
-   "phrases": "air pressure, surface pressure"
+   "phrases": "air pressure, surface pressure",
+   "related": [
+    "WS10M"
+   ]
   },
   {
    "code": "TO3",
@@ -276,7 +364,10 @@
    "percent": false,
    "definition": "The total amount of ozone above you, in Dobson units. Ozone high up shields life from UV light.",
    "keywords": "ozone ultraviolet uv",
-   "phrases": "ozone layer, ozone hole"
+   "phrases": "ozone layer, ozone hole",
+   "related": [
+    "ALLSKY_SFC_SW_DWN"
+   ]
   },
   {
    "code": "AOD_55",
@@ -287,7 +378,11 @@
    "percent": true,
    "definition": "How much tiny particles (dust, smoke, pollution) dim the sunlight. 0 is perfectly clear air; above 0.4 is hazy.",
    "keywords": "aerosol aerosols haze hazy dust dusty smoke smoky smog pollution polluted particles particulate wildfire wildfires",
-   "phrases": "air quality, dirty air, haze and dust"
+   "phrases": "air quality, dirty air, haze and dust",
+   "related": [
+    "OMI_NO2",
+    "ALLSKY_SFC_SW_DWN"
+   ]
   },
   {
    "code": "OMI_NO2",
@@ -303,7 +398,10 @@
    "product": "OMNO2d v003 (daily, averaged by month)",
    "landing": "https://disc.gsfc.nasa.gov/datasets/OMNO2d_003/summary",
    "low_level": 1.0,
-   "low_note": "Here the air has very little NO₂ (on average below 1 × 10¹⁵ molecules/cm²), close to what OMI can detect. Small trends at such low levels can come from slow changes in the instrument rather than in the air, so this result is not reliable. NO₂ trends are most meaningful over cities and industry."
+   "low_note": "Here the air has very little NO₂ (on average below 1 × 10¹⁵ molecules/cm²), close to what OMI can detect. Small trends at such low levels can come from slow changes in the instrument rather than in the air, so this result is not reliable. NO₂ trends are most meaningful over cities and industry.",
+   "related": [
+    "AOD_55"
+   ]
   },
   {
    "code": "ALLSKY_SFC_SW_DWN",
@@ -314,7 +412,11 @@
    "percent": true,
    "definition": "The energy of the sunlight that arrives at the surface each day, clouds included.",
    "keywords": "sun sunny sunnier sunlight sunshine solar brightness dimming",
-   "phrases": "solar radiation, solar energy, sunlight reaching"
+   "phrases": "solar radiation, solar energy, sunlight reaching",
+   "related": [
+    "CLOUD_AMT",
+    "AOD_55"
+   ]
   },
   {
    "code": "CLOUD_AMT",
@@ -325,7 +427,11 @@
    "percent": false,
    "definition": "The share of the sky covered by clouds.",
    "keywords": "cloud clouds cloudy cloudier cloudiness overcast",
-   "phrases": "cloud cover"
+   "phrases": "cloud cover",
+   "related": [
+    "ALLSKY_SFC_SW_DWN",
+    "PRECTOTCORR"
+   ]
   }
  ],
  "not_available": [
