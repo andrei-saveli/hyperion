@@ -7,6 +7,7 @@
   "Ice and snow",
   "Ocean",
   "Air",
+  "Pollution",
   "Upper air",
   "Sun and sky"
  ],
@@ -626,12 +627,12 @@
    "code": "AOD_55",
    "name": "Haze and dust in the air",
    "units": "AOD",
-   "group": "Air",
+   "group": "Pollution",
    "source": "MERRA-2",
    "percent": true,
    "definition": "How much tiny particles (dust, smoke, pollution) dim the sunlight. 0 is perfectly clear air; above 0.4 is hazy.",
    "keywords": "aerosol aerosols haze hazy dust dusty smoke smoky smog pollution polluted particles particulate",
-   "phrases": "air quality, dirty air, haze and dust",
+   "phrases": "dirty air, haze and dust",
    "related": [
     "OMI_NO2",
     "ALLSKY_SFC_SW_DWN"
@@ -653,11 +654,11 @@
    "code": "OMI_NO2",
    "name": "Nitrogen dioxide (OMI)",
    "units": "10¹⁵ molec/cm²",
-   "group": "Air",
+   "group": "Pollution",
    "source": "OMI (Aura satellite)",
    "percent": true,
    "definition": "How much nitrogen dioxide (NO₂, a gas mostly from traffic, power plants and fires) is in the lower air, measured from space by OMI. Higher means more polluted.",
-   "phrases": "nitrogen dioxide, air pollution, traffic pollution",
+   "phrases": "nitrogen dioxide, traffic pollution",
    "keywords": "no2 nitrogen dioxide traffic exhaust emissions",
    "dataset": "nasa",
    "product": "OMNO2d v003 (daily, averaged by month)",
@@ -1295,7 +1296,7 @@
    "code": "MERRA2_DUST",
    "name": "Desert dust in the air",
    "units": "AOD",
-   "group": "Air",
+   "group": "Pollution",
    "source": "MERRA-2",
    "percent": true,
    "definition": "How much desert dust hangs in the whole column of air, measured by how much it dims light (aerosol optical depth). Highest over and downwind of deserts such as the Sahara and the Gobi. Shown from 2003, when two MODIS satellite instruments began to guide the model.",
@@ -1331,12 +1332,12 @@
    "code": "MERRA2_SMOKE",
    "name": "Smoke and soot in the air",
    "units": "AOD",
-   "group": "Air",
+   "group": "Pollution",
    "source": "MERRA-2",
    "percent": true,
    "definition": "How much smoke and soot (carbon particles from wildfires, burning fields, engines and chimneys) hangs in the whole column of air, measured by how much it dims light. Shown from 2003, when two MODIS satellite instruments began to guide the model.",
-   "keywords": "soot sooty wildfire wildfires bushfire bushfires",
-   "phrases": "wildfire smoke, forest fire, forest fires, forest fire smoke, bush fire, bush fires, smoke from fires, black carbon, biomass burning, burning season, smoke in the air, fire smoke",
+   "keywords": "wildfire wildfires bushfire bushfires",
+   "phrases": "wildfire smoke, forest fire, forest fires, forest fire smoke, bush fire, bush fires, smoke from fires, biomass burning, burning season, smoke in the air, fire smoke",
    "examples": "smoke from wildfires and burning forests, sooty air from fires and engines",
    "dataset": "nasa",
    "step": 2,
@@ -1367,12 +1368,12 @@
    "code": "MERRA2_SULFATE",
    "name": "Sulfate haze in the air",
    "units": "AOD",
-   "group": "Air",
+   "group": "Pollution",
    "source": "MERRA-2",
    "percent": true,
    "definition": "How much sulfate haze (tiny particles formed from the sulfur in coal and oil smoke, and from volcanoes) hangs in the whole column of air, measured by how much it dims light. Shown from 2003, when two MODIS satellite instruments began to guide the model.",
-   "keywords": "sulfate sulphate sulfur sulphur so2 volcanic",
-   "phrases": "sulfate haze, sulphate haze, acid rain, coal smoke, coal burning, coal pollution, power plant pollution, industrial haze, factory haze, sulfur dioxide, sulphur dioxide",
+   "keywords": "sulfate sulphate sulfur sulphur volcanic",
+   "phrases": "sulfate haze, sulphate haze, acid rain, coal smoke, coal burning, coal pollution, power plant pollution, industrial haze, factory haze",
    "examples": "haze from coal power plants and heavy industry, sulfur pollution from factories and volcanoes",
    "dataset": "nasa",
    "step": 2,
@@ -1398,7 +1399,7 @@
    "code": "AIRS_CH4",
    "name": "Methane (AIRS)",
    "units": "ppb",
-   "group": "Air",
+   "group": "Pollution",
    "source": "AIRS (Aqua satellite)",
    "percent": true,
    "definition": "How much methane (CH₄, a strong greenhouse gas from wetlands, cattle, rice fields, landfills and gas leaks) is in the air about 7 km up, in parts per billion, measured from space by AIRS.",
@@ -1419,12 +1420,12 @@
    "code": "AIRS_CO",
    "name": "Carbon monoxide (AIRS)",
    "units": "ppb",
-   "group": "Air",
+   "group": "Pollution",
    "source": "AIRS (Aqua satellite)",
    "percent": true,
    "definition": "How much carbon monoxide (CO, a gas from fires, engines and stoves) is in the air about 5.5 km up, in parts per billion, measured from space by AIRS. It travels far, so it also shows smoke from distant fires.",
    "keywords": "monoxide",
-   "phrases": "carbon monoxide",
+   "phrases": "carbon monoxide, carbon monoxide high up, carbon monoxide aloft",
    "examples": "carbon monoxide gas from fires and car engines, fumes from burning carried by the wind",
    "dataset": "nasa",
    "step": 2,
@@ -1501,6 +1502,320 @@
     {
      "driver": "AOD_55",
      "how": "Haze and dust scatter UV."
+    }
+   ]
+  },
+  {
+   "code": "MERRA2_PM25",
+   "name": "Fine particles (PM2.5)",
+   "units": "µg/m³",
+   "group": "Pollution",
+   "source": "MERRA-2",
+   "percent": true,
+   "definition": "How much fine particulate matter (PM2.5: particles smaller than 2.5 thousandths of a millimetre, small enough to reach deep into the lungs) is in the air we breathe, in micrograms per cubic metre. The World Health Organization's guideline for the yearly average is 5 µg/m³. Calculated by the MERRA-2 model from its dust, sea salt, soot, organic and sulfate particles; it doesn't include nitrate particles, so city values are on the low side. Shown from 2003, when two MODIS satellite instruments began to guide the model.",
+   "keywords": "pm25 pm2.5 particulate particulates",
+   "phrases": "fine particles, fine particulate, particulate matter, pm 2.5, pm2.5, air we breathe, breathing air, unhealthy air, bad air, air pollution at ground level, dirty air we breathe, lung",
+   "examples": "tiny particles in the air we breathe, unhealthy air in cities, air pollution that harms the lungs",
+   "dataset": "nasa",
+   "product": "M2TMNXAER v5.12.4 (surface DUSMASS25 + SSSMASS25 + BCSMASS + 1.4 × OCSMASS + 1.375 × SO4SMASS)",
+   "landing": "https://disc.gsfc.nasa.gov/datasets/M2TMNXAER_5.12.4/summary",
+   "related": [
+    "MERRA2_BC",
+    "MERRA2_SO4",
+    "MERRA2_DUST25",
+    "AOD_55"
+   ],
+   "family": "pollution",
+   "drivers": [
+    {
+     "driver": "MERRA2_SO4",
+     "how": "Sulfate from coal and oil burning is a large part of PM2.5."
+    },
+    {
+     "driver": "MERRA2_OC",
+     "how": "Smoke from fires, stoves and traffic adds organic particles."
+    },
+    {
+     "driver": "MERRA2_DUST25",
+     "how": "Dust blows in from dry land and deserts."
+    },
+    {
+     "driver": "WS10M",
+     "how": "Calm air lets pollution build up; wind blows it away."
+    },
+    {
+     "driver": "PRECTOTCORR",
+     "how": "Rain washes particles out of the air."
+    }
+   ]
+  },
+  {
+   "code": "MERRA2_BC",
+   "name": "Soot (black carbon) at ground level",
+   "units": "µg/m³",
+   "group": "Pollution",
+   "source": "MERRA-2",
+   "percent": true,
+   "definition": "How much soot (black carbon from diesel engines, coal and wood stoves, and fires) is in the air at ground level. Shown from 2003, when two MODIS satellite instruments began to guide the model.",
+   "keywords": "soot sooty diesel",
+   "phrases": "black carbon, soot particles, diesel exhaust, diesel fumes, chimney smoke, stove smoke",
+   "examples": "black soot from diesel engines and chimneys, dark smoke particles in city air",
+   "dataset": "nasa",
+   "product": "M2TMNXAER v5.12.4 (BCSMASS)",
+   "landing": "https://disc.gsfc.nasa.gov/datasets/M2TMNXAER_5.12.4/summary",
+   "related": [
+    "MERRA2_PM25",
+    "MERRA2_SMOKE",
+    "OMI_NO2"
+   ],
+   "family": "pollution",
+   "drivers": [
+    {
+     "driver": "OMI_NO2",
+     "how": "Traffic and burning give off soot and NO₂ together."
+    },
+    {
+     "driver": "MERRA2_SMOKE",
+     "how": "Fires add soot."
+    }
+   ]
+  },
+  {
+   "code": "MERRA2_OC",
+   "name": "Organic smoke particles at ground level",
+   "units": "µg/m³",
+   "group": "Pollution",
+   "source": "MERRA-2",
+   "percent": true,
+   "definition": "How much organic particle matter (from wildfires, burning crops and wood, traffic, and gases given off by plants) is in the air at ground level. Shown from 2003, when two MODIS satellite instruments began to guide the model.",
+   "keywords": "",
+   "phrases": "organic carbon, organic particles, organic aerosol, smoke particles, wood smoke, burning crops, crop burning, stubble burning",
+   "examples": "smoke particles from burning fields and wood stoves, haze from forest fires at ground level",
+   "dataset": "nasa",
+   "product": "M2TMNXAER v5.12.4 (1.4 × OCSMASS)",
+   "landing": "https://disc.gsfc.nasa.gov/datasets/M2TMNXAER_5.12.4/summary",
+   "related": [
+    "MERRA2_SMOKE",
+    "MERRA2_PM25",
+    "OMI_HCHO"
+   ],
+   "family": "pollution",
+   "drivers": [
+    {
+     "driver": "MERRA2_SMOKE",
+     "how": "Fires give off most of the organic particles in many places."
+    },
+    {
+     "driver": "T2M_MAX",
+     "how": "Hot dry spells dry out plants, which then burn more easily."
+    }
+   ]
+  },
+  {
+   "code": "MERRA2_SO4",
+   "name": "Sulfate particles at ground level",
+   "units": "µg/m³",
+   "group": "Pollution",
+   "source": "MERRA-2",
+   "percent": true,
+   "definition": "How much sulfate (particles formed from the sulfur dioxide of coal and oil burning, ships and volcanoes) is in the air at ground level, counted with the ammonium that usually comes with it. Shown from 2003, when two MODIS satellite instruments began to guide the model.",
+   "keywords": "",
+   "phrases": "sulfate particles, sulphate particles, sulfate at ground, coal particles",
+   "examples": "particles from coal power plants in the air we breathe, sulfur pollution at street level",
+   "dataset": "nasa",
+   "product": "M2TMNXAER v5.12.4 (1.375 × SO4SMASS)",
+   "landing": "https://disc.gsfc.nasa.gov/datasets/M2TMNXAER_5.12.4/summary",
+   "related": [
+    "MERRA2_SO2",
+    "MERRA2_SULFATE",
+    "MERRA2_PM25"
+   ],
+   "family": "pollution",
+   "drivers": [
+    {
+     "driver": "MERRA2_SO2",
+     "how": "Sulfate forms in the air from sulfur dioxide."
+    },
+    {
+     "driver": "PRECTOTCORR",
+     "how": "Rain washes sulfate out of the air."
+    }
+   ]
+  },
+  {
+   "code": "MERRA2_DUST25",
+   "name": "Fine dust at ground level",
+   "units": "µg/m³",
+   "group": "Pollution",
+   "source": "MERRA-2",
+   "percent": true,
+   "definition": "How much fine mineral dust (the PM2.5 part of desert and soil dust) is in the air at ground level. Shown from 2003, when two MODIS satellite instruments began to guide the model.",
+   "keywords": "",
+   "phrases": "fine dust, dust we breathe, dusty air, dust particles, dust at ground level",
+   "examples": "fine desert dust in the air people breathe, dusty air in dry cities",
+   "dataset": "nasa",
+   "product": "M2TMNXAER v5.12.4 (DUSMASS25)",
+   "landing": "https://disc.gsfc.nasa.gov/datasets/M2TMNXAER_5.12.4/summary",
+   "related": [
+    "MERRA2_DUST",
+    "GWETTOP",
+    "WS10M"
+   ],
+   "family": "pollution",
+   "drivers": [
+    {
+     "driver": "WS10M",
+     "how": "Stronger wind lifts more dust."
+    },
+    {
+     "driver": "GWETTOP",
+     "how": "Wet topsoil holds its dust."
+    },
+    {
+     "driver": "PRECTOTCORR",
+     "how": "Rain washes dust out of the air."
+    }
+   ]
+  },
+  {
+   "code": "MERRA2_SO2",
+   "name": "Sulfur dioxide at ground level (MERRA-2)",
+   "units": "µg/m³",
+   "group": "Pollution",
+   "source": "MERRA-2",
+   "percent": true,
+   "definition": "How much sulfur dioxide gas (SO₂, mostly from burning coal and oil, metal smelters, ships and volcanoes) is in the air at ground level. The model calculates it from emission inventories (lists of known sources), not from measurements of SO₂ itself, so it shows how known emissions changed. Shown from 2003, when two MODIS satellite instruments began to guide the model.",
+   "keywords": "",
+   "phrases": "sulfur dioxide at ground, sulphur dioxide at ground, so2 at ground, so2 near the ground, sulfur in the air we breathe",
+   "examples": "sulfur dioxide gas near the ground from power plants and smelters",
+   "dataset": "nasa",
+   "product": "M2TMNXAER v5.12.4 (SO2SMASS)",
+   "landing": "https://disc.gsfc.nasa.gov/datasets/M2TMNXAER_5.12.4/summary",
+   "related": [
+    "OMI_SO2",
+    "MERRA2_SO4",
+    "MERRA2_SULFATE"
+   ],
+   "family": "pollution",
+   "drivers": [
+    {
+     "driver": "MERRA2_SO4",
+     "how": "Sulfur dioxide turns into sulfate particles."
+    }
+   ]
+  },
+  {
+   "code": "MERRA2_CO",
+   "name": "Carbon monoxide at ground level (MERRA-2)",
+   "units": "ppb",
+   "group": "Pollution",
+   "source": "MERRA-2",
+   "percent": true,
+   "definition": "How much carbon monoxide (CO, a poisonous gas from engines, stoves, industry and fires) is in the air at ground level, in parts per billion. The model calculates it from emission inventories (lists of known sources), not from measurements of CO itself.",
+   "keywords": "",
+   "phrases": "carbon monoxide at ground, co at ground level, carbon monoxide near the ground, exhaust gas, car fumes",
+   "examples": "carbon monoxide from car exhausts and stoves in the air at street level",
+   "dataset": "nasa",
+   "product": "M2TMNXCHM v5.12.4 (COSC)",
+   "landing": "https://disc.gsfc.nasa.gov/datasets/M2TMNXCHM_5.12.4/summary",
+   "related": [
+    "AIRS_CO",
+    "OMI_NO2",
+    "MERRA2_BC"
+   ],
+   "family": "pollution",
+   "drivers": [
+    {
+     "driver": "MERRA2_SMOKE",
+     "how": "Fires give off carbon monoxide."
+    }
+   ]
+  },
+  {
+   "code": "OMI_SO2",
+   "name": "Sulfur dioxide (OMI satellite)",
+   "units": "DU",
+   "group": "Pollution",
+   "source": "OMI (Aura satellite)",
+   "percent": false,
+   "definition": "How much sulfur dioxide (SO₂, from coal power plants, metal smelters, oil fields and volcanoes) is in the lowest part of the air, measured from space by OMI, in Dobson units. Daily maps are averaged by month.",
+   "keywords": "so2 smelter smelters",
+   "phrases": "sulfur dioxide, sulphur dioxide, sulfur pollution, sulphur pollution, volcanic gas, volcano gas",
+   "examples": "sulfur dioxide gas from coal plants and volcanoes seen from space",
+   "dataset": "nasa",
+   "product": "OMSO2e v003 (daily, averaged by month)",
+   "landing": "https://disc.gsfc.nasa.gov/datasets/OMSO2e_003/summary",
+   "low_level": 0.15,
+   "low_note": "Here there is very little SO₂ (on average below 0.15 Dobson units), within the noise of OMI's measurement. Trends at such low levels can come from the instrument rather than the air, so this result is not reliable. SO₂ trends are most meaningful near power plants, smelters and volcanoes.",
+   "related": [
+    "MERRA2_SO2",
+    "MERRA2_SULFATE",
+    "OMI_NO2"
+   ],
+   "family": "pollution",
+   "drivers": []
+  },
+  {
+   "code": "OMI_HCHO",
+   "name": "Formaldehyde (OMI satellite)",
+   "units": "10¹⁵ molec/cm²",
+   "group": "Pollution",
+   "source": "OMI (Aura satellite)",
+   "percent": true,
+   "definition": "How much formaldehyde (HCHO) is in the air column, measured from space by OMI. It forms from gases given off by forests, fires, traffic and industry, so it shows where those gases (volatile organic compounds) are. Daily maps are averaged by month.",
+   "keywords": "formaldehyde hcho voc vocs",
+   "phrases": "volatile organic, organic gases, organic compounds",
+   "examples": "formaldehyde gas from forests, fires and factories seen from space",
+   "dataset": "nasa",
+   "product": "OMHCHOd v003 (daily, every 5th 0.1° pixel, averaged by month)",
+   "landing": "https://disc.gsfc.nasa.gov/datasets/OMHCHOd_003/summary",
+   "low_level": 2.0,
+   "low_note": "Here formaldehyde is low (on average below 2 × 10¹⁵ molecules/cm²), close to the noise of OMI's measurement, so small trends are not reliable. Formaldehyde trends are most meaningful over forests, fire regions and big cities.",
+   "related": [
+    "MERRA2_OC",
+    "MERRA2_SMOKE",
+    "T2M"
+   ],
+   "family": "pollution",
+   "drivers": [
+    {
+     "driver": "T2M",
+     "how": "Plants give off more of the gases that make formaldehyde when it is hot."
+    },
+    {
+     "driver": "MERRA2_SMOKE",
+     "how": "Fires give off formaldehyde."
+    }
+   ]
+  },
+  {
+   "code": "OMI_UVAI",
+   "name": "Smoke and dust index (OMI satellite)",
+   "units": "index",
+   "group": "Pollution",
+   "source": "OMI (Aura satellite)",
+   "percent": false,
+   "definition": "OMI's ultraviolet aerosol index: how much smoke and dust that absorbs sunlight is in the air, seen from space. Values above about 1 mean a lot of smoke or dust; values near 0 or below mean clean air or only bright particles. Daily maps are averaged by month.",
+   "keywords": "",
+   "phrases": "aerosol index, uv aerosol index, smoke and dust, smoke or dust, absorbing aerosol, smoky air",
+   "examples": "smoke and dust clouds seen from space, plumes from fires and dust storms",
+   "dataset": "nasa",
+   "product": "OMAERUVd v003 (UVAerosolIndex, daily, averaged by month)",
+   "landing": "https://disc.gsfc.nasa.gov/datasets/OMAERUVd_003/summary",
+   "related": [
+    "MERRA2_SMOKE",
+    "MERRA2_DUST",
+    "AOD_55"
+   ],
+   "family": "pollution",
+   "drivers": [
+    {
+     "driver": "MERRA2_DUST",
+     "how": "Desert dust absorbs ultraviolet light."
+    },
+    {
+     "driver": "MERRA2_SMOKE",
+     "how": "Smoke absorbs ultraviolet light."
     }
    ]
   }

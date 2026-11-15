@@ -37,9 +37,15 @@ SOURCES = {"GPM_RAIN": "GPM", "GLDAS_SOILM": "GLDAS", "GLDAS_EVAP": "GLDAS", "GL
            "MODIS_NDVI": "NDVI", "MODIS_LST": "LST", "OMI_NO2": "OMI", "AIRS_T2M": "AIRS",
            "SEA_LEVEL": "SSH", "GLDAS_TWS": "CLSM", "MERRA2_ICEMELT": "M2GLC",
            "MERRA2_DUST": "M2AER", "MERRA2_SMOKE": "M2AER", "MERRA2_SULFATE": "M2AER",
-           "AIRS_CH4": "AIRSX", "AIRS_CO": "AIRSX", "AIRS_T50": "AIRSX"}
+           "AIRS_CH4": "AIRSX", "AIRS_CO": "AIRSX", "AIRS_T50": "AIRSX",
+           "MERRA2_PM25": "M2AERS", "MERRA2_BC": "M2AERS", "MERRA2_OC": "M2AERS", "MERRA2_SO4": "M2AERS",
+           "MERRA2_DUST25": "M2AERS", "MERRA2_SO2": "M2AERS", "MERRA2_CO": "M2CHM",
+           "OMI_SO2": "OMSO2", "OMI_HCHO": "OMHCHO", "OMI_UVAI": "OMAERUV"}
 # Size of a square in degrees (1 unless listed here)
-STEP = {"MERRA2_DUST": 2, "MERRA2_SMOKE": 2, "MERRA2_SULFATE": 2, "AIRS_CH4": 2, "AIRS_CO": 2, "AIRS_T50": 2}
+STEP = {"MERRA2_DUST": 2, "MERRA2_SMOKE": 2, "MERRA2_SULFATE": 2, "AIRS_CH4": 2, "AIRS_CO": 2, "AIRS_T50": 2,
+        # pollution: fine particles (PM2.5) stay on 1-degree squares; their parts and the noisier gases on 2
+        "MERRA2_BC": 2, "MERRA2_OC": 2, "MERRA2_SO4": 2, "MERRA2_DUST25": 2, "MERRA2_SO2": 2, "MERRA2_CO": 2,
+        "OMI_SO2": 2, "OMI_HCHO": 2, "OMI_UVAI": 2}
 # First month used (default: the first month downloaded). MERRA-2's dust, smoke and sulfate lean on
 # satellite aerosol measurements that only exist since MODIS (Terra 2000, Aqua 2002): before that
 # the model had far less to go on, and the 1982 and 1991 volcanic eruptions fill the early years

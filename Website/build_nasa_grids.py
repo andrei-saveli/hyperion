@@ -15,6 +15,13 @@ Datasets for particular kinds of places (oceans, ice, deserts, the upper air):
   M2GLC  meltwater running off glaciers and ice sheets   MERRA-2 M2TMNXGLC, 0.5 x 0.625 deg, monthly
   AIRSX  methane, carbon monoxide, stratosphere temperature  AIRS3STM v7.0 (single pressure levels)
 
+Pollution at the ground and from space:
+  M2AERS  fine particles (PM2.5) and their parts, SO2 at the ground   MERRA-2 M2TMNXAER surface masses, from 2003
+  M2CHM   carbon monoxide at the ground                         MERRA-2 M2TMNXCHM (COSC)
+  OMSO2   sulfur dioxide column                                 OMSO2e v003, 0.25 deg, DAILY -> monthly means
+  OMHCHO  formaldehyde column                                   OMHCHOd v003, 0.1 deg (every 5th pixel read), DAILY -> monthly
+  OMAERUV UV aerosol index (smoke and dust)                     OMAERUVd v003, 1 deg, DAILY -> monthly means
+
 How it works
 1. NASA's public catalogue (CMR, no login) lists every monthly (or daily) file.
 2. For each file we ask NASA's subsetting service (OPeNDAP) for just the one variable we need,
@@ -77,6 +84,16 @@ DATASETS = {
     "CLSM": {"collection": "C1690022314-GES_DISC", "paths": ["/TWS_inst"]},
     "M2AER": {"collection": "C1276812866-GES_DISC", "paths": ["/DUEXTTAU", "/BCEXTTAU", "/OCEXTTAU", "/SUEXTTAU"]},
     "M2GLC": {"collection": "C1276812853-GES_DISC", "paths": ["/RUNOFF"]},
+    # pollution
+    "M2AERS": {"collection": "C1276812866-GES_DISC", "since": "2003-01",
+               "paths": ["/DUSMASS25", "/SSSMASS25", "/BCSMASS", "/OCSMASS", "/SO4SMASS", "/SO2SMASS"]},
+    "M2CHM": {"collection": "C1276812852-GES_DISC", "paths": ["/COSC"]},
+    "OMSO2": {"collection": "C1266136112-GES_DISC", "daily": True,
+              "paths": ["/HDFEOS/GRIDS/OMI_Total_Column_Amount_SO2/Data_Fields/ColumnAmountSO2"]},
+    "OMHCHO": {"collection": "C1626121562-GES_DISC", "daily": True,
+               "paths": ["/key_science_data/column_amount[0:5:1799][0:5:3599]"]},   # every 5th pixel: 0.5 degree
+    "OMAERUV": {"collection": "C1266136096-GES_DISC", "daily": True,
+                "paths": ["/HDFEOS/GRIDS/Aerosol_NearUV_Grid/Data_Fields/UVAerosolIndex"]},
 }
 MIN_VALID_SHARE = 0.5     # a 1-degree square needs data in at least half of its small cells
 MIN_OMI_DAYS = 5          # an OMI monthly value needs at least this many days with data
@@ -242,11 +259,49 @@ def convert(name, arrays):
         return {"MERRA2_DUST": merra_to_one_degree(field("/DUEXTTAU")),
                 "MERRA2_SMOKE": merra_to_one_degree(field("/BCEXTTAU") + field("/OCEXTTAU")),   # soot + organic smoke
                 "MERRA2_SULFATE": merra_to_one_degree(field("/SUEXTTAU"))}
+    if name == "M2AERS":                               # MERRA-2 grid; kg/m3 at the ground -> micrograms per m3
+        def mass(path):
+            x = a(path)[0]
+            x[x > 1e14] = np.nan
+            return x * 1e9
+        dust, salt, soot, organic, sulfate = (mass(p) for p in ("/DUSMASS25", "/SSSMASS25", "/BCSMASS", "/OCSMASS", "/SO4SMASS"))
+        # PM2.5 the standard way for MERRA-2 (e.g. Buchard et al. 2016): organic carbon x 1.4 for the
+        # rest of the organic molecule, sulfate x 1.375 for the ammonium that comes with it
+        pm25 = dust + salt + soot + 1.4 * organic + 1.375 * sulfate
+        return {"MERRA2_PM25": merra_to_one_degree(pm25), "MERRA2_BC": merra_to_one_degree(soot),
+                "MERRA2_OC": merra_to_one_degree(1.4 * organic), "MERRA2_SO4": merra_to_one_degree(1.375 * sulfate),
+                "MERRA2_DUST25": merra_to_one_degree(dust), "MERRA2_SO2": merra_to_one_degree(mass("/SO2SMASS"))}
+    if name == "M2CHM":                                # MERRA-2 grid; carbon monoxide at the ground, ppb
+        x = a("/COSC")[0]
+        x[x > 1e14] = np.nan
+        return {"MERRA2_CO": merra_to_one_degree(x)}
     if name == "M2GLC":                                # MERRA-2 grid; only where the land is covered by ice
         x = a("/RUNOFF")[0]
         x[x > 1e14] = np.nan
         return {"MERRA2_ICEMELT": merra_to_one_degree(x * 86400)}   # kg/m2/s -> mm per day
     raise ValueError(name)
+
+
+def omi_so2_day(arrays):
+    """One OMI SO2 day -> 1-degree grid in Dobson units (NaN = no data). Small negative values are
+    normal retrieval noise and are kept, so the monthly average isn't pushed upwards."""
+    x = arrays["/HDFEOS/GRIDS/OMI_Total_Column_Amount_SO2/Data_Fields/ColumnAmountSO2"].astype(np.float64)
+    x[np.abs(x) > 1e20] = np.nan                       # fill value
+    return to_one_degree(x, 4)
+
+
+def omi_hcho_day(arrays):
+    """One OMI formaldehyde day (every 5th 0.1-degree pixel = 0.5 degree) -> 1-degree grid, 10^15 molecules/cm2."""
+    x = arrays["/key_science_data/column_amount[0:5:1799][0:5:3599]"].astype(np.float64)
+    x[np.abs(x) > 1e20] = np.nan
+    return to_one_degree(x / 1e15, 2)
+
+
+def omi_aerosol_day(arrays):
+    """One OMI day -> 1-degree UV aerosol index (above about 1 = smoke or dust that absorbs sunlight)."""
+    x = arrays["/HDFEOS/GRIDS/Aerosol_NearUV_Grid/Data_Fields/UVAerosolIndex"].astype(np.float64)
+    x[np.abs(x) > 1e20] = np.nan
+    return x.astype(np.float32)
 
 
 def ssh_week(arrays):
@@ -274,7 +329,9 @@ def do_month(name, month, addresses):
     """Download and convert one month (for OMI: all its days). Saves the month to the cache."""
     spec = DATASETS[name]
     if spec.get("daily") or spec.get("weekly"):        # many maps per month: average them
-        one, code, least = (omi_day, "OMI_NO2", MIN_OMI_DAYS) if spec.get("daily") else (ssh_week, "SEA_LEVEL", MIN_SSH_WEEKS)
+        one, code, least = {"OMI": (omi_day, "OMI_NO2", MIN_OMI_DAYS), "SSH": (ssh_week, "SEA_LEVEL", MIN_SSH_WEEKS),
+                            "OMSO2": (omi_so2_day, "OMI_SO2", MIN_OMI_DAYS), "OMHCHO": (omi_hcho_day, "OMI_HCHO", MIN_OMI_DAYS),
+                            "OMAERUV": (omi_aerosol_day, "OMI_UVAI", MIN_OMI_DAYS)}[name]
         total = np.zeros((180, 360)); days = np.zeros((180, 360))
         for address in addresses:
             g = one(fetch(address, spec["paths"]))
@@ -303,7 +360,7 @@ def download(names, workers=8):
                 day = address.rsplit("_", 1)[-1][:8]
                 start = f"{day[:4]}-{day[4:6]}-{day[6:8]}"
             by_month.setdefault(start[:7], []).append(address)
-        todo = {m: a for m, a in by_month.items() if not month_file(name, m).exists()}
+        todo = {m: a for m, a in by_month.items() if not month_file(name, m).exists() and m >= DATASETS[name].get("since", "")}
         if DATASETS[name].get("daily"):    # skip the current, unfinished month
             todo = {m: a for m, a in todo.items() if len(a) >= 20}
         if DATASETS[name].get("weekly"):   # a month needs at least three weekly maps
