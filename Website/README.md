@@ -60,25 +60,27 @@ build_world.py (run once, Python, Task4/stats.py) ─► data/world.json ─► 
 - **Compare was removed** (the two-place section, the Method section and the big footer): the page
   ends after Investigate with a one-line copyright. `investigation.js` still holds the matched-month
   and A − B functions (`matchMonths`, `fitComparison`) with their tests, if Compare comes back.
-- **Investigate: what might explain this?** (`evidence.js`, below the evidence panel and from the
-  answer card). For a measurement with a trend, it offers physically sensible ideas
-  (`explanations` in `variables.json`) and lets students test their own, stating the prediction
-  *before* seeing the result. Each idea climbs an **evidence ladder**:
-  1. *Month to month:* with seasons and trends removed, does the outcome move the predicted way
-     when the driver is unusually high? This is a 95% range for the link that allows for
-     neighbouring months being alike (effective sample size, Bretherton et al. 1999). Seasonal
-     ideas use only the months when the outcome usually falls or builds up at that place, found
-     from the data (e.g. snow melt is June–July in Svalbard).
-  2. *Size:* would the driver's own trend, through that link, produce a meaningful share of the
-     outcome's trend? ("explains about 45%")
-  3. *Independent data:* if both come from the same model (MERRA-2, GLDAS), the model links them by
-     its own equations, so the link is re-checked with an independent instrument (GPM, AIRS, MODIS,
-     GLDAS).
-
-  The page shows how far each idea got, draws a diagram with a dashed "shared drivers" box, counts
-  the ideas tried, and never says "cause". Why not just compare trend directions: on our world grid,
-  the placebo "warmer air → less ozone" matches as often as "warmer air → less snow" (see
-  `docs/CAUSALITY_REVIEW.md`). Two unrelated trending series fail step 1 (tested).
+- **Investigate: the Trend Decomposer** (`decompose.js`, below the evidence panel and from the
+  answer card). The student picks possible drivers (suggested per measurement in `variables.json`
+  → `drivers`, or any other); the page works out how much of the trend each one **statistically
+  accounts for**, and what is left:
+  1. Seasons and trends are removed from every record; one regression links the outcome's
+     month-to-month wiggles to all drivers' wiggles **together** (no double counting), optionally
+     with a separate link per season (Dec–Feb, Mar–May, Jun–Aug, Sep–Nov). Fitting on wiggles
+     means two unrelated records that both trend can't fake a link (spurious regression; tested).
+  2. Each link × the driver's own record is that driver's **contribution**; observed trend =
+     contributions + left over, exactly. The left-over record gets the usual trend test.
+  3. Ranges: a **block bootstrap** (history re-run 400 times, whole years drawn at random).
+  4. **Alibi check**: each driver's record is slid out of sync by 3, 4, … years and refitted; a real
+     link must beat its own out-of-sync copies (a simple permutation p-value).
+  5. **Across the planet**: in places at similar latitudes (±20°), do faster driver trends go
+     with faster outcome trends? A second, independent line of evidence, from the world grids.
+  6. "Use satellite data" swaps MERRA-2 drivers for independent ones (GPM, AIRS, MODIS, GLDAS).
+  The page shows a balance sheet (observed → each driver → left over, with ranges), a scoreboard
+  (links by season, contribution, alibi, verdict), the left-over chart and the planet scatter. It
+  never says "cause". Example: Svalbard snow −4.8 cm/decade: air temperature has a real link
+  (alibi p = 0.02; warm summers −6 cm per °C) but accounts for only ~9%; most of the loss is left over.
+  Replaces the earlier evidence ladder (`docs/CAUSALITY_REVIEW.md` explains why sign-matching fails).
 - **Geographic features** (rivers, lakes, seas, mountains, deserts, glaciers, islands, reefs…): when a
   name comes with a feature word ("Volga River", "Lake Baikal", "Caspian Sea"), the search also asks
   OpenStreetMap's main search (Nominatim, ranked by importance; at most one request per second,
@@ -177,14 +179,14 @@ much to the repository's history.
 | `stats.js` | Trend and significance math (copy of `Task4/stats.py`) |
 | `nasa.js` | Reads one square's monthly series from a NASA tile file |
 | `investigation.js` | Time periods: read periods from questions, cut records, match months at two places, A − B trend with a Newey–West range |
-| `evidence.js` | Investigate: month-to-month link with an effective-sample-size range, share of a trend explained, seasons from the data |
+| `decompose.js` | Investigate (Trend Decomposer): joint seasonal regression on wiggles, contributions, block bootstrap, alibi (shift) test, across-the-planet check |
 | `area.js` | Area averages: squares inside a country's or region's outline, weighted average of their records |
 | `build_nasa_grids.py`, `build_nasa_tiles.py` | Download the NASA datasets to 1° grids; then trends, tiles and map layers (`data/nasa/`) |
 | `globe.js` | Hero art: rotating globe of teal "satellite pixels", demo cases in coral (decoration only) |
 | `data/variables.json` | The 26 measurements (18 NASA POWER + 8 satellite/model): code, name, units, definition, search words, second-source pairs |
 | `data/world.json` | World overview: trend of every measurement on a 5 degree grid (made by `build_world.py`) |
 | `build_world.py` | Rebuilds `data/world.json` with the Python trend code (about 25 minutes, can be stopped and restarted) |
-| `tests/` | `make_reference.py` + `test_stats.js` (website math = Python math); `test_nasa.js` + `nasa_reference.json` (tiles read back correctly); `test_area.js` (outlines and area averages); `test_investigation.js` (periods and matched comparisons); `test_evidence.js` (evidence ladder, incl. real Svalbard data); `test_search.js` + `search_questions.json` (search picks the right measurement; needs Playwright) |
+| `tests/` | `make_reference.py` + `test_stats.js` (website math = Python math); `test_nasa.js` + `nasa_reference.json` (tiles read back correctly); `test_area.js` (outlines and area averages); `test_investigation.js` (periods and matched comparisons); `test_decompose.js` (Trend Decomposer: known contributions, spurious trends, seasons, real Svalbard data); `test_search.js` + `search_questions.json` (search picks the right measurement; needs Playwright) |
 | `data/land.geojson` | World land outline (Natural Earth, public domain): the fallback map |
 | `vendor/maplibre-gl.css` | The map library's stylesheet (kept locally) |
 | `build_data.py`, `data/results.json` | The earlier version (3 Giovanni regions). No longer read by the page; kept for reference |

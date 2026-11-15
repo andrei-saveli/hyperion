@@ -1329,129 +1329,95 @@ function renderAnswer() {
   el.querySelectorAll(".chip").forEach((b) => b.addEventListener("click", () => { selectVariable(b.dataset.code); $("detail").scrollIntoView({ behavior: "smooth" }); }));
 }
 
-// ------------------------------------------------------------------ Investigate: what might explain this trend?
-// Each idea links the chosen measurement (the outcome) to a possible driver and predicts which
-// way they move together. evidence.js climbs an evidence ladder: (1) month-to-month link,
-// (2) share of the trend it explains, (3) the same with independent data. We say how far an idea
-// got, never that it is the cause: a third factor can move both.
+// ------------------------------------------------------------------ Investigate: the Trend Decomposer
+// The student picks possible drivers; decompose.js works out how much of the trend each one
+// statistically accounts for (with ranges from 400 re-runs of history), what is left over, and
+// whether each link beats its own out-of-sync copies ("alibi check"). A second, independent line
+// of evidence comes from the world grids ("across the planet"). Never a claim about causes.
 
 // Independent versions of MERRA-2 measurements (different instrument or model)
 const INDEPENDENT = { PRECTOTCORR: "GPM_RAIN", T2M: "AIRS_T2M", GWETROOT: "GLDAS_SOILM", EVLAND: "GLDAS_EVAP", TS: "MODIS_LST" };
-const modelOf = (v) => (/^MERRA-2/.test(v.source) ? "MERRA-2" : /^GLDAS/.test(v.source) ? "GLDAS" : v.source);
-const sameModel = (a, b) => modelOf(a) === modelOf(b) && (modelOf(a) === "MERRA-2" || modelOf(a) === "GLDAS");
-const testCache = new Map();      // results, so a test isn't redone
-const attempts = new Map();       // ideas tested per place + measurement + period
-
-function placeKey() {
-  return `${state.area ? state.area.key : `${state.lat},${state.lon}`}|${state.period ? periodLabel(state.period) : "all"}|${state.code}`;
-}
-
-// Run the ladder for one idea on the records of the chosen place and period
-function testIdea(outcome, idea) {
-  const driver = variable(idea.driver), s = state.place.series;
-  const key = `${placeKey()}|${idea.driver}|${idea.sign}|${idea.season || ""}`;
-  if (testCache.has(key)) return testCache.get(key);
-  const run = (o, d) => {
-    if (!s[o.code] || !s[d.code]) return null;
-    const months = ByteMeEvidence.seasonMonths(idea.season, s[o.code]);
-    if (idea.season && !months) return { level: "unclear", reason: "no clear season for this here" };
-    return ByteMeEvidence.assess(s[o.code], s[d.code], idea.sign, months, o.percent);
-  };
-  const main = run(outcome, driver);
-  // step 3: if both come from the same model, try an independent version of one of them
-  let independent = null;
-  if (main && sameModel(outcome, driver)) {
-    const swapDriver = INDEPENDENT[driver.code] && variable(INDEPENDENT[driver.code]);
-    const swapOutcome = INDEPENDENT[outcome.code] && variable(INDEPENDENT[outcome.code]);
-    const [o, d] = swapDriver && s[swapDriver.code] ? [outcome, swapDriver] : swapOutcome && s[swapOutcome.code] ? [swapOutcome, driver] : [null, null];
-    independent = o ? { with: o === outcome ? d : o, result: run(o, d) } : { with: null };
-  }
-  const result = { idea, driver, main, independent, sameModel: sameModel(outcome, driver) };
-  testCache.set(key, result);
-  attempts.set(placeKey(), (attempts.get(placeKey()) || 0) + 1);
-  return result;
-}
-
-const LEVEL_TEXT = {
-  against: ["Not consistent with the data", "against"],
-  unclear: ["No clear evidence either way", "unclear"],
-  link: ["Consistent month to month, but doesn't explain the trend", "link"],
-  explains: ["Consistent, and explains part of the trend", "explains"],
-};
+const inv = { picked: null, outcome: null, seasonal: true, satellite: false, planetDriver: null, tried: new Map() };
+const resultCache = new Map();
 const pct = (x) => `${Math.round(100 * x)}%`;
-// The headline for one tested idea: how far up the ladder it got, with the size when it explains
-function verdictLine(t) {
-  const level = t.main ? t.main.level : "unclear";
-  let text = LEVEL_TEXT[level][0];
-  if (level === "explains") {
-    const share = t.main.explained.share;
-    text = share < 0.25 ? `Consistent, but explains only a small part (about ${pct(share)}) of the trend` : `Consistent, and explains about ${pct(Math.min(share, 1))} of the trend`;
-    if (t.independent && t.independent.with && !(t.independent.result && ["link", "explains"].includes(t.independent.result.level))) text += " · not confirmed with independent data";
-  }
-  return `<div class="verdict-line ${LEVEL_TEXT[level][1]}">${text}</div>`;
+
+function investigateKey(outcome, drivers) {
+  return `${state.area ? state.area.key : `${state.lat},${state.lon}`}|${state.period ? periodLabel(state.period) : "all"}|${outcome}|${drivers.join("+")}|${inv.seasonal}`;
 }
 
-function ladderHTML(outcome, t) {
-  const m = t.main, d = t.driver;
-  if (!m) return `<p class="meta">No ${escapeHTML(d.name.toLowerCase())} data here.</p>`;
-  const season = t.idea.season && m.months ? ` in ${monthNames(m.months)}` : "";
-  const step = (state, title, text) => `<li class="step ${state}"><span class="mark">${state === "pass" ? "✓" : state === "fail" ? "✗" : "–"}</span><div><b>${title}</b><span>${text}</span></div></li>`;
-  const steps = [];
-  if (!m.link) steps.push(step("none", "Month to month", escapeHTML(m.reason || "too little data")));
-  else {
-    const L = m.link, u = `${outcome.units} per ${d.units}`;
-    const passed = m.level === "link" || m.level === "explains";
-    steps.push(step(passed ? "pass" : m.level === "against" ? "fail" : "none", `Month to month${season}`,
-      `When ${escapeHTML(d.name.toLowerCase())} is 1 ${escapeHTML(d.units)} above usual, ${escapeHTML(outcome.name.toLowerCase())} is ${num(L.slope)} ${escapeHTML(outcome.units)} from usual ` +
-      `(95% range ${num(L.low)} to ${num(L.high)} ${escapeHTML(u)}; ${Math.round(L.effectiveN)} independent months of ${L.n}).` +
-      (m.level === "against" ? " That is the opposite of the prediction." : m.level === "unclear" ? " The range includes zero: no clear link." : "")));
-    if (passed) {
-      const e = m.explained;
-      steps.push(step(m.level === "explains" ? "pass" : "fail", `Size of the trend${season}`,
-        e ? `${escapeHTML(d.name)} changed by ${num(m.driverTrend.slope_per_decade)} ${escapeHTML(d.units)} per decade. Through this link that would give ${num(e.predicted)} ${escapeHTML(outcome.units)} per decade, ` +
-            `${m.level === "explains" ? `about <strong>${pct(e.share)}</strong> (range ${pct(Math.max(0, e.low))} to ${pct(e.high)})` : `which is ${e.share < 0 ? "the wrong direction" : `only about ${pct(e.share)}`}`} of the observed ${num(m.outcomeTrend.slope_per_decade)} ${escapeHTML(outcome.units)} per decade.`
-          : escapeHTML(m.reason)));
-    }
-  }
-  if (t.sameModel) {
-    const ind = t.independent;
-    if (!ind || !ind.with) steps.push(step("none", "Independent data", `Both come from the ${modelOf(d)} model, which links them by its own equations, and we have no independent version of either here.`));
-    else {
-      const r = ind.result, ok = r && (r.level === "link" || r.level === "explains");
-      steps.push(step(ok ? "pass" : r && r.level === "against" ? "fail" : "none", "Independent data",
-        `Both come from the ${modelOf(d)} model, which links them by its own equations. With ${escapeHTML(ind.with.name)} instead: ` +
-        (r && r.link ? `${num(r.link.slope)} (95% range ${num(r.link.low)} to ${num(r.link.high)}), ${ok ? "the link holds." : r.level === "against" ? "the link reverses." : "no clear link."}` : "too little shared data.")));
-    }
-  } else if (m.link) steps.push(step("pass", "Independent data", `${escapeHTML(d.name)} (${escapeHTML(d.source)}) and ${escapeHTML(outcome.name.toLowerCase())} (${escapeHTML(outcome.source)}) come from different sources.`));
-  return `<ol class="ladder">${steps.join("")}</ol>`;
+// The drivers actually used: with "satellite data", MERRA-2 drivers are swapped for independent versions
+function usedDrivers() {
+  return inv.picked.map((c) => (inv.satellite && INDEPENDENT[c] && state.place.series[INDEPENDENT[c]] ? INDEPENDENT[c] : c))
+    .filter((c, i, all) => all.indexOf(c) === i);
 }
 
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-const monthNames = (ms) => ms.map((m) => MONTHS[m - 1]).join(", ");
+function runDecomposer(outcome) {
+  const drivers = usedDrivers().filter((c) => state.place.series[c]);
+  if (!drivers.length) return null;
+  const key = investigateKey(outcome.code, drivers);
+  if (!resultCache.has(key)) {
+    resultCache.set(key, ByteMeDecompose.decompose(state.place.series[outcome.code],
+      drivers.map((c) => ({ code: c, series: state.place.series[c] })), { seasonal: inv.seasonal, percent: outcome.percent }));
+    const place = placeKey();
+    inv.tried.set(place, new Set([...(inv.tried.get(place) || []), ...drivers]));
+  }
+  return resultCache.get(key);
+}
+function placeKey() {
+  return `${state.area ? state.area.key : `${state.lat},${state.lon}`}|${state.code}`;
+}
 
-// Simple diagram: ideas on the left, the measurement on the right, shared drivers on top
-function diagramSVG(outcome, ideas, results) {
-  const H = Math.max(200, 70 + ideas.length * 52), W = 640, ox = 440, oy = H / 2 + 20;
-  const colour = { explains: COLOURS.deep, link: "#5aa9a0", unclear: "#9aa5a2", against: COLOURS.up };
-  const boxes = ideas.map((idea, i) => {
-    const y = 80 + i * 52, t = results[i], level = t && t.main ? t.main.level : null;
-    const stroke = level ? colour[level] : "#c6cfcc", dash = !level || level === "unclear" || level === "against" ? "5 4" : "", w = level === "explains" ? 3 : 1.6;
-    const label = variable(idea.driver).name + (idea.season ? ` (${idea.season === "falling" ? "falling months" : "build-up months"})` : "");
-    return `<g><rect x="10" y="${y - 16}" width="230" height="32" rx="7" fill="#fff" stroke="${stroke}" stroke-width="1.2"/>
-      <text x="22" y="${y + 5}" font-size="12.5">${escapeHTML(label.length > 34 ? label.slice(0, 33) + "…" : label)}</text>
-      <line x1="240" y1="${y}" x2="${ox - 12}" y2="${oy}" stroke="${stroke}" stroke-width="${w}" stroke-dasharray="${dash}" marker-end="url(#arrow-${level || "none"})"/></g>`;
-  }).join("");
-  const markers = ["explains", "link", "unclear", "against", "none"].map((k) =>
-    `<marker id="arrow-${k}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="${colour[k] || "#c6cfcc"}"/></marker>`).join("");
-  return `<svg class="diagram" viewBox="0 0 ${W} ${H}" role="img" aria-label="Ideas that might explain the trend, and how far each got">
-    <defs>${markers}</defs>
-    <rect x="160" y="8" width="320" height="34" rx="8" fill="#f4f8f6" stroke="#9aa5a2" stroke-dasharray="4 3"/>
-    <text x="320" y="30" font-size="12" text-anchor="middle">Shared drivers: a changing climate, weather patterns…</text>
-    <line x1="320" y1="42" x2="${ox + 40}" y2="${oy - 20}" stroke="#9aa5a2" stroke-dasharray="4 3"/>
-    <line x1="320" y1="42" x2="200" y2="62" stroke="#9aa5a2" stroke-dasharray="4 3"/>
-    ${boxes}
-    <rect x="${ox}" y="${oy - 22}" width="190" height="44" rx="9" fill="${COLOURS.deep}"/>
-    <text x="${ox + 95}" y="${oy + 5}" font-size="13" fill="#fff" text-anchor="middle">${escapeHTML(outcome.name.length > 26 ? outcome.name.slice(0, 25) + "…" : outcome.name)}</text>
+// ---- small drawings (plain SVG, no extra library)
+const signed = (v, u) => `${num(v)} ${u}`;
+function balanceSheet(res, outcome) {
+  const rows = [{ label: "Observed trend", sub: `${res.start.year}–${res.end.year}`, value: res.observed.trend, ink: true },
+    ...res.drivers.map((d) => ({ label: variable(d.code).name, sub: d.alibi && d.alibi.p > 0.1 ? "link not distinguishable from chance" : "accounted for", value: d.trend, low: d.low, high: d.high })),
+    { label: "Left over", sub: res.left.result.verdict === "significant" ? "still a significant trend" : "no longer a significant trend", value: res.left.trend, low: res.left.low, high: res.left.high, left: true }];
+  const max = Math.max(...rows.flatMap((r) => [r.value, r.low, r.high].filter(Number.isFinite).map(Math.abs)), 1e-9);
+  const W = 520, mid = W / 2, x = (v) => mid + (v / max) * (mid - 6);
+  return `<div class="sheet">${rows.map((r) => {
+    const a = x(Math.min(0, r.value)), b = x(Math.max(0, r.value));
+    const fill = r.ink ? "var(--ink)" : r.left ? "repeating-linear-gradient(45deg,#9aa5a2 0 3px,#d9e0dd 3px 7px)" : r.value * res.observed.trend > 0 ? "var(--deep)" : "var(--down)";
+    return `<div class="sheet-row${r.left ? " left" : ""}">
+      <div class="sheet-name">${escapeHTML(r.label)}<small>${escapeHTML(r.sub)}</small></div>
+      <div class="sheet-track"><span class="zero" style="left:${mid}px"></span>
+        <span class="bar" style="left:${a}px;width:${Math.max(2, b - a)}px;background:${fill}"></span>
+        ${Number.isFinite(r.low) ? `<span class="whisker" style="left:${x(r.low)}px;width:${Math.max(1, x(r.high) - x(r.low))}px"></span>` : ""}</div>
+      <div class="sheet-val num">${signed(r.value, outcome.units)}<small>${r.ink ? "per decade" : `${Number.isFinite(r.low) ? `${num(r.low)} to ${num(r.high)}` : ""}`}</small></div>
+    </div>`;
+  }).join("")}</div>`;
+}
+
+// One dot-and-range per season: the link between driver and outcome month to month
+function linkGlyphs(d, res) {
+  const vals = d.links.flatMap((l) => [l.low, l.high, l.value]).filter(Number.isFinite).map(Math.abs);
+  const max = Math.max(...vals, 1e-9), W = 150, x = (v) => W / 2 + (v / max) * (W / 2 - 6);
+  return `<div class="glyphs">${d.links.map((l, g) => {
+    const clear = Number.isFinite(l.low) && (l.low > 0 || l.high < 0);
+    const colour = !clear ? "#9aa5a2" : l.value > 0 ? COLOURS.up : COLOURS.down;
+    return `<div class="glyph"><span>${res.seasons[g]}</span><svg width="${W}" height="14">
+      <line x1="${W / 2}" x2="${W / 2}" y1="0" y2="14" stroke="rgba(20,26,25,.3)" stroke-dasharray="2 2"/>
+      ${Number.isFinite(l.low) ? `<line x1="${x(l.low)}" x2="${x(l.high)}" y1="7" y2="7" stroke="${colour}" stroke-width="2.5" stroke-linecap="round"/>` : ""}
+      <circle cx="${x(l.value)}" cy="7" r="4.5" fill="${colour}"/></svg></div>`;
+  }).join("")}</div>`;
+}
+
+function planetScatter(ap, outcome, driver) {
+  const W = 420, H = 230, L = 46, B = 30, T = 10, R = 10;
+  const xs = ap.points.map((p) => p[0]), ys = ap.points.map((p) => p[1]);
+  const q = (arr, f) => [...arr].sort((a, b) => a - b)[Math.floor(f * (arr.length - 1))];
+  const x0 = q(xs, 0.01), x1 = q(xs, 0.99), y0 = q(ys, 0.01), y1 = q(ys, 0.99);
+  const sx = (v) => L + ((Math.min(Math.max(v, x0), x1) - x0) / (x1 - x0 || 1)) * (W - L - R);
+  const sy = (v) => T + (1 - (Math.min(Math.max(v, y0), y1) - y0) / (y1 - y0 || 1)) * (H - T - B);
+  const here = ap.points.reduce((best, p) => (Math.hypot(p[2] - state.lat, p[3] - state.lon) < Math.hypot(best[2] - state.lat, best[3] - state.lon) ? p : best), ap.points[0]);
+  return `<svg class="planet" viewBox="0 0 ${W} ${H}" role="img" aria-label="Trends in places at similar latitudes">
+    <line x1="${L}" x2="${W - R}" y1="${sy(0)}" y2="${sy(0)}" stroke="rgba(20,26,25,.2)"/>
+    <line x1="${sx(0)}" x2="${sx(0)}" y1="${T}" y2="${H - B}" stroke="rgba(20,26,25,.2)"/>
+    ${ap.points.map((p) => `<circle cx="${sx(p[0])}" cy="${sy(p[1])}" r="2.6" fill="#19a99a" fill-opacity=".45"/>`).join("")}
+    <line x1="${sx(x0)}" y1="${sy(ap.intercept + ap.slope * x0)}" x2="${sx(x1)}" y2="${sy(ap.intercept + ap.slope * x1)}" stroke="${COLOURS.deep}" stroke-width="2.5"/>
+    <circle cx="${sx(here[0])}" cy="${sy(here[1])}" r="6" fill="${COLOURS.up}" stroke="#fff" stroke-width="2"/>
+    <text x="${W - R}" y="${H - 6}" text-anchor="end" font-size="11">${escapeHTML(driver.name)} trend →</text>
+    <text x="12" y="${T + 4}" font-size="11" transform="rotate(-90 12 ${T + 4})" text-anchor="end">${escapeHTML(outcome.name)} trend</text>
   </svg>`;
 }
 
@@ -1461,57 +1427,136 @@ function renderInvestigate() {
   if (state.loading || state.error || !state.place) { el.innerHTML = ""; el.style.display = "none"; return; }
   el.style.display = "flex";
   const outcome = variable(state.code), r = state.place.results[outcome.code];
-  const head = `<span class="tag">Investigate</span><h3>What might explain this?</h3>`;
+  const head = `<span class="tag">Investigate · ${escapeHTML(outcome.name)} · ${escapeHTML(state.name)}</span><h3>What accounts for the trend?</h3>`;
   if (!r || !(r.verdict === "significant" || r.verdict === "possible")) {
-    el.innerHTML = head + `<p>${escapeHTML(outcome.name)} shows no clear trend in ${escapeHTML(state.name)}${state.period ? " in this period" : ""}, so there is nothing to explain yet. Pick a measurement with a trend from the list above.</p>`;
+    el.innerHTML = head + `<p>${escapeHTML(outcome.name)} shows no clear trend here${state.period ? " in this period" : ""}, so there is nothing to account for yet. Pick a measurement with a trend from the list above.</p>`;
     return;
   }
-  const ideas = (outcome.explanations || []).filter((idea) => variable(idea.driver) && state.place.series[idea.driver]);
-  const key = placeKey();
-  const results = ideas.map((idea) => testCache.get(`${key}|${idea.driver}|${idea.sign}|${idea.season || ""}`) || null);
-  const custom = [...testCache.entries()].filter(([k, t]) => k.startsWith(key + "|") && t.idea.custom).map(([, t]) => t);
-  const tried = attempts.get(key) || 0;
-  const cards = ideas.map((idea, i) => {
-    const d = variable(idea.driver), t = results[i];
-    const season = idea.season ? ` in the months when ${outcome.name.toLowerCase()} usually ${idea.season === "falling" ? "falls" : "builds up"}` : "";
-    const prediction = `If this idea is right, months with higher ${d.name.toLowerCase()} than usual should have ${idea.sign > 0 ? "higher" : "lower"} ${outcome.name.toLowerCase()} than usual${season}.`;
-    return `<div class="idea">
-      <div class="idea-head"><b>${escapeHTML(d.name)}</b><span>${escapeHTML(idea.how)}</span></div>
-      <p class="prediction"><span>Prediction</span>${escapeHTML(prediction)}</p>
-      ${t ? `${verdictLine(t)}${ladderHTML(outcome, t)}`
-          : `<button class="pill" data-test="${i}">Test this idea</button>`}
-    </div>`;
-  }).join("");
-  const customCards = custom.map((t) => `<div class="idea"><div class="idea-head"><b>Your idea: ${escapeHTML(t.driver.name)}</b>
-      <span>${t.idea.sign > 0 ? "They move the same way" : "They move opposite ways"}${t.idea.season ? `, ${t.idea.season === "falling" ? "when it usually falls" : "when it usually builds up"}` : ""}</span></div>
-      ${verdictLine(t)}${ladderHTML(outcome, t)}</div>`).join("");
-  const options = VARS.filter((v) => v.code !== outcome.code && v.code !== outcome.pair && v.pair !== outcome.code && state.place.series[v.code])
-    .map((v) => `<option value="${v.code}">${escapeHTML(v.name)}</option>`).join("");
+  // which drivers are offered and picked
+  const suggested = (outcome.drivers || []).filter((d) => variable(d.driver) && state.place.series[d.driver]);
+  if (inv.outcome !== outcome.code) { inv.outcome = outcome.code; inv.picked = suggested.slice(0, 2).map((d) => d.driver); inv.planetDriver = null; }
+  inv.picked = inv.picked.filter((c) => state.place.series[c]);
+  const chips = [...new Set([...suggested.map((d) => d.driver), ...inv.picked])];
+  const howOf = (c) => (suggested.find((d) => d.driver === c) || {}).how || "";
+  const others = VARS.filter((v) => v.code !== outcome.code && v.code !== outcome.pair && v.pair !== outcome.code && state.place.series[v.code] && !chips.includes(v.code));
+  const res = inv.picked.length ? runDecomposer(outcome) : null;
+
+  let body = "";
+  if (!inv.picked.length) body = `<p class="muted">Pick at least one possible driver above.</p>`;
+  else if (!res) body = `<p class="muted">Too few months with data for all of these at once. Try fewer drivers.</p>`;
+  else {
+    const share = res.observed.trend ? res.accounted.trend / res.observed.trend : 0;
+    const shareRange = [res.accounted.low, res.accounted.high].map((v) => v / res.observed.trend).sort((a, b) => a - b);
+    const leftSig = res.left.result.verdict === "significant";
+    const names = res.drivers.map((d) => lowerFirst(variable(d.code).name));
+    const who = names.length > 1 ? `Together, ${names.slice(0, -1).join(", ")} and ${names.at(-1)}` : names[0][0].toUpperCase() + names[0].slice(1);
+    // the years all chosen records share (satellite records start later than NASA POWER)
+    const full = state.place.series[outcome.code], shorter = full && res.start.year > full.dates[0].year;
+    const span = `${shorter ? "Over the years all these records cover" : "Over"} ${res.start.year}–${res.end.year}, ${lowerFirst(outcome.name)} changed by ${signed(res.observed.trend, outcome.units)} per decade.`;
+    const part = share < -0.1
+      ? `${who} would push the trend <strong>the other way</strong> (${pct(share)}), so they don't account for it.`
+      : `${who} statistically account for <strong>about ${pct(Math.min(share, 9.99))}</strong> of it (range ${pct(shareRange[0])} to ${pct(shareRange[1])}).`;
+    const summary = `<p class="inv-summary">${span} ${part} What's left, ${signed(res.left.trend, outcome.units)} per decade, is
+      <strong>${leftSig ? "still a significant trend: something else is at work too" : "no longer a significant trend"}</strong>.</p>`;
+    const verdictOf = (d) => {
+      if (d.alibi && d.alibi.p > 0.1) return ["No clear link", "v-weak", "its out-of-sync copies do as well"];
+      const clear = d.low > 0 || d.high < 0, sameWay = d.trend * res.observed.trend > 0;
+      if (clear && sameWay && Math.abs(d.share) >= 0.1) return [`Accounts for ~${pct(d.share)}`, "v-yes", ""];
+      if (clear && !sameWay) return ["Works against the trend", "v-down", "it pushes the other way"];
+      return ["Linked, small effect", "v-weak", "real link, but little trend effect"];
+    };
+    const table = `<table class="inv-table"><thead><tr><th>Driver</th><th>Month-to-month link, by season<br><span>dot = estimate · bar = 95% range · dashed = no link</span></th>
+      <th>Accounts for</th><th>Alibi check</th><th>Verdict</th></tr></thead><tbody>
+      ${res.drivers.map((d) => {
+        const v = variable(d.code), [word, cls, why] = verdictOf(d);
+        return `<tr><td class="who"><b>${escapeHTML(v.name)}</b><small>${escapeHTML(howOf(d.code) || v.source)}</small></td>
+          <td>${linkGlyphs(d, res)}<small class="unit">${escapeHTML(outcome.units)} per ${escapeHTML(v.units)}</small></td>
+          <td class="num">${signed(d.trend, outcome.units)}<small>per decade · ${pct(d.share)}</small></td>
+          <td>${d.alibi ? `${d.alibi.p <= 0.1 ? "Passes" : "Fails"}<small>p = ${d.alibi.p.toFixed(2)}, ${d.alibi.tries} shifted copies</small>` : "–"}</td>
+          <td class="verdict-word ${cls}">${word}${why ? `<small>${why}</small>` : ""}</td></tr>`;
+      }).join("")}</tbody></table>`;
+    const together = res.together.map((t) => `<p class="answer-note">${escapeHTML(variable(t.a).name)} and ${escapeHTML(variable(t.b).name)} move together month to month (r = ${t.r.toFixed(2)}), so the split between them is uncertain.</p>`).join("");
+    body = summary + balanceSheet(res, outcome) + together + table +
+      `<div class="inv-chart-head"><span class="tag plain">What's left after taking the drivers out</span></div><div class="chart" id="inv-chart"></div>
+       <p class="caption">Grey: ${escapeHTML(outcome.name.toLowerCase())} with seasons removed. Teal: the same with the drivers' part taken out. Lines: their straight-line trends.</p>
+       <div id="inv-planet"></div>`;
+  }
+  const tried = (inv.tried.get(placeKey()) || new Set()).size;
   el.innerHTML = head + `
-    <p>${escapeHTML(outcome.name)} in ${escapeHTML(state.name)} shows a ${verdictText(r).toLowerCase()}. Here are ideas that could explain it. Each one makes a prediction we can check in the data.
-      Passing a check makes an idea more believable; it never proves it is the cause.</p>
-    ${ideas.length ? diagramSVG(outcome, ideas, results) : ""}
-    <div class="ideas">${cards || `<p>We have no ready-made ideas for ${escapeHTML(outcome.name.toLowerCase())}${outcome.code === "OMI_NO2" ? ": NO₂ mostly comes from traffic, industry and fires, which aren't in our data" : ""}. Try your own below.</p>`}${customCards}</div>
-    <form class="own-idea" id="own-idea">
-      <b>Test your own idea</b>
-      <label>Possible driver<select name="driver">${options}</select></label>
-      <label>My prediction<select name="sign"><option value="1">They move the same way</option><option value="-1">They move opposite ways</option></select></label>
-      <label>Which months<select name="season"><option value="">All months</option><option value="falling">When ${escapeHTML(outcome.name.toLowerCase())} usually falls</option><option value="rising">When it usually builds up</option></select></label>
-      <button class="pill on" type="submit">Test my idea</button>
-    </form>
-    ${(() => {                                   // once every ready-made idea is tested: what is left?
-      const all = [...results, ...custom];
-      if (!ideas.length || results.some((t) => !t)) return "";
-      const best = Math.max(0, ...all.map((t) => (t.main && t.main.level === "explains" ? t.main.explained.share : 0)));
-      return best < 0.5 ? `<p class="answer-note"><b>None of these ideas explains most of the trend</b>${best ? ` (the best explains about ${pct(best)})` : ""}. Most of the change is left unexplained by local measurements here; ideas can also overlap, so their shares don't simply add up.</p>` : "";
-    })()}
-    ${tried ? `<p class="meta">Ideas tested here: ${tried}. Each test has about a 1 in 20 chance of passing step 1 by luck, so the more ideas you try, the more the later steps matter.</p>` : ""}
-    <p class="answer-note">Remember: two things that move together may both be driven by something else, such as a changing climate or a shift in weather patterns (the dashed box). This tool shows how well an idea fits the data, not what caused the change.</p>`;
-  el.querySelectorAll("[data-test]").forEach((b) => b.addEventListener("click", () => { testIdea(outcome, ideas[+b.dataset.test]); renderInvestigate(); }));
-  $("own-idea").addEventListener("submit", (e) => {
-    e.preventDefault();
-    const f = e.currentTarget.elements;
-    testIdea(outcome, { driver: f.driver.value, sign: +f.sign.value, season: f.season.value || null, how: "", custom: true });
+    <p class="muted" style="margin:0">${escapeHTML(outcome.name)} shows a ${verdictText(r).toLowerCase()} here (${signed(r.slope_per_decade, outcome.units)} per decade).
+      Pick possible drivers: we work out how much of the trend each one statistically accounts for, and what's left.</p>
+    <div class="inv-controls">
+      <div class="driver-chips">${chips.map((c) => `<button class="pill${inv.picked.includes(c) ? " on" : ""}" data-driver="${c}" title="${escapeHTML(howOf(c))}">${escapeHTML(variable(c).name)}</button>`).join("")}
+        ${others.length ? `<select id="add-driver" aria-label="Add a driver"><option value="">+ Add a driver…</option>${others.map((v) => `<option value="${v.code}">${escapeHTML(v.name)}</option>`).join("")}</select>` : ""}</div>
+      <div class="inv-options">
+        <label><input type="checkbox" id="inv-seasonal" ${inv.seasonal ? "checked" : ""}> Let the link change with the season</label>
+        <label><input type="checkbox" id="inv-satellite" ${inv.satellite ? "checked" : ""}> Use satellite data instead of MERRA-2 where possible</label>
+      </div>
+    </div>
+    ${body}
+    <details class="how"><summary>How does this work?</summary><ol>
+      <li>We remove the seasons and the long-term trend from every record, keeping only the month-to-month wiggles (a warm June, a dry spring).</li>
+      <li>One regression links the wiggles of ${escapeHTML(outcome.name.toLowerCase())} to all chosen drivers at once, so drivers that move together aren't counted twice. With the season option, each season gets its own link.</li>
+      <li>Each link times the driver's own trend is the part of the trend that driver accounts for. What remains is tested for a trend again.</li>
+      <li>Ranges come from re-running history 400 times with whole years drawn at random. The alibi check slides each driver out of sync by 3 to ${Math.max(3, Math.floor((res ? res.months : 120) / 12) - 3)} years: a real link should beat almost all of those copies.</li>
+      <li>Across the planet compares trends in other places at a similar latitude, a separate line of evidence from space instead of time.</li></ol></details>
+    <p class="answer-note">Accounting for a trend statistically is not proof of cause: a third factor, such as a changing climate or a shift in weather patterns, can drive both.${tried > 2 ? ` Drivers tried here: ${tried}.` : ""}</p>`;
+
+  el.querySelectorAll("[data-driver]").forEach((b) => b.addEventListener("click", () => {
+    const c = b.dataset.driver;
+    inv.picked = inv.picked.includes(c) ? inv.picked.filter((x) => x !== c) : [...inv.picked, c].slice(0, 5);
     renderInvestigate();
-  });
+  }));
+  $("add-driver")?.addEventListener("change", (e) => { if (e.target.value) { inv.picked = [...inv.picked, e.target.value].slice(0, 5); renderInvestigate(); } });
+  $("inv-seasonal").addEventListener("change", (e) => { inv.seasonal = e.target.checked; renderInvestigate(); });
+  $("inv-satellite").addEventListener("change", (e) => { inv.satellite = e.target.checked; renderInvestigate(); });
+  if (res) {
+    drawLeftOver(res, outcome);
+    renderPlanet(res, outcome);
+  }
+}
+
+function drawLeftOver(res, outcome) {
+  if (typeof Plotly === "undefined") return;
+  const x = res.dates.map((d) => `${d.year}-${String(d.month).padStart(2, "0")}-01`);
+  const fit = (series) => {
+    const pts = series.map((v, i) => [i, v]).filter(([, v]) => v !== null && Number.isFinite(v));
+    const n = pts.length, mx = pts.reduce((s, p) => s + p[0], 0) / n, my = pts.reduce((s, p) => s + p[1], 0) / n;
+    const b = pts.reduce((s, p) => s + (p[0] - mx) * (p[1] - my), 0) / pts.reduce((s, p) => s + (p[0] - mx) ** 2, 0);
+    return series.map((_, i) => my + b * (i - mx));
+  };
+  Plotly.react("inv-chart", [
+    { x, y: res.outcomeAnomaly, type: "scatter", mode: "lines", line: { color: "#b8c2bf", width: 1 }, name: "Observed", hovertemplate: "%{y:.2g}<extra>observed</extra>" },
+    { x, y: res.left.series, type: "scatter", mode: "lines", line: { color: "#5aa9a0", width: 1 }, name: "Left over", hovertemplate: "%{y:.2g}<extra>left over</extra>" },
+    { x, y: fit(res.outcomeAnomaly), type: "scatter", mode: "lines", line: { color: COLOURS.ink, width: 2.5 }, name: "Observed trend", hoverinfo: "skip" },
+    { x, y: fit(res.left.series), type: "scatter", mode: "lines", line: { color: COLOURS.deep, width: 3, dash: "dot" }, name: "Left-over trend", hoverinfo: "skip" },
+  ], {
+    margin: { l: 52, r: 8, t: 6, b: 30 }, showlegend: true, legend: { orientation: "h", y: 1.12, font: { size: 11 } }, hovermode: "x unified",
+    paper_bgcolor: "rgba(0,0,0,0)", plot_bgcolor: "rgba(0,0,0,0)", font: { family: "Geist, Arial, sans-serif", size: 12, color: "#161616" },
+    xaxis: { gridcolor: "rgba(22,22,22,.08)", linecolor: "#161616" },
+    yaxis: { gridcolor: "rgba(22,22,22,.08)", zerolinecolor: "rgba(22,22,22,.35)", title: { text: `vs usual month (${outcome.units})`, font: { size: 11 } } },
+  }, { displayModeBar: false, responsive: true });
+}
+
+// Across the planet: the same question asked of space instead of time
+async function renderPlanet(res, outcome) {
+  const box = $("inv-planet");
+  if (!box) return;
+  const choices = res.drivers.map((d) => d.code);
+  const code = choices.includes(inv.planetDriver) ? inv.planetDriver : res.drivers.slice().sort((a, b) => Math.abs(b.trend) - Math.abs(a.trend))[0].code;
+  const [lo, ld] = await Promise.all([layerFor(outcome.code), layerFor(code)]);
+  if (!$("inv-planet")) return;
+  const ap = ByteMeDecompose.acrossPlanet(lo, ld, state.lat, 20);
+  const driver = variable(code);
+  if (!ap) { box.innerHTML = ""; return; }
+  const sameWay = ap.slope * (res.drivers.find((d) => d.code === code).links.reduce((s, l) => s + l.value, 0)) > 0;
+  box.innerHTML = `<div class="planet-box">
+      <div><span class="tag plain">Across the planet</span>
+        <p>In ${ap.n} places at similar latitudes (within ${ap.band}° of here), where ${escapeHTML(driver.name.toLowerCase())} rose faster,
+          ${escapeHTML(outcome.name.toLowerCase())} ${ap.slope < 0 ? "fell" : "rose"} faster (r = ${ap.r.toFixed(2)}).
+          ${Math.abs(ap.r) < 0.2 ? "That relationship is weak." : sameWay ? "That points the same way as the link found here month to month: two independent lines of evidence agree." : "That points the other way from the link found here month to month, so the two lines of evidence disagree."}</p>
+        ${choices.length > 1 ? `<label class="meta">Driver <select id="planet-driver">${choices.map((c) => `<option value="${c}"${c === code ? " selected" : ""}>${escapeHTML(variable(c).name)}</option>`).join("")}</select></label>` : ""}
+        <p class="caption">Each dot is one grid square's trend over the whole record; the coral dot is here. Neighbouring squares are related, so treat this as a picture, not a test.</p></div>
+      ${planetScatter(ap, outcome, driver)}</div>`;
+  $("planet-driver")?.addEventListener("change", (e) => { inv.planetDriver = e.target.value; renderPlanet(res, outcome); });
 }
