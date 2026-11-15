@@ -1547,7 +1547,11 @@
      "driver": "PRECTOTCORR",
      "how": "Rain washes particles out of the air."
     }
-   ]
+   ],
+   "guideline": {
+    "value": 5,
+    "text": "the World Health Organization's guideline for the yearly average (5 µg/m³)"
+   }
   },
   {
    "code": "MERRA2_BC",
@@ -1753,7 +1757,8 @@
     "OMI_NO2"
    ],
    "family": "pollution",
-   "drivers": []
+   "drivers": [],
+   "pair": "MERRA2_SO2"
   },
   {
    "code": "OMI_HCHO",

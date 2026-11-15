@@ -798,6 +798,13 @@ function renderDetail() {
     const present = s.values.filter((x) => x !== null);
     if (present.reduce((sum, x) => sum + x, 0) / present.length < v.low_level) notes.unshift(`<div class="note warn"><b>Caution</b><span>${v.low_note}</span></div>`);
   }
+  if (v.guideline && s) {                     // e.g. PM2.5: how the level here compares with the WHO guideline
+    const last = s.values.slice(-12).filter((x) => x !== null);
+    const recent = last.length ? last.reduce((a, x) => a + x, 0) / last.length : null;
+    if (recent !== null) notes.push(`<div class="note"><b>Health guideline</b><span>Over the last 12 months here the average was <strong>${num(recent, false)} ${v.units}</strong>, ` +
+      `${recent > v.guideline.value ? `about ${num(recent / v.guideline.value, false)} times` : "below"} ${v.guideline.text}. ` +
+      `Model values for a ${squareStep(v)}° square; a city street can be much higher.</span></div>`);
+  }
   if (movedText(v)) notes.unshift(`<div class="note"><b>Nearest sea</b><span>${movedText(v)}</span></div>`);
   if (state.period) {                         // a chosen period: keep the whole record in view
     const whole = state.full.results[v.code];

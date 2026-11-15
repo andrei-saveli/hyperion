@@ -157,7 +157,7 @@ Since then the challenge's own datasets were added as **prepared 1° grids** (Ea
 `Website/build_nasa_grids.py`): GPM IMERG rain, GLDAS soil moisture / evaporation / runoff, MODIS
 NDVI and land surface temperature, OMI NO₂ (daily averaged by month), AIRS air temperature. Where a
 measurement exists twice (e.g. MERRA-2 vs GPM rain) the site tests both over shared years and says
-whether they agree ("second source"). Tiles live in `Website/data/nasa/` (~340 MB): rebuild and
+whether they agree ("second source"). Tiles live in `Website/data/nasa/` (~440 MB): rebuild and
 commit them rarely, each rebuild adds that much to git history.
 
 ### Stack (simplified for a beginner team)
@@ -286,6 +286,12 @@ Non-significant ≠ "no change". Never state causes (Investigate says how much a
   `absent_if_constant` = "Not found here" instead of "no trend"; `nearest` = nearest sea square within 200 km for
   coastal towns; `where` = says where a measurement exists. `build_world.py` now only builds new measurements.
   Sea level, sea ice, snowfall, soil temperature, groundwater and glaciers are no longer "not available".
+- 🏭 **Pollution focus: 62 measurements.** A "Pollution" group with 10 new ones: PM2.5 (MERRA-2 surface aerosols,
+  from 2003, 1° squares, compared with the WHO 5 µg/m³ guideline), soot, organic particles, sulfate particles,
+  fine dust and SO₂ at ground level (MERRA-2), CO at ground level (MERRA-2 chemistry), OMI SO₂ (second source for
+  MERRA-2 SO₂), OMI formaldehyde and OMI UV aerosol index (daily maps averaged by month); plus haze, NO₂, dust,
+  smoke, sulfate haze, AIRS CO and methane moved into the group. Download: `WORKERS=12 python3
+  Website/build_nasa_grids.py download M2AERS M2CHM OMSO2 OMHCHO OMAERUV`, then `build`.
 - ⏭️ Next: team kickoff (30 min) → everyone starts their hour 0.5–8 tasks in `docs/PLAN.md`.
 
 ## Git
