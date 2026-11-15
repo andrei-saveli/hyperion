@@ -30,8 +30,12 @@ const CASES = [
 window.BYTEME_CASES = CASES;
 
 let VARS = [], POWER_VARS = [], NASA = null, NOT_AVAILABLE = [], WORLD = null, LAND = null, map = null, marker = null;
-const state = { lat: null, lon: null, name: "", code: "T2M", raw: false, loading: false, error: null, place: null, layer: true };
-const compare = { code: "AOD_55", a: { name: "Beijing (China)", lat: 40.0, lon: 116.25 }, b: { name: "Delhi (India)", lat: 28.5, lon: 77.5 } };
+// state.full: every measurement's whole record for the chosen place or area.
+// state.place: the same, cut to the chosen period (state.period, null = whole record) and re-tested.
+const state = { lat: null, lon: null, name: "", code: "T2M", raw: false, loading: false, error: null, place: null, full: null, period: null, layer: true };
+const compare = { code: "AOD_55", a: { name: "Beijing (China)", lat: 40.0, lon: 116.25 }, b: { name: "Delhi (India)", lat: 28.5, lon: 77.5 }, period: null };
+const { monthText, periodOf, periodInQuestion, slicePeriod, matchMonths, recentPeriod, fitComparison } = ByteMeInvestigation;
+const dateSpan = (first, last) => `${monthText(first)} to ${monthText(last)}`;
 const $ = (id) => document.getElementById(id);
 
 // ------------------------------------------------------------------ small helpers
@@ -99,6 +103,50 @@ function analyzeAll(series) {
     results[v.code] = series[v.code] ? ByteMeStats.analyze(series[v.code].dates, series[v.code].values, v.percent) : null;
   });
   return results;
+}
+
+// ------------------------------------------------------------------ time periods
+// A period cuts every record to the chosen months and runs the trend test again on what is left.
+function applyPeriod(full, period) {
+  if (!full || !period) return full;
+  const series = {};
+  VARS.forEach((v) => { series[v.code] = slicePeriod(full.series[v.code], period); });
+  return { ...full, series, results: analyzeAll(series) };
+}
+const periodLabel = (p) => p ? `${p.from || "start of record"} to ${p.to || "end of record"}` : "whole record";
+
+// The two period forms (Explore and Compare): From / To month boxes, Apply, and Whole record
+function bindPeriod(id, onChange) {
+  const form = $(id);
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const from = form.elements.from.value.trim(), to = form.elements.to.value.trim();
+    const period = periodOf(from, to);
+    if (!period && (from || to)) {
+      form.querySelector("[data-error]").textContent = "Enter months as YYYY-MM, with the start before the end.";
+      return;
+    }
+    onChange(period);
+  });
+  form.querySelector("[data-reset]").addEventListener("click", () => onChange(null));
+}
+function showPeriod(id, period, bounds, coverage) {
+  const form = $(id);
+  form.elements.from.value = period?.from || (bounds ? monthText(bounds.first) : "");
+  form.elements.to.value = period?.to || (bounds ? monthText(bounds.last) : "");
+  form.querySelector("[data-coverage]").textContent = coverage;
+  form.querySelector("[data-error]").textContent = "";
+}
+function showExplorePeriod() {
+  const s = state.full && state.full.series[state.code];
+  const bounds = s && { first: s.dates[0], last: s.dates.at(-1) };
+  showPeriod("explore-period", state.period, bounds,
+    bounds ? `${variable(state.code).name}: data from ${dateSpan(bounds.first, bounds.last)}` + (state.period ? ` · now testing ${periodLabel(state.period)}` : "") : "");
+}
+function setExplorePeriod(period) {
+  state.period = period;
+  state.place = applyPeriod(state.full, period);
+  writeHash(); showExplorePeriod(); renderScan(); renderDetail(); renderAnswer();
 }
 
 // Download every measurement for one grid square and run the trend analysis on each.
@@ -317,16 +365,24 @@ Promise.all([
   buildMap(mapStyle);
   buildSearch();
   buildCompare(catalogue.groups);
+  bindPeriod("explore-period", setExplorePeriod);
+  bindPeriod("compare-period", (period) => { compare.period = period; renderCompare(); });
   const fromLink = readHash();
   const first = fromLink || CASES[0];
-  if (fromLink) state.code = fromLink.code;
+  if (fromLink) { state.code = fromLink.code; state.period = fromLink.period; }
   if (fromLink && fromLink.hit) goTo(fromLink.hit, fromLink.code);   // a shared link to a country or region
   else selectPlace(first.lat, first.lon, first.name, first.code, true);
 });
 
 // Shareable links look like  #44.5,26.25,T2M,Bucharest
 function readHash() {
-  const text = decodeURIComponent(location.hash.slice(1));
+  const [placePart, datePart] = location.hash.slice(1).split("?");
+  const params = new URLSearchParams(datePart || "");
+  const period = periodOf(params.get("from") || "", params.get("to") || "");
+  const found = readPlaceHash(decodeURIComponent(placePart));
+  return found && { ...found, period };
+}
+function readPlaceHash(text) {
   if (text.startsWith("area=")) {               // e.g. #area=R90689,T2M,Romania  or  #area=region:sahel,PRECTOTCORR,Sahel
     const [key, code, ...name] = text.slice(5).split(",");
     if (!variable(code)) return null;
@@ -340,8 +396,9 @@ function readHash() {
   return { lat: +lat, lon: +lon, code, name: name.join(",") };
 }
 function writeHash() {
-  const link = state.area ? `#area=${state.area.key},${state.code},${encodeURIComponent(state.name)}`
-                          : `#${state.lat},${state.lon},${state.code},${encodeURIComponent(state.name)}`;
+  const dates = state.period ? "?" + new URLSearchParams(Object.entries(state.period).filter(([, v]) => v)) : "";
+  const link = (state.area ? `#area=${state.area.key},${state.code},${encodeURIComponent(state.name)}`
+                           : `#${state.lat},${state.lon},${state.code},${encodeURIComponent(state.name)}`) + dates;
   try { history.replaceState(null, "", link); } catch (e) { /* fine without */ }
 }
 
@@ -357,6 +414,7 @@ function buildVariableSelect(groups) {
 function selectVariable(code) {
   state.code = code;
   $("var-select").value = code;
+  showExplorePeriod();
   writeHash(); refreshWorldLayer(); renderScan(); renderDetail();
 }
 
@@ -366,6 +424,7 @@ function buildCases() {
   $("cases").querySelectorAll("button").forEach((b) => b.addEventListener("click", () => {
     const c = CASES[+b.dataset.case];
     state.question = { text: c.q, code: c.code, intent: intentOf(c.q), season: null, kind: "place" };
+    state.period = null;
     selectPlace(c.lat, c.lon, c.name, c.code, true);
     $("explore").scrollIntoView({ behavior: "smooth" });
   }));
@@ -376,7 +435,7 @@ async function selectArea(area, code) {
   const [w, s, e, n] = ByteMeArea.bbox(area.geometry);
   const middle = { lat: (s + n) / 2, lon: (w + e) / 2 };
   const centre = ByteMeArea.inside(middle.lon, middle.lat, area.geometry) ? middle : ByteMeArea.samplePoints(area.geometry)[0];
-  Object.assign(state, { area, lastArea: area, lat: centre.lat, lon: centre.lon, name: area.name, loading: true, error: null, place: null });
+  Object.assign(state, { area, lastArea: area, lat: centre.lat, lon: centre.lon, name: area.name, loading: true, error: null, place: null, full: null });
   if (code) { state.code = code; $("var-select").value = code; }
   writeHash(); refreshWorldLayer(); placeMarker(); showAreaOutline(); renderScan(); renderDetail(); renderAnswer();
   if (map) {
@@ -386,13 +445,14 @@ async function selectArea(area, code) {
   try {
     const place = await loadArea(area);
     if (state.area !== area) return;               // the visitor already moved on
-    state.place = place;
+    state.full = place;
+    state.place = applyPeriod(place, state.period);
   } catch (err) {
     if (state.area !== area) return;
     state.error = "We couldn't reach NASA's data service for enough points in this area.";
   }
   state.loading = false;
-  renderScan(); renderDetail(); renderAnswer();
+  showExplorePeriod(); renderScan(); renderDetail(); renderAnswer();
 }
 
 // The outline of the chosen area on the map (empty for a single place)
@@ -405,7 +465,7 @@ function showAreaOutline() {
 // ------------------------------------------------------------------ choosing a place
 async function selectPlace(lat, lon, name, code, fly) {
   const cell = snap(lat, lon);
-  Object.assign(state, { area: null, lat: cell.lat, lon: cell.lon, name: name || coordText(cell.lat, cell.lon), loading: true, error: null, place: null });
+  Object.assign(state, { area: null, lat: cell.lat, lon: cell.lon, name: name || coordText(cell.lat, cell.lon), loading: true, error: null, place: null, full: null });
   showAreaOutline();
   if (code) { state.code = code; $("var-select").value = code; }
   writeHash(); refreshWorldLayer(); placeMarker(); renderScan(); renderDetail(); renderAnswer();
@@ -415,14 +475,15 @@ async function selectPlace(lat, lon, name, code, fly) {
   });
   try {
     const place = await loadPlace(cell.lat, cell.lon);
-    if (state.lat !== cell.lat || state.lon !== cell.lon) return;   // the visitor already moved on
-    state.place = place;
+    if (state.lat !== cell.lat || state.lon !== cell.lon || state.area) return;   // the visitor already moved on
+    state.full = place;
+    state.place = applyPeriod(place, state.period);
   } catch (e) {
     if (state.lat !== cell.lat || state.lon !== cell.lon) return;
     state.error = "We couldn't reach NASA's data service just now.";
   }
   state.loading = false;
-  renderScan(); renderDetail(); renderAnswer();
+  showExplorePeriod(); renderScan(); renderDetail(); renderAnswer();
 }
 
 // A readable name for a clicked point ("Bucharest, Romania", "North Atlantic Ocean").
@@ -531,7 +592,7 @@ async function refreshWorldLayer() {
   const layer = await layerFor(code);
   if (code !== state.code) return;                       // the visitor already chose another measurement
   state.layerData = layer;
-  $("legend-title").textContent = layer ? `${v.name} · trend ${layer.start.slice(0, 4)}–${layer.end.slice(0, 4)}` : v.name;
+  $("legend-title").textContent = layer ? `${v.name} · trend ${layer.start.slice(0, 4)}–${layer.end.slice(0, 4)} (whole record)` : v.name;
   if (map && map.getSource("world")) map.getSource("world").setData(worldSquares(layer));
 }
 
@@ -664,6 +725,13 @@ function renderDetail() {
   if (v.low_level !== undefined) {           // e.g. NO2 over clean areas: too close to the satellite's detection limit
     const present = s.values.filter((x) => x !== null);
     if (present.reduce((sum, x) => sum + x, 0) / present.length < v.low_level) notes.unshift(`<div class="note warn"><b>Caution</b><span>${v.low_note}</span></div>`);
+  }
+  if (state.period) {                         // a chosen period: keep the whole record in view
+    const whole = state.full.results[v.code];
+    const span = r.end && (+r.end.slice(0, 4)) - (+r.start.slice(0, 4)) + 1;
+    notes.unshift(`<div class="note"><b>Period</b><span>Only ${periodLabel(state.period)} is tested here (${r.n_months} months).
+      ${whole && whole.verdict !== "insufficient" ? `The whole record (${whole.start.slice(0, 4)}–${whole.end.slice(0, 4)}) says: ${verdictText(whole).toLowerCase()}, ${num(whole.slope_per_decade)} ${v.units} per decade.` : ""}
+      ${span && span < 20 ? " Short windows give less certain trends, and a window picked after looking at the chart can make almost anything look significant." : ""}</span></div>`);
   }
   const second = secondOpinion(state.place, v);
   if (second) {
@@ -840,7 +908,7 @@ function understand(text) {
     .filter((c) => c.length >= 3 && !FILLER.has(c.toLowerCase()) && !VARS.some((v) => words(v.keywords).includes(c.toLowerCase())));
   const leftover = words(rest).filter((w) => !FILLER.has(w) && !/^\d/.test(w)).map((w) => w.replace(/'s$/, ""));
   return {
-    variable, missing,
+    variable, missing, period: periodInQuestion(text),
     placeCandidates: [...new Set([...capitals, leftover.join(" ")])].filter(Boolean),
     leftoverWords: leftover,
     asksWhy: tokens.includes("why") || tokens.includes("because") || tokens.includes("cause") || tokens.includes("causes"),
@@ -949,7 +1017,8 @@ function placePicker(input, list, onPick, withQuestions) {
 function buildSearch() {
   placePicker($("search"), $("suggestions"), (hit, text, q) => {
     state.question = { text, code: hit.variable ? hit.variable.code : null, intent: intentOf(text), season: seasonOf(text),
-                       kind: hit.kind || "place", asksWhy: q.asksWhy, missing: q.missing };
+                       kind: hit.kind || "place", asksWhy: q.asksWhy, missing: q.missing, period: q.period };
+    state.period = q.period || null;            // a new question tests the years it names, or the whole record
     state.lastArea = null;
     goTo(hit, state.question.code);
     setTimeout(() => $("answer").scrollIntoView({ behavior: "smooth", block: "center" }), 50);
@@ -1046,6 +1115,7 @@ function renderAnswer() {
       detail = `${num(r.slope_per_decade)} ${v.units} per decade since ${r.start.slice(0, 4)} ` +
         `(about ${num(r.total_change)} ${v.units}${r.percent_change !== null ? `, ${num(r.percent_change)}%` : ""} in total) · p-value ${pText(r.p_value)}`;
       if (seasonal) notes.unshift(`Only ${seasonal.label} months are used here; the chart below shows every month.`);
+      if (state.period) notes.unshift(`Only ${periodLabel(state.period)} is tested, as your question asked.`);
       const second = !seasonal && secondOpinion(state.place, v);
       if (second && second.agreement === "agree") notes.unshift(`Confirmed by a second, independent NASA source: ${second.other.source}.`);
       if (second && second.agreement !== "agree") notes.unshift(`${second.other.source} is a second source for this: ${AGREEMENT_TEXT[second.agreement].toLowerCase()}`);
@@ -1085,24 +1155,68 @@ function buildCompare(groups) {
 }
 
 let compareTicket = 0;
+// Compare: the same measurement at two places (or areas), over the months observed at both.
+// Each place gets its own trend; the finding is about A minus B, whose uncertainty uses a
+// Newey-West adjustment (investigation.js), because neighbouring months are not independent.
 async function renderCompare() {
   const v = variable(compare.code), mine = ++compareTicket;
-  const sides = ["a", "b"].map((side) => ({ ...compare[side], ...snap(compare[side].lat, compare[side].lon), el: $(`cmp-panel-${side}`), id: `cmp-panel-${side}` }));
+  const sides = ["a", "b"].map((side) => ({ ...compare[side], ...snap(compare[side].lat, compare[side].lon), el: $(`cmp-panel-${side}`), id: `cmp-panel-${side}`, side }));
   sides.forEach((p) => (p.el.innerHTML = `<span class="tag">${escapeHTML(p.name)}</span><div class="loading"><span class="spinner"></span>Reading NASA data…</div>`));
+  $("compare-finding").innerHTML = `<div class="loading"><span class="spinner"></span>Finding the months observed at both places…</div>`;
   const places = await Promise.all(sides.map((p) => (p.area ? loadArea(p.area) : loadPlace(p.lat, p.lon)).catch(() => null)));
   if (mine !== compareTicket) return;
-  const rs = places.map((pl) => pl && pl.results[v.code]);
-  const all = rs.filter((r) => r && r.verdict !== "insufficient").flatMap((r) => [...r.anomaly, ...r.band_low, ...r.band_high]).filter((n) => n !== null);
-  const yRange = all.length ? [Math.min(...all), Math.max(...all)] : undefined;   // same scale on both charts
+  const records = places.map((pl) => pl && pl.series[v.code]);
+  const full = matchMonths(records[0], records[1]);
+  const paired = compare.period ? matchMonths(records[0], records[1], compare.period) : full;
+  const fit = paired && paired.count ? fitComparison(paired, v.percent) : null;
+  showPeriod("compare-period", compare.period, full && full.count ? full : null,
+    full && full.count ? `Shared record: ${dateSpan(full.first, full.last)} · ${full.count} months observed at both places` : "");
+
+  // the finding: is the rate different at A and B?
+  const A = escapeHTML(compare.a.name), B = escapeHTML(compare.b.name);
+  let headline, detail = "";
+  if (places.some((pl) => !pl)) headline = "Couldn't reach NASA's data service for one of the places.";
+  else if (!paired || !paired.count) headline = `No months with ${v.name.toLowerCase()} data at both places${compare.period ? " in this period" : ""}.`;
+  else if (!fit || fit.slope === null) headline = "Too little shared data to compare the trends (at least 10 years are needed).";
+  else {
+    const rate = `A minus B: ${num(fit.slope)} ${v.units} per decade`;
+    if (!fit.interval) { headline = "The difference is uncertain."; detail = `${rate}. There are too few independent months for a 95% range.`; }
+    else {
+      const [low, high] = fit.interval;
+      detail = `${rate} (95% range ${num(low)} to ${num(high)}).`;
+      if (low <= 0 && high >= 0) headline = "The two places could be changing at the same rate.";
+      else {
+        const faster = low > 0 ? A : B, slower = low > 0 ? B : A;
+        const [ra, rb] = fit.sides, bothSig = [ra, rb].every((r) => r.verdict === "significant");
+        if (bothSig && ra.direction !== rb.direction) headline = `Rising at ${faster}, falling at ${slower}.`;
+        else if (bothSig && ra.direction === "increase") headline = `Rising faster at ${faster}.`;
+        else if (bothSig && ra.direction === "decrease") headline = `Falling faster at ${slower}.`;
+        else headline = `The rate is higher at ${faster} than at ${slower}.`;
+      }
+    }
+  }
+  const recent = !compare.period && full && full.count ? recentPeriod(full.first, full.last, 15) : null;
+  $("compare-finding").innerHTML = `<h3>${headline}</h3>${detail ? `<p>${detail}</p>` : ""}
+    ${paired && paired.count ? `<p class="meta">${escapeHTML(v.source)} · ${dateSpan(paired.first, paired.last)} · ${paired.count} months observed at both places</p>` : ""}
+    ${fit && fit.interval ? `<details><summary>How is the difference worked out?</summary><p>For every month observed at both places we subtract B from A, remove the seasons and fit a straight line. Its 95% range uses a Newey–West adjustment over 12 months, because a warm month tends to be followed by another.</p></details>` : ""}
+    <div class="compare-actions">${compare.period ? `<button class="pill" data-compare-full>Use the whole shared record</button>`
+      : recent ? `<button class="pill" data-compare-recent>Check only the latest 15 years</button>` : ""}</div>`;
+  $("compare-finding").querySelector("[data-compare-full]")?.addEventListener("click", () => { compare.period = null; renderCompare(); });
+  $("compare-finding").querySelector("[data-compare-recent]")?.addEventListener("click", () => { compare.period = recent; renderCompare(); });
+
+  // one chart per place, same months and same scale
+  const all = fit ? fit.sides.filter((r) => r.verdict !== "insufficient").flatMap((r) => [...r.anomaly, ...r.band_low, ...r.band_high]).filter((n) => n !== null) : [];
+  const yRange = all.length ? [Math.min(...all), Math.max(...all)] : undefined;
   sides.forEach((p, i) => {
-    const r = rs[i];
+    const r = fit && fit.sides[i];
     if (!places[i]) { p.el.innerHTML = `<span class="tag">${escapeHTML(p.name)}</span><h3>Couldn't reach NASA's data service.</h3>`; return; }
-    if (!r || r.verdict === "insufficient") { p.el.innerHTML = `<span class="tag">${escapeHTML(p.name)}</span><h3>${r ? "Not enough data" : "No data"} for ${v.name.toLowerCase()} here.</h3>`; return; }
-    p.el.innerHTML = `<span class="tag">${escapeHTML(p.name)}</span>
+    if (!records[i]) { p.el.innerHTML = `<span class="tag">${escapeHTML(p.name)}</span><h3>No ${v.name.toLowerCase()} data here.</h3>`; return; }
+    if (!r || r.verdict === "insufficient") { p.el.innerHTML = `<span class="tag">${escapeHTML(p.name)}</span><h3>Not enough shared data for a trend.</h3>`; return; }
+    p.el.innerHTML = `<span class="tag">${p.side.toUpperCase()} · ${escapeHTML(p.name)}</span>
       <h3>${num(r.slope_per_decade)} ${v.units} per decade</h3>
       <div class="verdict">${dotHTML(r)}${verdictText(r)}</div>
       <div class="chart" id="${p.id}-chart"></div>
-      <p class="caption">Total since ${r.start.slice(0, 4)}: ${num(r.total_change)} ${v.units}${r.percent_change !== null ? ` (${num(r.percent_change)}%)` : ""} · p-value ${pText(r.p_value)}${p.area ? ` · ${areaText(p.area, places[i].info)}` : ""}</p>`;
-    drawChart(`${p.id}-chart`, r, places[i].series[v.code], v, false, yRange);
+      <p class="caption">Total over these months: ${num(r.total_change)} ${v.units}${r.percent_change !== null ? ` (${num(r.percent_change)}%)` : ""} · p-value ${pText(r.p_value)}${p.area ? ` · ${areaText(p.area, places[i].info)}` : ""}</p>`;
+    drawChart(`${p.id}-chart`, r, { dates: paired.dates, values: paired.values[i] }, v, false, yRange);
   });
 }
