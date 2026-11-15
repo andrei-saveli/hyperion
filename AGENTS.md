@@ -1,7 +1,7 @@
 # AGENTS.md: Project Hyperion
 
 Shared instructions for **any AI coding agent** (Claude Code, Codex, Gemini CLI, Copilot, Cursor…)
-and for humans joining the project. Read this first, then `docs/PLAN.md` and `docs/HANDSHAKES.md`.
+and for humans joining the project. Read this first, then `Website/README.md`.
 
 Hackathon project (NASA Space Apps). Goal: **win: make it very good, the best.** Keep this file up to
 date when decisions change.
@@ -118,15 +118,9 @@ variables makes it hard to pick ones that could indicate change and then analyze
 - **Commit and push directly to `main`** without asking for confirmation. `git pull` before you
   start and before you push; push small changes often.
 - Make sensible decisions on open choices, record them in this file, and keep going.
-- **Team of 4, each owns their files** (see Roles). The team lead drives an AI coding agent and
-  helps every role (code, reviews, fixes, Git); teammates use chat AIs with the starter prompts in
-  `docs/PLAN.md`.
-- `docs/PLAN.md` is the **authoritative plan** (roles, tasks, timeline). The team has minimal
-  coding skills: keep code simple, commented, beginner-readable.
-- `docs/HANDSHAKES.md` (H0–H6) freezes the interfaces between roles. **Respect them**; changing one
-  needs the team's agreement first.
-- Don't edit another role's files unless the lead asks. Don't add new dependencies without adding
-  them to `requirements.txt` (owned by P4).
+- The team has minimal coding skills: keep code simple, commented, beginner-readable.
+- Don't add new dependencies without adding them to `Website/requirements.txt` (Python) or loading
+  them from the pinned files in `Website/vendor/` (browser).
 - Commit messages: short, imperative, describe the change. No AI tool or model names in code,
   comments or docs.
 
@@ -141,101 +135,82 @@ variables makes it hard to pick ones that could indicate change and then analyze
 > significance. No forecasting models, no non-linear/complex methods in the core. We tell users
 > plainly that a straight line is a simplification.
 
+### Concept: "Trend Detective"
+Ask a question or pick any place on Earth → monthly NASA records → chart (seasons removable) with trend
+line and 95% band → answer card and verdict (🟢 significant / 🟡 possible, not significant yet / ⚪ no
+clear trend / ⚫ not enough data; rate per decade, total change, p-value, plain explanation) → what
+accounts for it (Trend Decomposer) → places changing alike. Say *what* changed, never claim *why*. Demo
+cases are chosen from real results, not assumed.
 
-### Concept: "Trend Detective" (see `docs/PLAN.md`)
-Search or pick a place + variable → monthly NASA data since 2001 → chart (seasons-removable) with
-trend line and 95% band → verdict card (🟢 significant / 🟡 possible, not significant yet /
-⚪ no clear trend / ⚫ not enough data; rate per decade, total change, p-value, plain explanation)
-→ compare two places. Say *what* changed, never claim *why*. Demo cases are chosen from real results, not assumed.
+### Data
+- **NASA POWER** monthly point data (MERRA-2 + CERES, 1981 onwards, any place, no login), asked live:
+  35 measurements.
+- **Prepared NASA grids** (Earthdata token, `Website/build_nasa_grids.py` download → build): 21
+  measurements from GPM, GLDAS, MODIS, OMI, AIRS, NASA-SSH sea level and MERRA-2 (aerosols, glaciers). Tiles in `Website/data/nasa/` (~410 MB): rebuild and commit them rarely, each rebuild
+  adds that much to git history.
+- Where a measurement exists twice the site tests both over shared years ("second source").
+- Giovanni (3 regions, Streamlit version) is in `archive/`; it needed manual downloads, which made
+  "any place" impossible.
 
-### Stack (simplified for a beginner team)
-- **Everything in Python.** Website: **Streamlit** (`app.py`), charts: Plotly.
-- Stats: `stats.py`, our own code on **numpy + scipy only** (no statsmodels/pymannkendall;
-  the seasonal Mann-Kendall was checked against pymannkendall and matches exactly).
-- Data: **NASA Giovanni** area-averaged monthly time series over a box per place (harmony-py +
-  earthaccess, free Earthdata account). Variables: `TEMP` (MERRA-2 `M2IMNXASM_5_12_4_T2M`, °C),
-  `RAIN` (GPM `GPM_3IMERGM_07_precipitation`, mm/day), `SOILM` (GLDAS RootMoist, kg/m²), `EVAP`
-  (GLDAS Evap, mm/day). NO₂ dropped (not in Giovanni's web interface). Raw files kept in
-  `data/raw/giovanni/`, cleaned to `data/<place>_<CODE>.csv`. Fallback: NASA POWER (no login).
-- Deploy: Streamlit Community Cloud. AI only for optional wording, never for numbers.
-
-### Roles (details in `docs/PLAN.md`)
-P1 Frontend (`app.py`, `charts.py`) · P2 Data (`scripts/download_giovanni.py`, `scripts/convert_giovanni.py`, `data_io.py`, `data/raw/`,
-`data/<place>_<CODE>.csv`, `data/SOURCES.md`) ·
-
-P3 Search + explainability (`search.py`, `explain.py`, `data/places.csv`, `data/variables.csv`,
-`pages/`) ·
-P4 Trend & significance + integration (`stats.py`, `tests/`, deploy). Pitch is a whole-team task
-from hour 36. No forecasting in the core (see scope rule).
+### Stack
+- **Website:** static HTML + JavaScript in `Website/` (MapLibre map, Plotly charts), no build step,
+  any static hosting. Search by meaning: all-MiniLM-L6-v2 run in the browser (`Website/models/`,
+  `Website/vendor/`), never for numbers.
+- **Statistics:** `Website/stats.py` (Python, numpy + scipy only; the reference) and `Website/stats.js`
+  (a tested line-by-line copy). The seasonal Mann-Kendall was checked against pymannkendall.
+- **Build scripts** (Python): `build_world.py` (world overview), `build_nasa_grids.py` +
+  `build_nasa_tiles.py` (NASA grids), `get_search_model.py` (search model files).
 
 ### Repo layout
 ```
-AGENTS.md                      this file (instructions for all agents + humans)
-README.md                      project overview for visitors and judges
-docs/PLAN.md                   the plan: roles, tasks, timeline, starter prompts
-docs/HANDSHAKES.md             frozen interfaces between roles (H0–H6) with fakes
-app.py, charts.py              Streamlit app + shared chart (P1)
-scripts/*_giovanni.py, data_io.py  download, cleaning, loading (P2)
-search.py, explain.py, pages/  search, plain-language text, guided demo (P3)
-stats.py, tests/, requirements.txt  trend + significance math, integration (P4)
-data/                          places.csv, variables.csv, <place>_<code>.csv, SOURCES.md
+AGENTS.md          this file
+README.md          project overview for visitors and judges
+Website/           the site, its build scripts and tests (details: Website/README.md)
+docs/              presentation deck and script, reviews, data sources
+archive/           earlier versions: Streamlit apps, Giovanni data, task folders, original plan (archive/README.md)
 ```
 
-### Statistics (stats.py)
-Skip missing values (never zero). Deseasonalize (subtract each calendar month's mean). OLS slope
+### Statistics (Website/stats.py)
+Skip missing values (never zero). Deseasonalize (subtract each calendar month's mean; the 12 means
+are estimated together with the trend line, so partial years and gaps can't bias the slope). OLS slope
 per decade; 95% CI and t-test p-value corrected for lag-1 autocorrelation (effective n,
 Santer et al. 2000). Seasonal Mann-Kendall + seasonal Sen's slope (year-to-year memory
 correction) as second checks. Verdict: 🟢 p<0.05 · 🟡 p<0.10 · ⚪ otherwise · ⚫ under 10 years
 or 24 valid months. Flags: `reliability` (low if < 30 effective months), `tests_agree`,
-`band_meaning`. `percent_change` only for RAIN/SOILM/EVAP and never-negative data.
+`band_meaning`. `percent_change` only for never-negative amounts (rain, soil water, pollution...).
 "Years until significant" = record × (1.96/|t|)^(2/3) − record; labelled planning estimate.
-Non-significant ≠ "no change". Never state causes.
+Non-significant ≠ "no change". Never state causes (Investigate says how much a driver statistically
+accounts for; it never says "cause").
 
-## Current status / handover (update this when you finish something)
-- Global website branch review and NASA Space Apps discussion notes: [Trend Detective handover](docs/TREND_DETECTIVE_HANDOVER.md).
-- ✅ Planning done: `docs/PLAN.md`, `docs/HANDSHAKES.md`.
-- ✅ Handshake change applied: places are **boxes** (`west,south,east,north`), variables use **short
-  codes** (`TEMP`, `RAIN`, `SOILM`, `EVAP`) with a `source` column (Giovanni name).
-- ✅ Giovanni bulk-download variables verified in Giovanni's configured-variables list.
-- 🖥️ The frontend (P1) is built in a separate repo, `andrei-saveli/frontend-nasa`, against the
-  fakes in `docs/HANDSHAKES.md`; its brief is that repo's `AGENTS.md`. Keep its copies of
-  `PLAN.md`/`HANDSHAKES.md` in sync when these change.
-- ✅ **Person 4 (Trend & significance + integration)** in `Task4/`: `stats.py` (H2 + reliability,
-  test-agreement, percent change, band meaning, years until significant), 34 passing tests,
-  `scripts/results_table.py`, `scripts/check_handshakes.py` (use the real `Task2/data_io.py`),
-  `RESULTS.md` (real-data results + demo suggestions). See `Task4/README.md`.
-- 🧩 **Combine:** `python Task4/scripts/combine.py [--frontend ../frontend-nasa]` builds `final/`
-  (git-ignored), runs tests + handshake checks, prints READY / NOT READY. Deploy steps:
-  `Task4/README.md`.
-- ✅ **Data (Task2/)**: `cleaned/` holds 12 validated Giovanni CSVs (3 places × TEMP/RAIN/SOILM/EVAP,
-  288 months); `raw/` holds the 12 original Giovanni downloads (verified: re-cleaning
-  reproduces `cleaned/` exactly, `convert_giovanni.py`); `data_io.py` (H1, reads
-  `data/` in the final project, `cleaned/` now); `SOURCES.md`. NO₂ dropped. Don't use
-  `svalbard_SOILM` in the demo (glacier; unreliable).
-- 🧩 Each person builds in their own folder; at the end the team lead combines all folders into
-  the final project layout below (each folder's README says how).
-- 🌐 **Static website "ByteMe"** in `Website/` (current design, replaces the Streamlit look; logo `B/ ByteMe`): light
-  Isomorphic-inspired style (Geist + Geist Mono, mint/aqua/teal palette, pixel-globe hero), MapLibre map with regions coloured by trend and
-  focus brackets, result panel, compare, method, keyword search. `build_data.py` runs the real
-  Task2/3/4 code once → `data/results.json`; the site only displays it. Run:
-  `python -m http.server 8000 --directory Website`. Deploy = upload the folder to static hosting.
-- 🖥️ **Website first version** in `FrontEnd_claude/` (built for P1 on the real Task2/3/4 parts):
-  `app.py`, `charts.py` (H5), theme, 6 passing app tests, mock-ups + screenshots in `design/`.
-  Run: `streamlit run FrontEnd_claude/app.py`. Combine with `--frontend FrontEnd_claude`.
-- 🖥️ **Byte Me browser demo** in `FrontEnd_nasa/` integrates the uploaded frontend from
-  `andrei-saveli/frontend-nasa` with the 12 real Giovanni series, Searchlight's ranked
-  dataset suggestions, and the Task3 guided demo.
-  See `FrontEnd_nasa/README.md` to build and run it.
-- 🔎 **Search (P3)** uses Searchlight and the H0 catalogs in `Task3/data/` (three regions
-  with available series). Build and calibrate the local assets using `Task3/README.md`.
-  The Streamlit search box can offer a labeled related dataset and previews each card's trend interval.
-- 🔎 **Search benchmark (P3):** `Task3/PRETRAINED_BENCHMARK.md` reports a 144-question draft.
-  Calibrated embeddings led the reranker on held-out recall and unsupported rejection.
-  `Task3/COVERAGE_BENCHMARK.md` compares coverage checks on 48 fresh draft questions.
-  The checks improved recall but exceeded the false-answer ceiling, so they remain experimental.
-- 💬 **Explanations and teaching pages (P3)** are in `Task3/explain.py` and `Task3/pages/`.
-  The guided demo uses the shared frontend chart (H5).
-- ⏭️ Next: team kickoff (30 min) → everyone starts their hour 0.5–8 tasks in `docs/PLAN.md`.
+## Current status (update this when you finish something)
+- 🌐 **Site:** `Website/` ("ByteMe", logo `B/ ByteMe`). Run: `python3 -m http.server 8000 --directory Website`.
+  56 measurements in `Website/data/variables.json`, grouped by terrain (ocean, ice and snow, land water,
+  pollution, upper air...). `absent_if_constant` = "Not found here" instead of "no trend"; `nearest` =
+  nearest sea square within 200 km for coastal towns; `where` = says where a measurement exists.
+- 🔎 **Search:** keyword rules (phrases, keywords, families, `not_available` notes with the closest
+  measurement), place names via Photon, Open-Meteo and Nominatim (countries, regions, rivers, seas),
+  then a local sentence model for questions without keywords. Rebuild its index with
+  `node Website/scripts/build_meaning_index.js` after editing catalogue text. Checks:
+  `node Website/tests/test_search.js`, `node Website/tests/test_meaning.js` (Playwright).
+- 🗺️ **Areas:** countries and regions are averaged over their outline (`Website/area.js`); rivers along
+  their course.
+- ⏱️ **Time periods:** From/To in Explore, periods in questions and links (`Website/investigation.js`).
+- 🔍 **Investigate = Trend Decomposer** (`Website/decompose.js`): joint (optionally seasonal) regression
+  on detrended wiggles → each driver's contribution + what's left; block-bootstrap ranges; alibi check;
+  across-the-planet check; satellite-data swap. Never claims causes.
+- 🧭 **Places changing like this one** (`Website/similar.js`): nearest neighbours over 5° trend
+  fingerprints (18 core POWER trends vs the planet, weighted cosine), 5 matches ≥ 1,500 km apart.
+- 🏭 **Pollution:** PM2.5 (MERRA-2, compared with the WHO guideline), organic particles and fine dust at
+  ground level (MERRA-2), OMI SO₂, plus haze, NO₂, dust, smoke, sulfate haze, AIRS CO and methane.
+  **Left out on purpose:** MERRA-2 soot, sulfate, SO₂ and CO at ground level (its factory and traffic
+  emissions stop being updated around 2010: Beijing's SO₂ "rises" while OMI sees it collapse) and OMI
+  formaldehyde and UV aerosol index (instrument drift). MERRA-2 particle measurements carry that caveat.
+- 🎤 **Presentation:** `docs/presentation/` (deck + Romanian speaker script). Branch reviews:
+  `docs/CAUSALITY_REVIEW.md`, `docs/TREND_DETECTIVE_HANDOVER.md`.
+- 🗄️ **Archive:** the Streamlit versions, Giovanni data (still used as test data by
+  `Website/tests/make_reference.py`), the four task folders and the original plan and handshakes.
+- ✅ Tests: `node Website/tests/test_{stats,nasa,area,decompose,investigation,similar}.js`,
+  `python3 -m pytest -q Website/tests/test_stats_py.py`.
 
 ## Git
 - Push all work directly to `main` (team lead's standing instruction). No PRs, no confirmation needed.

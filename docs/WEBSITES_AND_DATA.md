@@ -2,7 +2,7 @@
 
 Every website you need, **what to take from each one**, and in what order. Step-by-step
 instructions and the scripts are in
-[PERSON_2_DATA_GIOVANNI_HANDOVER.md](PERSON_2_DATA_GIOVANNI_HANDOVER.md).
+[PERSON_2_DATA_GIOVANNI_HANDOVER.md](../archive/docs/PERSON_2_DATA_GIOVANNI_HANDOVER.md).
 
 ---
 

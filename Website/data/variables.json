@@ -1,0 +1,1727 @@
+{
+ "note": "The measurements ByteMe offers. One shared list: the website (app.js) and the Python scripts (build_world.py, tests) both read it. 'code' is the NASA POWER parameter name. 'scale' multiplies the raw value (soil wetness 0-1 becomes percent). 'percent' says whether a percent change makes sense (zero means 'none of it'). Search: 'phrases' (several words, strong match) and 'keywords' (single words) link a question to a measurement. Avoid very general words such as water, air or ground: they appear in questions about many measurements. 'not_available' lists things people ask for that this data set does not have, with what to say and the closest measurement we do have. Measurements with \"dataset\": \"nasa\" come from data/nasa/ (built by build_nasa_grids.py); 'pair' names the NASA POWER measurement they double-check. 'related' lists measurements worth checking next (shown under an answer; never a claim about causes). 'drivers' lists possible drivers worth testing in Investigate (the Trend Decomposer), each with a one-line mechanism. They are suggestions to test, never claims about causes.",
+ "groups": [
+  "Temperature",
+  "Water",
+  "Land",
+  "Ice and snow",
+  "Ocean",
+  "Air",
+  "Pollution",
+  "Upper air",
+  "Sun and sky"
+ ],
+ "variables": [
+  {
+   "code": "T2M",
+   "name": "Air temperature",
+   "units": "°C",
+   "group": "Temperature",
+   "source": "MERRA-2",
+   "percent": false,
+   "definition": "How warm the air is 2 metres above the ground, averaged over day and night.",
+   "keywords": "temperature temperatures hot hotter warm warmer warmed warming warmth cold colder cooling heat climate degrees cool cooler",
+   "phrases": "air temperature, near-ground air, near-surface air, 2-m air, 2 m air, two metres, above the ground, warmth of the air, near surface temperature, air-temperature, near-surface air, near surface, near ground, near the ground, ground level, above the land, close to the ground, air near",
+   "related": [
+    "T2M_MAX",
+    "T2M_MIN",
+    "AIRS_T2M"
+   ],
+   "family": "temperature",
+   "drivers": [
+    {
+     "driver": "ALLSKY_SFC_SW_DWN",
+     "how": "More sunshine reaching the ground warms the air above it."
+    },
+    {
+     "driver": "CLOUD_AMT",
+     "how": "Clouds block sunshine during the day."
+    },
+    {
+     "driver": "AOD_55",
+     "how": "Haze and dust dim the sunlight."
+    }
+   ],
+   "examples": "how warm or cold the weather feels outdoors, mild or chilly weather, warm days and warm years, the climate heating up, balmy or bitterly cold weather"
+  },
+  {
+   "code": "T2M_MAX",
+   "name": "Hottest temperature of the month",
+   "units": "°C",
+   "group": "Temperature",
+   "source": "MERRA-2",
+   "percent": false,
+   "definition": "The highest air temperature reached during each month.",
+   "keywords": "maximum hottest heatwave heatwaves highs",
+   "phrases": "maximum temperature, daily maximum, hottest days, hottest temperature, days above, over forty degrees, above 40, heat wave, heat waves",
+   "related": [
+    "T2M",
+    "T2M_MIN"
+   ],
+   "family": "temperature",
+   "drivers": [
+    {
+     "driver": "ALLSKY_SFC_SW_DWN",
+     "how": "Sunny days get hotter."
+    },
+    {
+     "driver": "GWETROOT",
+     "how": "Dry soil can't cool itself by evaporating water, so hot days get hotter."
+    }
+   ],
+   "examples": "the hottest afternoons of the year, extreme heat and very hot days, scorching summer heat"
+  },
+  {
+   "code": "T2M_MIN",
+   "name": "Coldest temperature of the month",
+   "units": "°C",
+   "group": "Temperature",
+   "source": "MERRA-2",
+   "percent": false,
+   "definition": "The lowest air temperature reached during each month.",
+   "keywords": "minimum coldest frost frosts freeze freezing nights lows night nighttime",
+   "phrases": "minimum temperature, coldest nights, coldest temperature",
+   "related": [
+    "FROST_DAYS",
+    "SNODP",
+    "T2M",
+    "T2M_MAX"
+   ],
+   "family": "temperature",
+   "drivers": [
+    {
+     "driver": "CLOUD_AMT",
+     "how": "Clouds act like a blanket and keep nights warmer."
+    },
+    {
+     "driver": "QV2M",
+     "how": "Water vapour traps heat, so nights cool less."
+    }
+   ],
+   "examples": "the coldest nights and early mornings, frosty mornings and freezing nights, how cold it gets at night"
+  },
+  {
+   "code": "TS",
+   "name": "Surface temperature",
+   "units": "°C",
+   "group": "Temperature",
+   "source": "MERRA-2",
+   "percent": false,
+   "definition": "How warm the ground or the sea surface itself is (its 'skin').",
+   "keywords": "sst ocean sea",
+   "phrases": "surface temperature, skin temperature, sea surface, sea-surface, ocean surface, at the surface, ground temperature",
+   "related": [
+    "MODIS_LST",
+    "T2M"
+   ],
+   "family": "temperature",
+   "weak": "surface",
+   "drivers": [
+    {
+     "driver": "ALLSKY_SFC_SW_DWN",
+     "how": "More sunshine heats the surface."
+    },
+    {
+     "driver": "CLOUD_AMT",
+     "how": "Clouds shade the surface."
+    }
+   ],
+   "examples": "how hot the ground or the sea surface gets, the temperature of the ocean surface, warm seawater"
+  },
+  {
+   "code": "AIRS_T2M",
+   "name": "Air temperature (AIRS satellite)",
+   "units": "°C",
+   "group": "Temperature",
+   "source": "AIRS (Aqua satellite)",
+   "percent": false,
+   "pair": "T2M",
+   "definition": "How warm the air is just above the ground, measured from space by the AIRS instrument (average of its day and night passes).",
+   "phrases": "airs satellite",
+   "keywords": "airs instrument",
+   "dataset": "nasa",
+   "product": "AIRS3STM v7.0",
+   "landing": "https://disc.gsfc.nasa.gov/datasets/AIRS3STM_7.0/summary",
+   "related": [
+    "T2M",
+    "MODIS_LST"
+   ],
+   "family": "temperature",
+   "drivers": [
+    {
+     "driver": "ALLSKY_SFC_SW_DWN",
+     "how": "More sunshine reaching the ground warms the air above it."
+    },
+    {
+     "driver": "CLOUD_AMT",
+     "how": "Clouds block sunshine during the day."
+    }
+   ],
+   "examples": "air temperature measured by the AIRS instrument on a satellite"
+  },
+  {
+   "code": "MODIS_LST",
+   "name": "Land surface temperature (MODIS)",
+   "units": "°C",
+   "group": "Temperature",
+   "source": "MODIS (Terra satellite)",
+   "percent": false,
+   "pair": "TS",
+   "definition": "How warm the land surface itself is, seen from space by MODIS (average of day and night). Land only.",
+   "phrases": "land surface temperature, ground temperature from space",
+   "keywords": "modis lst",
+   "dataset": "nasa",
+   "product": "MOD11C3 v061",
+   "landing": "https://lpdaac.usgs.gov/products/mod11c3v061/",
+   "related": [
+    "TS",
+    "MODIS_NDVI"
+   ],
+   "family": "temperature",
+   "weak": "ground land surface",
+   "drivers": [
+    {
+     "driver": "ALLSKY_SFC_SW_DWN",
+     "how": "More sunshine heats the land surface."
+    },
+    {
+     "driver": "MODIS_NDVI",
+     "how": "Green plants cool the surface by evaporating water."
+    },
+    {
+     "driver": "GWETROOT",
+     "how": "Wet soil cools the surface by evaporating water."
+    }
+   ],
+   "examples": "how hot the land surface gets as seen by satellite, hot pavement and baking ground"
+  },
+  {
+   "code": "PRECTOTCORR",
+   "name": "Rain and snowfall",
+   "units": "mm/day",
+   "group": "Water",
+   "source": "MERRA-2",
+   "percent": true,
+   "definition": "How much rain and snow fall each day on average.",
+   "keywords": "rain rains raining rainfall rainy precipitation downpour downpours wet wetter drought droughts monsoon storms",
+   "phrases": "from the sky, rain or snow, water equivalent, rain and snow",
+   "related": [
+    "GPM_RAIN",
+    "GWETROOT",
+    "EVLAND"
+   ],
+   "family": "rain",
+   "drivers": [
+    {
+     "driver": "PW",
+     "how": "More water vapour in the air can fall as rain."
+    },
+    {
+     "driver": "CLOUD_AMT",
+     "how": "Rain falls from clouds."
+    }
+   ],
+   "examples": "how much rain and snow falls, wet weather and showers, rainy seasons and dry spells, heavy storms bringing water, heavy downpours and torrential rain, light drizzle"
+  },
+  {
+   "code": "EVLAND",
+   "name": "Evaporation from land",
+   "units": "mm/day",
+   "group": "Water",
+   "source": "MERRA-2",
+   "percent": true,
+   "definition": "How much water moves from the ground and plants into the air each day. Land only.",
+   "keywords": "evaporation evaporate evaporates evaporating evaporated evapotranspiration transpiration",
+   "phrases": "into the air from, to the air from, back into the air, back to the air, returns to the air, to the atmosphere, into the atmosphere, giving off, gives off, given off, sent back, water loss, loss to the air, lost to the atmosphere, becoming vapor, becoming vapour, releases into the air, going out, into the air, from the ground and plants",
+   "related": [
+    "GLDAS_EVAP",
+    "PRECTOTCORR",
+    "GWETROOT"
+   ],
+   "family": "evaporation",
+   "drivers": [
+    {
+     "driver": "GWETROOT",
+     "how": "Wetter soil has more water to evaporate."
+    },
+    {
+     "driver": "ALLSKY_SFC_SW_DWN",
+     "how": "Sunshine supplies the energy to evaporate water."
+    },
+    {
+     "driver": "T2M",
+     "how": "Warmer air takes up water faster."
+    }
+   ],
+   "examples": "water evaporating from soil and plants into the air, plants giving off water vapour"
+  },
+  {
+   "code": "RH2M",
+   "name": "Relative humidity",
+   "units": "%",
+   "group": "Water",
+   "source": "MERRA-2",
+   "percent": false,
+   "definition": "How close the air is to holding all the water vapour it can (100% = saturated).",
+   "keywords": "humidity humid muggy damp",
+   "phrases": "relative humidity, percentage of the moisture, close to saturation",
+   "related": [
+    "QV2M",
+    "T2M"
+   ],
+   "family": "humidity",
+   "drivers": [
+    {
+     "driver": "T2M",
+     "how": "Warmer air can hold more water, so the same water makes it relatively drier."
+    },
+    {
+     "driver": "QV2M",
+     "how": "More water vapour in the air raises the humidity."
+    }
+   ],
+   "examples": "how damp or sticky the air feels, humid and muggy weather, sweaty air"
+  },
+  {
+   "code": "QV2M",
+   "name": "Water vapour in the air",
+   "units": "g/kg",
+   "group": "Water",
+   "source": "MERRA-2",
+   "percent": true,
+   "definition": "Grams of water vapour in each kilogram of air near the ground.",
+   "keywords": "vapour vapor",
+   "phrases": "water vapour, water vapor, specific humidity, moisture in the air",
+   "related": [
+    "RH2M",
+    "PW"
+   ],
+   "family": "humidity",
+   "drivers": [
+    {
+     "driver": "T2M",
+     "how": "Warmer air can hold more water vapour."
+    },
+    {
+     "driver": "EVLAND",
+     "how": "Evaporation puts water vapour into the air."
+    }
+   ],
+   "examples": "how much water vapour is in the air, moist air"
+  },
+  {
+   "code": "PW",
+   "name": "Water in the whole air column",
+   "units": "cm",
+   "group": "Water",
+   "source": "MERRA-2",
+   "percent": true,
+   "definition": "If all the water vapour above you fell as rain at once, how deep the layer would be.",
+   "keywords": "precipitable",
+   "phrases": "precipitable water, whole air column, air column, column of air",
+   "related": [
+    "QV2M",
+    "PRECTOTCORR"
+   ],
+   "family": "humidity",
+   "drivers": [
+    {
+     "driver": "T2M",
+     "how": "Warmer air can hold more water vapour."
+    }
+   ],
+   "examples": "the total water vapour in the atmosphere above a place"
+  },
+  {
+   "code": "GPM_RAIN",
+   "name": "Rainfall (GPM satellites)",
+   "units": "mm/day",
+   "group": "Water",
+   "source": "GPM IMERG",
+   "percent": true,
+   "pair": "PRECTOTCORR",
+   "definition": "How much rain and snow fall each day on average, measured by the GPM satellite constellation.",
+   "phrases": "gpm imerg, satellite rainfall",
+   "keywords": "gpm imerg",
+   "dataset": "nasa",
+   "product": "GPM_3IMERGM v07",
+   "landing": "https://disc.gsfc.nasa.gov/datasets/GPM_3IMERGM_07/summary",
+   "related": [
+    "PRECTOTCORR",
+    "GLDAS_RUNOFF"
+   ],
+   "family": "rain",
+   "drivers": [
+    {
+     "driver": "PW",
+     "how": "More water vapour in the air can fall as rain."
+    }
+   ],
+   "examples": "rainfall measured by satellites"
+  },
+  {
+   "code": "GLDAS_EVAP",
+   "name": "Evaporation (GLDAS)",
+   "units": "mm/day",
+   "group": "Water",
+   "source": "GLDAS Noah",
+   "percent": true,
+   "pair": "EVLAND",
+   "definition": "How much water moves from the ground and plants into the air each day, from NASA's GLDAS land model. Land only.",
+   "phrases": "",
+   "keywords": "gldas",
+   "dataset": "nasa",
+   "product": "GLDAS_NOAH025_M v2.1",
+   "landing": "https://disc.gsfc.nasa.gov/datasets/GLDAS_NOAH025_M_2.1/summary",
+   "related": [
+    "EVLAND",
+    "GLDAS_SOILM"
+   ],
+   "family": "evaporation",
+   "drivers": [
+    {
+     "driver": "GLDAS_SOILM",
+     "how": "Wetter soil has more water to evaporate."
+    },
+    {
+     "driver": "ALLSKY_SFC_SW_DWN",
+     "how": "Sunshine supplies the energy to evaporate water."
+    }
+   ],
+   "examples": "evaporation from the land calculated by the GLDAS land model"
+  },
+  {
+   "code": "GLDAS_RUNOFF",
+   "name": "Runoff (GLDAS)",
+   "units": "mm/day",
+   "group": "Water",
+   "source": "GLDAS Noah",
+   "percent": true,
+   "definition": "Water that drains off the land into streams and rivers, over the surface and underground, from NASA's GLDAS land model. Land only.",
+   "phrases": "overland flow, runs downhill, runs off, water draining, run off, rivers carrying, carrying more water, carrying less water, water in rivers, river water",
+   "keywords": "runoff drainage streamflow",
+   "dataset": "nasa",
+   "product": "GLDAS_NOAH025_M v2.1",
+   "landing": "https://disc.gsfc.nasa.gov/datasets/GLDAS_NOAH025_M_2.1/summary",
+   "related": [
+    "GPM_RAIN",
+    "GLDAS_SOILM"
+   ],
+   "drivers": [
+    {
+     "driver": "GPM_RAIN",
+     "how": "More rain means more water draining off the land."
+    },
+    {
+     "driver": "GLDAS_SOILM",
+     "how": "Soaked soil can't take in more water, so it runs off."
+    }
+   ],
+   "examples": "water flowing off the land into streams and rivers, rainwater running off hillsides"
+  },
+  {
+   "code": "GWETTOP",
+   "name": "Surface soil wetness",
+   "units": "%",
+   "scale": 100,
+   "group": "Land",
+   "source": "MERRA-2",
+   "percent": false,
+   "definition": "How wet the top 5 cm of soil is: 0% is completely dry, 100% is fully soaked.",
+   "keywords": "topsoil",
+   "phrases": "top layer, topsoil, top centimetre, top centimeter, top 1 cm, top 5 cm, surface soil, surface-only soil, skin of dirt, thin skin, upper soil",
+   "related": [
+    "GWETROOT",
+    "PRECTOTCORR"
+   ],
+   "family": "soil",
+   "drivers": [
+    {
+     "driver": "PRECTOTCORR",
+     "how": "Rain wets the topsoil first."
+    },
+    {
+     "driver": "T2M",
+     "how": "Warmer air dries the topsoil out faster."
+    }
+   ],
+   "examples": "how wet or dry the very top of the soil is, dry dusty dirt at the surface"
+  },
+  {
+   "code": "GWETROOT",
+   "name": "Root-zone soil wetness",
+   "units": "%",
+   "scale": 100,
+   "group": "Land",
+   "source": "MERRA-2",
+   "percent": false,
+   "definition": "How wet the soil is where plant roots grow (top metre): 0% dry, 100% soaked. Land only.",
+   "keywords": "soil moisture roots root rooting dirt crops crop farming farmland agriculture dry drier drying",
+   "phrases": "root zone, root-zone, rooting layer, root layer, where plants root, where plant roots, crop roots, for plants, plant-accessible, soil moisture, soil water, water in the soil, moisture in the soil, water stored, water held, water retained, left in the ground, water storage, rooting-layer",
+   "related": [
+    "GLDAS_SOILM",
+    "PRECTOTCORR",
+    "EVLAND"
+   ],
+   "family": "soil",
+   "drivers": [
+    {
+     "driver": "PRECTOTCORR",
+     "how": "Rain refills the soil."
+    },
+    {
+     "driver": "EVLAND",
+     "how": "Evaporation takes water out of the soil."
+    },
+    {
+     "driver": "T2M",
+     "how": "Warmer air dries the soil out faster."
+    }
+   ],
+   "examples": "how much water the soil holds for plant roots and crops, dry or wet fields, parched farmland"
+  },
+  {
+   "code": "SNODP",
+   "name": "Snow depth",
+   "units": "cm",
+   "group": "Ice and snow",
+   "source": "MERRA-2",
+   "percent": true,
+   "definition": "How deep the snow lying on the ground is. Land only.",
+   "keywords": "snow snowy snowpack ski skiing",
+   "phrases": "snow depth, snow on the ground, layer of snow, snowpack thickness",
+   "related": [
+    "T2M_MIN",
+    "PRECTOTCORR"
+   ],
+   "drivers": [
+    {
+     "driver": "T2M",
+     "how": "Warmer air melts snow faster in the melt season."
+    },
+    {
+     "driver": "PRECTOTCORR",
+     "how": "More rain and snow while the snowpack builds up adds snow."
+    }
+   ],
+   "examples": "how deep the snow on the ground is, snow-covered mountains, snowstorms and blizzards leaving snow"
+  },
+  {
+   "code": "GLDAS_SOILM",
+   "name": "Root-zone soil moisture (GLDAS)",
+   "units": "kg/m²",
+   "group": "Land",
+   "source": "GLDAS Noah",
+   "percent": true,
+   "pair": "GWETROOT",
+   "definition": "How much water the soil holds where plant roots grow, in kilograms per square metre (= millimetres of water), from NASA's GLDAS land model. Land only.",
+   "phrases": "",
+   "keywords": "gldas",
+   "dataset": "nasa",
+   "product": "GLDAS_NOAH025_M v2.1",
+   "landing": "https://disc.gsfc.nasa.gov/datasets/GLDAS_NOAH025_M_2.1/summary",
+   "related": [
+    "GWETROOT",
+    "MODIS_NDVI"
+   ],
+   "family": "soil",
+   "drivers": [
+    {
+     "driver": "GPM_RAIN",
+     "how": "Rain refills the soil."
+    },
+    {
+     "driver": "GLDAS_EVAP",
+     "how": "Evaporation takes water out of the soil."
+    },
+    {
+     "driver": "AIRS_T2M",
+     "how": "Warmer air dries the soil out faster."
+    }
+   ],
+   "examples": "water stored in the soil, from the GLDAS land model"
+  },
+  {
+   "code": "MODIS_NDVI",
+   "name": "Vegetation greenness (MODIS)",
+   "units": "NDVI",
+   "group": "Land",
+   "source": "MODIS (Terra satellite)",
+   "percent": false,
+   "definition": "How green and leafy the land looks from space (NDVI): near 0 is bare ground, above 0.6 is dense green vegetation. Land only.",
+   "phrases": "less green, more green, vegetation greenness, plant growth",
+   "keywords": "greenness green greener vegetation ndvi leafy forest forests deforestation crops",
+   "dataset": "nasa",
+   "product": "MOD13C2 v061",
+   "landing": "https://lpdaac.usgs.gov/products/mod13c2v061/",
+   "related": [
+    "GWETROOT",
+    "PRECTOTCORR",
+    "MODIS_LST"
+   ],
+   "drivers": [
+    {
+     "driver": "GWETROOT",
+     "how": "Where water limits plant growth, wetter soil makes the land greener."
+    },
+    {
+     "driver": "PRECTOTCORR",
+     "how": "Where water limits plant growth, more rain makes the land greener."
+    },
+    {
+     "driver": "T2M",
+     "how": "Where cold limits plant growth, warmer air makes the land greener."
+    }
+   ],
+   "examples": "how green and healthy the plants and forests look from space, lush vegetation or bare brown land, plants and forests growing back or dying off"
+  },
+  {
+   "code": "WS10M",
+   "name": "Wind speed",
+   "units": "m/s",
+   "group": "Air",
+   "source": "MERRA-2",
+   "percent": true,
+   "definition": "How fast the air moves 10 metres above the ground.",
+   "keywords": "wind winds windy windier breeze breezy gust gusts",
+   "phrases": "wind speed",
+   "related": [
+    "PS"
+   ],
+   "drivers": [],
+   "examples": "how strong the wind blows, windy and gusty weather, calm or stormy winds"
+  },
+  {
+   "code": "PS",
+   "name": "Air pressure",
+   "units": "kPa",
+   "group": "Air",
+   "source": "MERRA-2",
+   "percent": false,
+   "definition": "The weight of the air above pressing on the surface.",
+   "keywords": "pressure barometer barometric",
+   "phrases": "air pressure, surface pressure",
+   "related": [
+    "WS10M"
+   ],
+   "drivers": [],
+   "examples": "the weight of the air pressing down, barometer readings"
+  },
+  {
+   "code": "TO3",
+   "name": "Ozone layer",
+   "units": "DU",
+   "group": "Air",
+   "source": "MERRA-2",
+   "percent": false,
+   "definition": "The total amount of ozone above you, in Dobson units. Ozone high up shields life from UV light.",
+   "keywords": "ozone",
+   "phrases": "ozone layer, ozone hole",
+   "related": [
+    "ALLSKY_SFC_SW_DWN"
+   ],
+   "drivers": [],
+   "examples": "the ozone layer high in the sky that protects us from the sun's ultraviolet rays"
+  },
+  {
+   "code": "AOD_55",
+   "name": "Haze and dust in the air",
+   "units": "AOD",
+   "group": "Pollution",
+   "source": "MERRA-2",
+   "percent": true,
+   "definition": "How much tiny particles (dust, smoke, pollution) dim the sunlight. 0 is perfectly clear air; above 0.4 is hazy.",
+   "keywords": "aerosol aerosols haze hazy dust dusty smoke smoky smog pollution polluted particles",
+   "phrases": "dirty air, haze and dust",
+   "related": [
+    "OMI_NO2",
+    "ALLSKY_SFC_SW_DWN"
+   ],
+   "family": "pollution",
+   "drivers": [
+    {
+     "driver": "PRECTOTCORR",
+     "how": "Rain washes particles out of the air."
+    },
+    {
+     "driver": "WS10M",
+     "how": "Wind lifts dust into the air."
+    }
+   ],
+   "examples": "dust, smoke and haze making the air murky, polluted dirty air from fires and dust storms, smoggy air that is hard to breathe"
+  },
+  {
+   "code": "OMI_NO2",
+   "name": "Nitrogen dioxide (OMI)",
+   "units": "10¹⁵ molec/cm²",
+   "group": "Pollution",
+   "source": "OMI (Aura satellite)",
+   "percent": true,
+   "definition": "How much nitrogen dioxide (NO₂, a gas mostly from traffic, power plants and fires) is in the lower air, measured from space by OMI. Higher means more polluted.",
+   "phrases": "nitrogen dioxide, traffic pollution",
+   "keywords": "no2 nitrogen dioxide traffic exhaust emissions",
+   "dataset": "nasa",
+   "product": "OMNO2d v003 (daily, averaged by month)",
+   "landing": "https://disc.gsfc.nasa.gov/datasets/OMNO2d_003/summary",
+   "low_level": 1.0,
+   "low_note": "Here the air has very little NO₂ (on average below 1 × 10¹⁵ molecules/cm²), close to what OMI can detect. Small trends at such low levels can come from slow changes in the instrument rather than in the air, so this result is not reliable. NO₂ trends are most meaningful over cities and industry.",
+   "related": [
+    "AOD_55"
+   ],
+   "family": "pollution",
+   "drivers": [],
+   "examples": "nitrogen dioxide gas from car exhaust, traffic, power plants and factories"
+  },
+  {
+   "code": "ALLSKY_SFC_SW_DWN",
+   "name": "Sunlight reaching the ground",
+   "units": "MJ/m²/day",
+   "group": "Sun and sky",
+   "source": "CERES",
+   "percent": true,
+   "definition": "The energy of the sunlight that arrives at the surface each day, clouds included.",
+   "keywords": "sun sunny sunnier sunlight sunshine solar brightness dimming",
+   "phrases": "solar radiation, solar energy, sunlight reaching",
+   "related": [
+    "CLOUD_AMT",
+    "AOD_55"
+   ],
+   "drivers": [
+    {
+     "driver": "CLOUD_AMT",
+     "how": "Clouds reflect sunlight back to space."
+    },
+    {
+     "driver": "AOD_55",
+     "how": "Haze and dust dim the sunlight."
+    }
+   ],
+   "examples": "how much sunshine reaches the ground, bright sunny days or dim cloudy ones"
+  },
+  {
+   "code": "CLOUD_AMT",
+   "name": "Cloud cover",
+   "units": "%",
+   "group": "Sun and sky",
+   "source": "CERES",
+   "percent": false,
+   "definition": "The share of the sky covered by clouds.",
+   "keywords": "cloud clouds cloudy cloudier cloudiness overcast",
+   "phrases": "cloud cover",
+   "related": [
+    "ALLSKY_SFC_SW_DWN",
+    "PRECTOTCORR"
+   ],
+   "drivers": [
+    {
+     "driver": "RH2M",
+     "how": "Clouds form when the air is close to saturated."
+    }
+   ],
+   "examples": "how much of the sky is covered by clouds, grey overcast days or clear skies"
+  },
+  {
+   "code": "SEA_LEVEL",
+   "name": "Sea level",
+   "units": "cm",
+   "group": "Ocean",
+   "source": "Satellite altimeters (TOPEX/Poseidon, Jason, Sentinel-6)",
+   "percent": false,
+   "definition": "How high the sea surface stands compared with its long-term average, measured from space by radar altimeters. Rising values mean the sea is getting higher.",
+   "keywords": "altimeter altimetry",
+   "phrases": "sea level, sea levels, sea-level, rising seas, rising sea, sea surface height, height of the sea, ocean level, sea rise, sea is rising, seas rising, seas are rising",
+   "examples": "the ocean rising onto the coast, higher seas flooding beaches and coastal towns, how high the sea stands",
+   "dataset": "nasa",
+   "product": "NASA-SSH simple gridded sea surface height v1 (weekly, averaged by month)",
+   "landing": "https://podaac.jpl.nasa.gov/dataset/NASA_SSH_REF_SIMPLE_GRID_V1",
+   "where": "Sea level is only measured over the open sea. Pick a place on the water, or a coast.",
+   "related": [
+    "TS",
+    "FRSEAICE"
+   ],
+   "drivers": [
+    {
+     "driver": "TS",
+     "how": "Warmer water expands and takes up more room."
+    },
+    {
+     "driver": "WS10M",
+     "how": "Steady winds pile water up against a coast or push it away."
+    },
+    {
+     "driver": "PS",
+     "how": "Higher air pressure presses the sea surface down a little."
+    }
+   ],
+   "nearest": true
+  },
+  {
+   "code": "FRSEAICE",
+   "name": "Sea ice cover",
+   "units": "%",
+   "group": "Ocean",
+   "source": "MERRA-2",
+   "percent": false,
+   "scale": 100,
+   "absent_if_constant": true,
+   "definition": "The share of the sea surface that is covered by floating ice. 100% means fully frozen over, 0% means open water.",
+   "keywords": "",
+   "phrases": "sea ice, sea-ice, floating ice, ice cover, ice extent, frozen sea, frozen ocean, pack ice, ice on the sea, ice on the ocean, arctic ice",
+   "examples": "floating ice on the polar oceans melting, the frozen sea shrinking in the Arctic, ice-covered water",
+   "where": "Sea ice only exists on cold seas, mostly in the Arctic and around Antarctica.",
+   "related": [
+    "TS",
+    "T2M",
+    "ALLSKY_SRF_ALB"
+   ],
+   "drivers": [
+    {
+     "driver": "T2M",
+     "how": "Warmer air melts ice and slows new ice from forming."
+    },
+    {
+     "driver": "TS",
+     "how": "Warmer surface water melts ice from below."
+    },
+    {
+     "driver": "ALLSKY_SFC_LW_DWN",
+     "how": "More heat radiation from the sky warms the ice surface."
+    }
+   ]
+  },
+  {
+   "code": "FRSNO",
+   "name": "Snow cover",
+   "units": "%",
+   "group": "Ice and snow",
+   "source": "MERRA-2",
+   "percent": false,
+   "scale": 100,
+   "absent_if_constant": true,
+   "definition": "The share of the land that is covered by snow, averaged over the month. 100% means completely snow-covered.",
+   "keywords": "snowline",
+   "phrases": "snow cover, snow-covered, snow covered, covered in snow, covered by snow, snow extent, white winters, snow line",
+   "examples": "how much of the ground is white with snow, snow-covered land, bare ground where snow used to lie",
+   "where": "Snow cover is only given for land.",
+   "related": [
+    "SNODP",
+    "PRECSNOLAND",
+    "T2M"
+   ],
+   "drivers": [
+    {
+     "driver": "T2M",
+     "how": "Warmer air melts snow sooner and lets less of it settle."
+    },
+    {
+     "driver": "PRECSNOLAND",
+     "how": "Less snowfall leaves less snow on the ground."
+    }
+   ]
+  },
+  {
+   "code": "PRECSNOLAND",
+   "name": "Snowfall",
+   "units": "mm/day",
+   "group": "Ice and snow",
+   "source": "MERRA-2",
+   "percent": true,
+   "absent_if_constant": true,
+   "definition": "How much snow falls on land, counted as the water it holds (melted). It doesn't include rain.",
+   "keywords": "snowfall snowfalls snowflakes snowing snowstorm snowstorms blizzard blizzards",
+   "phrases": "fell as snow, falls as snow, snow-only, snow falling, how much snow falls, less snow falling, more snow falling",
+   "examples": "how much snow falls from the sky, snowstorms and blizzards, winters with little snowfall",
+   "where": "Snowfall is only given for land.",
+   "related": [
+    "SNODP",
+    "FRSNO",
+    "PRECTOTCORR"
+   ],
+   "drivers": [
+    {
+     "driver": "T2M",
+     "how": "When the air warms above freezing, snow falls as rain instead."
+    },
+    {
+     "driver": "PRECTOTCORR",
+     "how": "More rain and snow in total usually means more snow in cold months."
+    }
+   ]
+  },
+  {
+   "code": "FROST_DAYS",
+   "name": "Frost days",
+   "units": "days per month",
+   "group": "Ice and snow",
+   "source": "MERRA-2",
+   "percent": false,
+   "absent_if_constant": true,
+   "definition": "The number of days in the month when the air temperature dropped below 0 °C.",
+   "keywords": "",
+   "phrases": "frost days, frost day, days of frost, days with frost, freezing days, days below zero, days below freezing, frost-free, frost free, number of frosts",
+   "examples": "how many days it freezes, fewer days with frost, a longer frost-free season for farmers",
+   "related": [
+    "T2M_MIN",
+    "FRSNO"
+   ],
+   "drivers": [
+    {
+     "driver": "T2M_MIN",
+     "how": "Warmer nights drop below freezing less often."
+    },
+    {
+     "driver": "CLOUD_AMT",
+     "how": "Cloudy nights hold the warmth in, so they freeze less."
+    }
+   ],
+   "plural": true
+  },
+  {
+   "code": "MERRA2_ICEMELT",
+   "name": "Ice-sheet meltwater runoff",
+   "units": "mm/day",
+   "group": "Ice and snow",
+   "source": "MERRA-2",
+   "percent": true,
+   "absent_if_constant": true,
+   "definition": "How much meltwater (and rain) runs off land that is covered by glaciers or ice sheets, such as Greenland and the edge of Antarctica. More runoff means the ice surface is melting more.",
+   "keywords": "glacier glaciers glacial meltwater",
+   "phrases": "ice sheet, ice sheets, ice cap, ice caps, ice melt, melting ice, ice melting, glacier melt, glacier runoff, ice fields, greenland melt",
+   "examples": "glaciers and ice sheets melting, meltwater pouring off the Greenland ice, ice caps shrinking",
+   "dataset": "nasa",
+   "product": "M2TMNXGLC v5.12.4 (RUNOFF over glaciated land)",
+   "landing": "https://disc.gsfc.nasa.gov/datasets/M2TMNXGLC_5.12.4/summary",
+   "where": "This is only given where the land is covered by glaciers or ice sheets (Greenland, Antarctica, big mountain glaciers).",
+   "related": [
+    "T2M",
+    "SNODP",
+    "ALLSKY_SRF_ALB"
+   ],
+   "drivers": [
+    {
+     "driver": "T2M",
+     "how": "Warmer air melts more of the ice surface."
+    },
+    {
+     "driver": "ALLSKY_SFC_SW_DWN",
+     "how": "More sunlight on the ice melts more of it."
+    }
+   ]
+  },
+  {
+   "code": "TSOIL1",
+   "name": "Soil temperature",
+   "units": "°C",
+   "group": "Land",
+   "source": "MERRA-2",
+   "percent": false,
+   "definition": "How warm the top 10 cm of the soil is.",
+   "keywords": "",
+   "phrases": "soil temperature, soil temperatures, temperature of the soil, warm soil, soil warmth, topsoil temperature, temperature in the ground, underground temperature",
+   "examples": "how warm the soil is for seeds and roots, the earth just below the surface warming up",
+   "where": "Soil temperature is only given for land without permanent ice.",
+   "related": [
+    "T2M",
+    "TSOIL5",
+    "TS"
+   ],
+   "drivers": [
+    {
+     "driver": "T2M",
+     "how": "Warmer air warms the soil below it."
+    },
+    {
+     "driver": "ALLSKY_SFC_SW_DWN",
+     "how": "More sunlight heats the ground."
+    },
+    {
+     "driver": "SNODP",
+     "how": "A snow blanket keeps the soil from the winter cold."
+    }
+   ]
+  },
+  {
+   "code": "TSOIL5",
+   "name": "Deep soil temperature",
+   "units": "°C",
+   "group": "Land",
+   "source": "MERRA-2",
+   "percent": false,
+   "definition": "How warm the ground is about 1.5 to 3 metres down. It changes slowly, so it shows lasting warming or cooling; in the far north it tells whether frozen ground (permafrost) is warming.",
+   "keywords": "",
+   "phrases": "permafrost, deep soil temperature, deep ground temperature, frozen ground, frozen soil, buried layers, below the surface, deep underground, ground thawing, thawing ground",
+   "examples": "permanently frozen ground thawing, the deep ground warming in Siberia and Alaska",
+   "where": "Soil temperature is only given for land without permanent ice.",
+   "related": [
+    "TSOIL1",
+    "T2M",
+    "SNODP"
+   ],
+   "drivers": [
+    {
+     "driver": "T2M",
+     "how": "Years of warmer air slowly warm the deep ground."
+    },
+    {
+     "driver": "SNODP",
+     "how": "Deeper snow keeps winter cold out of the ground."
+    }
+   ]
+  },
+  {
+   "code": "GWETPROF",
+   "name": "Deep soil wetness",
+   "units": "%",
+   "group": "Land",
+   "source": "MERRA-2",
+   "percent": false,
+   "scale": 100,
+   "definition": "How wet the whole soil column is, from the surface down to the bedrock (0% = completely dry, 100% = soaked). It reacts slowly, so it shows long dry or wet spells.",
+   "keywords": "",
+   "phrases": "deep soil, whole soil, soil column, soil profile, profile soil, subsoil, deep soil moisture, deep soil wetness",
+   "examples": "water held deep in the ground, the whole depth of soil drying out over years",
+   "where": "Soil wetness is only given for land.",
+   "related": [
+    "GWETROOT",
+    "GLDAS_TWS",
+    "PRECTOTCORR"
+   ],
+   "family": "soil",
+   "drivers": [
+    {
+     "driver": "PRECTOTCORR",
+     "how": "Rain and snow refill the soil."
+    },
+    {
+     "driver": "EVLAND",
+     "how": "Evaporation and plants draw water out of the soil."
+    }
+   ]
+  },
+  {
+   "code": "GLDAS_TWS",
+   "name": "Water stored on land (GLDAS)",
+   "units": "mm",
+   "group": "Land",
+   "source": "GLDAS Catchment model",
+   "percent": false,
+   "definition": "All the water held on and in the land added together: soil moisture, snow, water on plants and shallow groundwater, as a depth of water in millimetres. This is a model's estimate from weather data, not a direct measurement.",
+   "keywords": "",
+   "phrases": "groundwater, aquifer, aquifers, water storage, terrestrial water, water stored, stored water, water reserves, water table, water in the ground, underground water, land water",
+   "examples": "water stored underground and in the soil, the land's water reserves running low, groundwater and soil water together",
+   "dataset": "nasa",
+   "product": "GLDAS_CLSM10_M v2.1 (TWS_inst)",
+   "landing": "https://disc.gsfc.nasa.gov/datasets/GLDAS_CLSM10_M_2.1/summary",
+   "where": "Water storage is only given for land (not Antarctica).",
+   "related": [
+    "GLDAS_SOILM",
+    "GWETPROF",
+    "PRECTOTCORR"
+   ],
+   "drivers": [
+    {
+     "driver": "PRECTOTCORR",
+     "how": "Rain and snow add water to the land."
+    },
+    {
+     "driver": "EVLAND",
+     "how": "Evaporation takes water away."
+    },
+    {
+     "driver": "SNODP",
+     "how": "Snow is part of the stored water."
+    }
+   ]
+  },
+  {
+   "code": "ALLSKY_SRF_ALB",
+   "name": "Surface brightness (albedo)",
+   "units": "%",
+   "group": "Land",
+   "source": "CERES",
+   "percent": false,
+   "scale": 100,
+   "definition": "The share of sunlight that the surface reflects back. Fresh snow and ice reflect most of it (80% or more), forests and oceans very little (under 15%). A falling value means a darker surface that takes up more heat.",
+   "keywords": "albedo reflectivity reflective",
+   "phrases": "surface brightness, reflects sunlight, reflected sunlight, how bright the ground, darker surface, brighter surface, surface albedo, reflecting less sunlight, reflecting more sunlight, reflects less sunlight",
+   "examples": "snow and ice reflecting sunlight, the ground getting darker as snow disappears, bright deserts and dark forests",
+   "related": [
+    "FRSNO",
+    "FRSEAICE",
+    "MODIS_NDVI"
+   ],
+   "drivers": [
+    {
+     "driver": "FRSNO",
+     "how": "Snow is bright: less snow cover makes the surface darker."
+    },
+    {
+     "driver": "MODIS_NDVI",
+     "how": "Plants are darker than bare soil or snow."
+    },
+    {
+     "driver": "FRSEAICE",
+     "how": "Sea ice is bright, open water is dark."
+    }
+   ]
+  },
+  {
+   "code": "T2M_RANGE",
+   "name": "Daily temperature swing",
+   "units": "°C",
+   "group": "Temperature",
+   "source": "MERRA-2",
+   "percent": false,
+   "definition": "The difference between the day's highest and lowest air temperature, averaged over the month. Deserts have a big range, humid and cloudy places a small one.",
+   "keywords": "",
+   "phrases": "temperature range, day-night, day night, day and night, day to night, between day and night, daily range, diurnal range, daily swing, temperature swing, temperature difference",
+   "examples": "the gap between the day's highest and lowest temperature, deserts with big daily swings, cloudy places where the temperature hardly changes through the day",
+   "related": [
+    "T2M_MAX",
+    "T2M_MIN",
+    "CLOUD_AMT"
+   ],
+   "drivers": [
+    {
+     "driver": "CLOUD_AMT",
+     "how": "Clouds shade the day and keep the night warm, so the range shrinks."
+    },
+    {
+     "driver": "RH2M",
+     "how": "Humid air holds the day's heat through the night."
+    },
+    {
+     "driver": "AOD_55",
+     "how": "Haze dims the daytime sun."
+    }
+   ]
+  },
+  {
+   "code": "CDD18_3",
+   "name": "Cooling need (degree days)",
+   "units": "degree days",
+   "group": "Temperature",
+   "source": "MERRA-2",
+   "percent": true,
+   "absent_if_constant": true,
+   "definition": "A measure of how much air conditioning buildings need: for every day warmer than 18.3 °C, the degrees above it are added up over the month.",
+   "keywords": "",
+   "phrases": "cooling degree, cooling need, cooling needs, air conditioning, air-conditioning, air conditioner, air conditioners, need for cooling, cooling demand",
+   "examples": "how much air conditioning a city needs, hotter summers raising electricity use for cooling",
+   "related": [
+    "T2M_MAX",
+    "HDD18_3",
+    "T2M"
+   ],
+   "drivers": [
+    {
+     "driver": "T2M_MAX",
+     "how": "Hotter days add more degrees above the comfort level."
+    },
+    {
+     "driver": "T2M_MIN",
+     "how": "Warm nights keep the count running."
+    }
+   ]
+  },
+  {
+   "code": "HDD18_3",
+   "name": "Heating need (degree days)",
+   "units": "degree days",
+   "group": "Temperature",
+   "source": "MERRA-2",
+   "percent": true,
+   "absent_if_constant": true,
+   "definition": "A measure of how much heating buildings need: for every day colder than 18.3 °C, the degrees below it are added up over the month.",
+   "keywords": "",
+   "phrases": "heating degree, heating need, heating needs, need for heating, heating demand, heating bills, heating season, heat our homes, heat homes",
+   "examples": "how much heating homes need in winter, milder winters lowering heating bills",
+   "related": [
+    "T2M_MIN",
+    "CDD18_3",
+    "T2M"
+   ],
+   "drivers": [
+    {
+     "driver": "T2M_MIN",
+     "how": "Milder cold days and nights need less heating."
+    },
+    {
+     "driver": "T2M",
+     "how": "Warmer air overall lowers the heating need."
+    }
+   ]
+  },
+  {
+   "code": "T2MDEW",
+   "name": "Dew point",
+   "units": "°C",
+   "group": "Water",
+   "source": "MERRA-2",
+   "percent": false,
+   "definition": "The temperature to which the air must cool for dew (or frost) to form. A higher dew point means more water vapour in the air, which is what makes hot weather feel sticky.",
+   "keywords": "dewpoint dew",
+   "phrases": "dew point, dew-point, frost point",
+   "examples": "sticky sweaty air on hot days, morning dew on the grass, how muggy it feels",
+   "related": [
+    "QV2M",
+    "RH2M",
+    "T2M"
+   ],
+   "family": "humidity",
+   "drivers": [
+    {
+     "driver": "QV2M",
+     "how": "The dew point follows the amount of water vapour in the air."
+    },
+    {
+     "driver": "T2M",
+     "how": "Warmer air can carry more water vapour."
+    }
+   ]
+  },
+  {
+   "code": "TROPT",
+   "name": "Tropopause temperature",
+   "units": "°C",
+   "group": "Upper air",
+   "source": "MERRA-2",
+   "percent": false,
+   "definition": "The temperature at the top of the weather layer (the tropopause), 8 to 17 km up, where the lower air ends and the stratosphere begins. It is the coldest level planes fly near.",
+   "keywords": "tropopause",
+   "phrases": "tropopause temperature, top of the weather layer, top of the troposphere, upper troposphere, high altitude temperature, temperature high up, upper air temperature, upper atmosphere temperature, where planes fly, cruising altitude",
+   "examples": "how cold it is high up where jets fly, the temperature at the top of the weather layer",
+   "related": [
+    "TROPPB",
+    "AIRS_T50",
+    "T2M"
+   ],
+   "drivers": [
+    {
+     "driver": "T2M",
+     "how": "Warming near the ground changes how warm the air above it is."
+    },
+    {
+     "driver": "TO3",
+     "how": "Ozone above absorbs sunlight and warms the layer."
+    }
+   ]
+  },
+  {
+   "code": "TROPPB",
+   "name": "Tropopause pressure (height of the weather layer)",
+   "units": "hPa",
+   "group": "Upper air",
+   "source": "MERRA-2",
+   "percent": false,
+   "scale": 10,
+   "definition": "The air pressure at the top of the weather layer (the tropopause). Lower pressure means the top is HIGHER up: a falling value shows the weather layer is getting deeper, which warming of the lower air is expected to do.",
+   "keywords": "",
+   "phrases": "tropopause height, tropopause pressure, height of the tropopause, height of the weather layer, depth of the weather layer, troposphere height, troposphere depth, how high the weather reaches, tropopause rising",
+   "examples": "how high up the weather reaches, the layer of air with clouds and storms getting deeper",
+   "related": [
+    "TROPT",
+    "T2M",
+    "AIRS_T50"
+   ],
+   "drivers": [
+    {
+     "driver": "T2M",
+     "how": "Warmer lower air expands and pushes the top of the weather layer up."
+    },
+    {
+     "driver": "TO3",
+     "how": "Changes in the ozone layer cool or warm the air just above."
+    }
+   ]
+  },
+  {
+   "code": "AIRS_T50",
+   "name": "Stratosphere temperature (AIRS)",
+   "units": "°C",
+   "group": "Upper air",
+   "source": "AIRS (Aqua satellite)",
+   "percent": false,
+   "definition": "The air temperature about 20 km up, in the stratosphere (at the 50 hPa pressure level), measured from space by AIRS. While the lower air warms, this layer is expected to cool: the same process with the opposite sign.",
+   "keywords": "",
+   "phrases": "stratosphere, stratospheric, stratosphere temperature, temperature of the stratosphere, 50 hpa, 20 km up, upper air cooling, high atmosphere, above the weather",
+   "examples": "the temperature high above the clouds in the stratosphere, about 20 kilometres up, the layer above the weather",
+   "dataset": "nasa",
+   "step": 2,
+   "product": "AIRS3STM v7.0 (Temperature at 50 hPa, day and night averaged)",
+   "landing": "https://disc.gsfc.nasa.gov/datasets/AIRS3STM_7.0/summary",
+   "related": [
+    "TROPT",
+    "TO3",
+    "T2M"
+   ],
+   "drivers": [
+    {
+     "driver": "TO3",
+     "how": "Ozone absorbs sunlight and warms the stratosphere: less ozone, cooler air."
+    },
+    {
+     "driver": "T2M",
+     "how": "Gases that warm the lower air cool the stratosphere."
+    }
+   ]
+  },
+  {
+   "code": "WS10M_MAX",
+   "name": "Peak wind of the month",
+   "units": "m/s",
+   "group": "Air",
+   "source": "MERRA-2",
+   "percent": false,
+   "definition": "The highest wind speed reached during the month, 10 metres above the ground (hourly averages over a wide area, so single gusts are stronger).",
+   "keywords": "gale gales storm stormy stormier",
+   "phrases": "strongest wind, strongest winds, maximum wind, peak wind, wind storms, windstorms, storm winds, high winds, strong winds, stronger storms",
+   "examples": "how hard the wind blows in the worst storm of the month, gales and wind storms on the coast",
+   "related": [
+    "WS10M",
+    "PS"
+   ],
+   "drivers": [
+    {
+     "driver": "PS",
+     "how": "Deep low-pressure systems bring the strongest winds."
+    },
+    {
+     "driver": "WS10M",
+     "how": "Windier months usually have stronger peak winds too."
+    }
+   ]
+  },
+  {
+   "code": "MERRA2_DUST",
+   "name": "Desert dust in the air",
+   "units": "AOD",
+   "group": "Pollution",
+   "source": "MERRA-2",
+   "percent": true,
+   "definition": "How much desert dust hangs in the whole column of air, measured by how much it dims light (aerosol optical depth). Highest over and downwind of deserts such as the Sahara and the Gobi. Shown from 2003, when two MODIS satellite instruments began to guide the model.",
+   "keywords": "sandstorm sandstorms",
+   "phrases": "desert dust, dust storm, dust storms, sand storm, sand storms, saharan dust, blowing dust, blowing sand, dust in the air, mineral dust",
+   "examples": "dust storms blowing off the desert, sand and dust carried by the wind from the Sahara",
+   "dataset": "nasa",
+   "step": 2,
+   "product": "M2TMNXAER v5.12.4 (DUEXTTAU)",
+   "landing": "https://disc.gsfc.nasa.gov/datasets/M2TMNXAER_5.12.4/summary",
+   "related": [
+    "AOD_55",
+    "WS10M",
+    "GWETTOP"
+   ],
+   "family": "pollution",
+   "drivers": [
+    {
+     "driver": "WS10M",
+     "how": "Stronger wind lifts more dust off dry ground."
+    },
+    {
+     "driver": "GWETTOP",
+     "how": "Wet topsoil holds its dust."
+    },
+    {
+     "driver": "PRECTOTCORR",
+     "how": "Rain washes dust out of the air and wets the ground."
+    }
+   ]
+  },
+  {
+   "code": "MERRA2_SMOKE",
+   "name": "Smoke and soot in the air",
+   "units": "AOD",
+   "group": "Pollution",
+   "source": "MERRA-2",
+   "percent": true,
+   "definition": "How much smoke and soot (carbon particles from wildfires, burning fields, engines and chimneys) hangs in the whole column of air, measured by how much it dims light. Shown from 2003, when two MODIS satellite instruments began to guide the model. Important: the model's estimates of factory and traffic emissions were not updated after about 2010, so changes since then mostly reflect weather, dust and fires, not new pollution rules; the total amount of particles is kept close to satellite measurements.",
+   "keywords": "soot sooty wildfire wildfires bushfire bushfires",
+   "phrases": "wildfire smoke, forest fire, forest fires, forest fire smoke, bush fire, bush fires, smoke from fires, biomass burning, burning season, smoke in the air, fire smoke, black carbon, soot in the air, diesel soot",
+   "examples": "smoke from wildfires and burning forests, sooty air from fires and engines",
+   "dataset": "nasa",
+   "step": 2,
+   "product": "M2TMNXAER v5.12.4 (BCEXTTAU + OCEXTTAU)",
+   "landing": "https://disc.gsfc.nasa.gov/datasets/M2TMNXAER_5.12.4/summary",
+   "related": [
+    "AOD_55",
+    "AIRS_CO",
+    "T2M_MAX"
+   ],
+   "family": "pollution",
+   "drivers": [
+    {
+     "driver": "T2M_MAX",
+     "how": "Hot spells dry out plants, which then burn more easily."
+    },
+    {
+     "driver": "GWETROOT",
+     "how": "Dry soil means dry plants and more fire."
+    },
+    {
+     "driver": "PRECTOTCORR",
+     "how": "Rain puts fires out and washes smoke away."
+    }
+   ]
+  },
+  {
+   "code": "MERRA2_SULFATE",
+   "name": "Sulfate haze in the air",
+   "units": "AOD",
+   "group": "Pollution",
+   "source": "MERRA-2",
+   "percent": true,
+   "definition": "How much sulfate haze (tiny particles formed from the sulfur in coal and oil smoke, and from volcanoes) hangs in the whole column of air, measured by how much it dims light. Shown from 2003, when two MODIS satellite instruments began to guide the model. Important: the model's estimates of factory and traffic emissions were not updated after about 2010, so changes since then mostly reflect weather, dust and fires, not new pollution rules; the total amount of particles is kept close to satellite measurements.",
+   "keywords": "sulfate sulphate sulfur sulphur volcanic",
+   "phrases": "sulfate haze, sulphate haze, acid rain, coal smoke, coal burning, coal pollution, power plant pollution, industrial haze, factory haze, sulfate particles, sulphate particles, sulfate at ground level",
+   "examples": "haze from coal power plants and heavy industry, sulfur pollution from factories and volcanoes",
+   "dataset": "nasa",
+   "step": 2,
+   "product": "M2TMNXAER v5.12.4 (SUEXTTAU)",
+   "landing": "https://disc.gsfc.nasa.gov/datasets/M2TMNXAER_5.12.4/summary",
+   "related": [
+    "AOD_55",
+    "OMI_NO2"
+   ],
+   "family": "pollution",
+   "drivers": [
+    {
+     "driver": "OMI_NO2",
+     "how": "Both come from burning coal and oil, so they often move together."
+    },
+    {
+     "driver": "PRECTOTCORR",
+     "how": "Rain washes haze out of the air."
+    }
+   ]
+  },
+  {
+   "code": "AIRS_CH4",
+   "name": "Methane (AIRS)",
+   "units": "ppb",
+   "group": "Pollution",
+   "source": "AIRS (Aqua satellite)",
+   "percent": true,
+   "definition": "How much methane (CH₄, a strong greenhouse gas from wetlands, cattle, rice fields, landfills and gas leaks) is in the air about 7 km up, in parts per billion, measured from space by AIRS.",
+   "keywords": "methane ch4",
+   "phrases": "methane, greenhouse gas, greenhouse gases, natural gas leaks, gas leaks",
+   "examples": "methane gas from cattle, wetlands and gas leaks, greenhouse gases building up in the air",
+   "dataset": "nasa",
+   "step": 2,
+   "product": "AIRS3STM v7.0 (CH4 at 400 hPa, day and night averaged)",
+   "landing": "https://disc.gsfc.nasa.gov/datasets/AIRS3STM_7.0/summary",
+   "related": [
+    "AIRS_CO",
+    "T2M"
+   ],
+   "drivers": []
+  },
+  {
+   "code": "AIRS_CO",
+   "name": "Carbon monoxide (AIRS)",
+   "units": "ppb",
+   "group": "Pollution",
+   "source": "AIRS (Aqua satellite)",
+   "percent": true,
+   "definition": "How much carbon monoxide (CO, a gas from fires, engines and stoves) is in the air about 5.5 km up, in parts per billion, measured from space by AIRS. It travels far, so it also shows smoke from distant fires. (We have no carbon monoxide measurement at ground level.)",
+   "keywords": "monoxide",
+   "phrases": "carbon monoxide, carbon monoxide high up, carbon monoxide aloft, carbon monoxide at ground level, car fumes, exhaust gas",
+   "examples": "carbon monoxide gas from fires and car engines, fumes from burning carried by the wind",
+   "dataset": "nasa",
+   "step": 2,
+   "product": "AIRS3STM v7.0 (CO at 500 hPa, day and night averaged)",
+   "landing": "https://disc.gsfc.nasa.gov/datasets/AIRS3STM_7.0/summary",
+   "related": [
+    "MERRA2_SMOKE",
+    "OMI_NO2"
+   ],
+   "family": "pollution",
+   "drivers": [
+    {
+     "driver": "MERRA2_SMOKE",
+     "how": "Fires give off smoke and carbon monoxide together."
+    }
+   ]
+  },
+  {
+   "code": "ALLSKY_SFC_LW_DWN",
+   "name": "Heat radiation from the sky",
+   "units": "MJ/m²/day",
+   "group": "Sun and sky",
+   "source": "CERES",
+   "percent": false,
+   "definition": "The invisible heat (infrared) radiation that the air and clouds send down to the ground. Warmer, more humid and cloudier air sends more; greenhouse gases raise it.",
+   "keywords": "longwave infrared",
+   "phrases": "heat radiation, greenhouse effect, long-wave, long wave, thermal radiation, heat from the sky, back radiation, heat trapped, trapped heat",
+   "examples": "the greenhouse effect trapping heat, warmth sent down by the air and clouds at night",
+   "related": [
+    "T2M",
+    "QV2M",
+    "CLOUD_AMT"
+   ],
+   "drivers": [
+    {
+     "driver": "T2M",
+     "how": "Warmer air glows more strongly in the infrared."
+    },
+    {
+     "driver": "PW",
+     "how": "Water vapour is the main greenhouse gas: more of it sends more heat down."
+    },
+    {
+     "driver": "CLOUD_AMT",
+     "how": "Clouds send heat back to the ground."
+    }
+   ]
+  },
+  {
+   "code": "ALLSKY_SFC_UV_INDEX",
+   "name": "UV index",
+   "units": "index",
+   "group": "Sun and sky",
+   "source": "CERES",
+   "percent": false,
+   "definition": "How strong the sun's skin-burning ultraviolet rays are at the ground, averaged over the day (the midday value in weather reports is several times higher).",
+   "keywords": "sunburn sunburns",
+   "phrases": "uv index, uv rays, uv radiation, ultraviolet radiation, ultraviolet rays, ultraviolet light, sunburn risk, burning rays, skin cancer",
+   "examples": "how fast you get sunburnt, the sun's burning ultraviolet rays reaching the ground",
+   "related": [
+    "TO3",
+    "CLOUD_AMT",
+    "ALLSKY_SFC_SW_DWN"
+   ],
+   "drivers": [
+    {
+     "driver": "TO3",
+     "how": "The ozone layer blocks ultraviolet rays: less ozone, more UV."
+    },
+    {
+     "driver": "CLOUD_AMT",
+     "how": "Clouds block part of the UV."
+    },
+    {
+     "driver": "AOD_55",
+     "how": "Haze and dust scatter UV."
+    }
+   ]
+  },
+  {
+   "code": "MERRA2_PM25",
+   "name": "Fine particles (PM2.5)",
+   "units": "µg/m³",
+   "group": "Pollution",
+   "source": "MERRA-2",
+   "percent": true,
+   "definition": "How much fine particulate matter (PM2.5: particles smaller than 2.5 thousandths of a millimetre, small enough to reach deep into the lungs) is in the air we breathe, in micrograms per cubic metre. The World Health Organization's guideline for the yearly average is 5 µg/m³. Calculated by the MERRA-2 model from its dust, sea salt, soot, organic and sulfate particles; it doesn't include nitrate particles, so city values are on the low side. Shown from 2003, when two MODIS satellite instruments began to guide the model. Important: the model's estimates of factory and traffic emissions were not updated after about 2010, so changes since then mostly reflect weather, dust and fires, not new pollution rules; the total amount of particles is kept close to satellite measurements.",
+   "keywords": "pm25 pm2.5 particulate particulates",
+   "phrases": "fine particles, fine particulate, particulate matter, pm 2.5, pm2.5, air we breathe, breathing air, unhealthy air, bad air, air pollution at ground level, dirty air we breathe, lung, particles at ground level, particulate pollution, particle pollution",
+   "examples": "tiny particles in the air we breathe, unhealthy air in cities, air pollution that harms the lungs",
+   "dataset": "nasa",
+   "product": "M2TMNXAER v5.12.4 (surface DUSMASS25 + SSSMASS25 + BCSMASS + 1.4 × OCSMASS + 1.375 × SO4SMASS)",
+   "landing": "https://disc.gsfc.nasa.gov/datasets/M2TMNXAER_5.12.4/summary",
+   "related": [
+    "MERRA2_OC",
+    "MERRA2_DUST25",
+    "AOD_55",
+    "OMI_NO2"
+   ],
+   "family": "pollution",
+   "drivers": [
+    {
+     "driver": "MERRA2_OC",
+     "how": "Smoke from fires, stoves and traffic adds organic particles."
+    },
+    {
+     "driver": "MERRA2_DUST25",
+     "how": "Dust blows in from dry land and deserts."
+    },
+    {
+     "driver": "WS10M",
+     "how": "Calm air lets pollution build up; wind blows it away."
+    },
+    {
+     "driver": "PRECTOTCORR",
+     "how": "Rain washes particles out of the air."
+    },
+    {
+     "driver": "MERRA2_SULFATE",
+     "how": "Sulfate from coal and oil burning is a large part of PM2.5."
+    }
+   ],
+   "guideline": {
+    "value": 5,
+    "text": "the World Health Organization's guideline for the yearly average (5 µg/m³)"
+   }
+  },
+  {
+   "code": "MERRA2_OC",
+   "name": "Organic smoke particles at ground level",
+   "units": "µg/m³",
+   "group": "Pollution",
+   "source": "MERRA-2",
+   "percent": true,
+   "definition": "How much organic particle matter (from wildfires, burning crops and wood, traffic, and gases given off by plants) is in the air at ground level. Shown from 2003, when two MODIS satellite instruments began to guide the model. Important: the model's estimates of factory and traffic emissions were not updated after about 2010, so changes since then mostly reflect weather, dust and fires, not new pollution rules; the total amount of particles is kept close to satellite measurements.",
+   "keywords": "",
+   "phrases": "organic carbon, organic particles, organic aerosol, smoke particles, wood smoke, burning crops, crop burning, stubble burning, smoke particles at ground level, organic particles at ground level",
+   "examples": "smoke particles from burning fields and wood stoves, haze from forest fires at ground level",
+   "dataset": "nasa",
+   "product": "M2TMNXAER v5.12.4 (1.4 × OCSMASS)",
+   "landing": "https://disc.gsfc.nasa.gov/datasets/M2TMNXAER_5.12.4/summary",
+   "related": [
+    "MERRA2_SMOKE",
+    "MERRA2_PM25"
+   ],
+   "family": "pollution",
+   "drivers": [
+    {
+     "driver": "MERRA2_SMOKE",
+     "how": "Fires give off most of the organic particles in many places."
+    },
+    {
+     "driver": "T2M_MAX",
+     "how": "Hot dry spells dry out plants, which then burn more easily."
+    }
+   ]
+  },
+  {
+   "code": "MERRA2_DUST25",
+   "name": "Fine dust at ground level",
+   "units": "µg/m³",
+   "group": "Pollution",
+   "source": "MERRA-2",
+   "percent": true,
+   "definition": "How much fine mineral dust (the PM2.5 part of desert and soil dust) is in the air at ground level. Shown from 2003, when two MODIS satellite instruments began to guide the model.",
+   "keywords": "",
+   "phrases": "fine dust, dust we breathe, dusty air, dust particles, dust at ground level",
+   "examples": "fine desert dust in the air people breathe, dusty air in dry cities",
+   "dataset": "nasa",
+   "product": "M2TMNXAER v5.12.4 (DUSMASS25)",
+   "landing": "https://disc.gsfc.nasa.gov/datasets/M2TMNXAER_5.12.4/summary",
+   "related": [
+    "MERRA2_DUST",
+    "GWETTOP",
+    "WS10M"
+   ],
+   "family": "pollution",
+   "drivers": [
+    {
+     "driver": "WS10M",
+     "how": "Stronger wind lifts more dust."
+    },
+    {
+     "driver": "GWETTOP",
+     "how": "Wet topsoil holds its dust."
+    },
+    {
+     "driver": "PRECTOTCORR",
+     "how": "Rain washes dust out of the air."
+    }
+   ]
+  },
+  {
+   "code": "OMI_SO2",
+   "name": "Sulfur dioxide (OMI satellite)",
+   "units": "DU",
+   "group": "Pollution",
+   "source": "OMI (Aura satellite)",
+   "percent": false,
+   "definition": "How much sulfur dioxide (SO₂, from coal power plants, metal smelters, oil fields and volcanoes) is in the lowest part of the air, measured from space by OMI, in Dobson units. Daily maps are averaged by month.",
+   "keywords": "so2 smelter smelters so2",
+   "phrases": "sulfur dioxide, sulphur dioxide, sulfur pollution, sulphur pollution, volcanic gas, volcano gas, volcanic gases, volcano gases, sulfur dioxide at ground level, sulphur dioxide at ground level, so2 at ground",
+   "examples": "sulfur dioxide gas from coal plants and volcanoes seen from space",
+   "dataset": "nasa",
+   "product": "OMSO2e v003 (daily, averaged by month)",
+   "landing": "https://disc.gsfc.nasa.gov/datasets/OMSO2e_003/summary",
+   "low_level": 0.15,
+   "low_note": "Here there is very little SO₂ (on average below 0.15 Dobson units), within the noise of OMI's measurement. Trends at such low levels can come from the instrument rather than the air, so this result is not reliable. SO₂ trends are most meaningful near power plants, smelters and volcanoes.",
+   "related": [
+    "MERRA2_SULFATE",
+    "OMI_NO2"
+   ],
+   "family": "pollution",
+   "drivers": []
+  }
+ ],
+ "not_available": [
+  {
+   "words": "forecast forecasts predict prediction projected projection projections",
+   "say": "ByteMe measures how things changed in the past; it doesn't forecast the future.",
+   "closest": null,
+   "phrases": "will fall, will rain, will it, next year, next month, next summer, next winter, in the future"
+  },
+  {
+   "words": "hourly hour hours",
+   "say": "Our data are monthly averages, not hourly values.",
+   "closest": null,
+   "phrases": ""
+  },
+  {
+   "words": "discharge flood floods flooding",
+   "say": "River flow and floods aren't in our data set; 'Runoff (GLDAS)' shows the water draining off the land.",
+   "closest": "GLDAS_RUNOFF",
+   "phrases": "river flow, flow in the, flow of the, flows down the river, river discharge",
+   "examples": "rivers overflowing and flooding towns, how much water flows down a river"
+  },
+  {
+   "words": "yield yields harvest harvests millet wheat maize",
+   "say": "Crop yields aren't in our data set.",
+   "closest": "MODIS_NDVI",
+   "phrases": "",
+   "examples": "how much food farmers harvest, crop production and failed harvests"
+  },
+  {
+   "words": "volume",
+   "phrases": "water level, surface area, square kilometres, square kilometers, footprint, how high the reservoir",
+   "say": "Water levels and the size of lakes, rivers and reservoirs aren't in our data set. 'Runoff (GLDAS)' shows how much water drains off the land into rivers, and rain shows how much falls.",
+   "closest": "GLDAS_RUNOFF",
+   "examples": "how full a lake or reservoir is, a lake shrinking or the water level dropping"
+  },
+  {
+   "words": "chill",
+   "phrases": "wind chill, feels-like, feels like, feel colder",
+   "say": "'Feels-like' temperature (wind chill) isn't in our data set; we have air temperature and wind speed separately.",
+   "closest": "T2M",
+   "examples": "how cold the wind makes it feel"
+  },
+  {
+   "phrases": "over the lake surface, off the reservoir, from the water surface, open-water",
+   "say": "Evaporation from a lake's own water surface isn't in our data set; 'Evaporation from land' covers the land around it.",
+   "closest": "EVLAND",
+   "words": "",
+   "examples": "water evaporating from the surface of a lake or reservoir"
+  },
+  {
+   "words": "formaldehyde hcho voc vocs",
+   "phrases": "volatile organic, organic gases",
+   "say": "Formaldehyde and other organic gases aren't in our data set (OMI's formaldehyde record drifts too much over the years to trust its trend).",
+   "closest": "MERRA2_OC",
+   "examples": "formaldehyde and organic gases from forests, fires and factories"
+  }
+ ],
+ "families": {
+  "temperature": {
+   "head": "T2M",
+   "words": "temperature temperatures warm warmer warming hot hotter heat heating cold colder cool cooler cooling"
+  },
+  "rain": {
+   "head": "PRECTOTCORR",
+   "words": "rain rains raining rainfall rainy precipitation wet wetter drought monsoon"
+  },
+  "soil": {
+   "head": "GWETROOT",
+   "words": "soil soils moisture dry drier drying drought"
+  },
+  "evaporation": {
+   "head": "EVLAND",
+   "words": "evaporation evaporate evaporating evapotranspiration"
+  },
+  "humidity": {
+   "head": "RH2M",
+   "words": "humid humidity muggy moisture moist damp"
+  },
+  "pollution": {
+   "head": "AOD_55",
+   "words": "pollution polluted smog dirty"
+  }
+ }
+}
