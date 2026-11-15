@@ -1,0 +1,39 @@
+const assert = require("node:assert/strict");
+const { test } = require("node:test");
+const { relatedLeads, assessLead, policyTest } = require("../experiments.js");
+const london = require("../data/london-ulez.json");
+
+function record(rate) {
+  const dates = Array.from({ length: 240 }, (_, i) => ({ year: 2000 + Math.floor(i / 12), month: i % 12 + 1 }));
+  const values = dates.map(({ month }, i) => rate * i / 120 + Math.sin(month) + 0.1 * Math.sin(i * 2));
+  return { dates, values };
+}
+
+test("a lead can fit a prediction, weaken it, or remain open", () => {
+  const temperature = record(2), fallingSnow = record(-3), risingSnow = record(3);
+  const [lead] = relatedLeads("T2M", { SNODP: fallingSnow });
+  assert.equal(lead.to, "SNODP");
+  assert.equal(relatedLeads("T2M", {}).length, 0);
+  assert.equal(assessLead(lead, temperature, fallingSnow).verdict, "consistent");
+  assert.equal(assessLead(lead, temperature, risingSnow).verdict, "weakened");
+  assert.equal(assessLead(lead, temperature, record(0)).verdict, "insufficient");
+  assert.equal(assessLead(lead, temperature, null).verdict, "insufficient");
+});
+
+test("the data and checks reproduce the London policy experiment", () => {
+  const initial = policyTest(london, { postWeeks: 13 });
+  assert.equal(initial.weeks[initial.intervention].date, "2019-04-08");
+  assert.equal(initial.before.count, 8);
+  assert.equal(initial.after.count, 13);
+  assert.ok(Math.abs(initial.before.gap - (-5.66)) < 0.01);
+  assert.ok(Math.abs(initial.after.gap - (-11.88)) < 0.01);
+  assert.ok(Math.abs(initial.after.percent - (-17.44)) < 0.01);
+
+  const adjusted = policyTest(london, { postWeeks: 13, adjustBaseline: true });
+  assert.ok(adjusted.after.gap > initial.after.gap && adjusted.after.gap < 0);
+  assert.ok(Math.abs(adjusted.after.gap - (initial.after.gap - initial.before.gap)) < 1e-10);
+  const bothChecks = policyTest(london, { omitLargestDonor: true, adjustBaseline: true });
+  assert.equal(bothChecks.after.count, 48);
+  assert.ok(bothChecks.after.gap < 0);
+  assert.ok(Math.abs(london.weights.reduce((sum, { weight }) => sum + weight, 0) - 1) < 1e-6);
+});

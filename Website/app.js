@@ -33,8 +33,8 @@ window.BYTEME_CASES = CASES;
 let VARS = [], POWER_VARS = [], NASA = null, NOT_AVAILABLE = [], WORLD = null, LAND = null, map = null, marker = null;
 const state = {
   lat: null, lon: null, name: "", code: "T2M",
-  raw: false, loading: false, error: null, layer: true,
-  fullRecord: null, analysis: null, period: null,
+  raw: false, loading: false, error: null, layer: true, scanOpen: false,
+  fullRecord: null, analysis: null, period: null, selectedLead: null,
 };
 const compare = {
   code: "AOD_55", period: null, records: null,
@@ -284,10 +284,12 @@ Promise.all([
   if (linkedComparison) Object.assign(compare, linkedComparison);
   buildCompare(catalogue.groups);
   const fromLink = readHash();
+  const openExperiment = location.hash === "#experiment";
   const first = fromLink || CASES[0];
   if (fromLink) state.code = fromLink.code;
   selectPlace(first.lat, first.lon, first.name, first.code, true, first.period || null);
   if (linkedComparison) $("compare").scrollIntoView();
+  else if (openExperiment) $("experiment").scrollIntoView();
 });
 
 // Preserve old place links and append an optional analysis period.
@@ -339,6 +341,7 @@ function buildVariableSelect(groups) {
 }
 function selectVariable(code) {
   state.code = code;
+  state.selectedLead = null;
   $("var-select").value = code;
   showExplorePeriod();
   writeHash(); refreshWorldLayer(); renderScan(); renderDetail();
@@ -360,7 +363,7 @@ async function selectPlace(lat, lon, name, code, fly, period = state.period) {
   const ticket = ++selectionTicket;
   Object.assign(state, {
     lat, lon, name: name || coordText(lat, lon), period,
-    loading: true, error: null, fullRecord: null, analysis: null,
+    loading: true, error: null, fullRecord: null, analysis: null, selectedLead: null,
   });
   if (code) { state.code = code; $("var-select").value = code; }
   showExplorePeriod();
@@ -546,7 +549,7 @@ const VERDICT_ORDER = { significant: 0, possible: 1, none: 2, insufficient: 3 };
 function renderScan() {
   const el = $("scan");
   placeMarker();
-  const head = `<div><span class="tag">What is changing here</span>
+  const head = `<div><span class="tag">Investigation site</span>
     <h3>${escapeHTML(state.name)}</h3>
     <p class="meta">${coordText(state.lat, state.lon)} · ${state.period ? escapeHTML([state.period.from || "Record start", state.period.to || "Record end"].join(" to ")) : "Full records"}</p></div>`;
   if (state.loading) { el.innerHTML = head + `<div class="loading"><span class="spinner"></span>Reading up to ${END_YEAR - START_YEAR + 1} years of NASA data for this place…</div>`; return; }
@@ -575,19 +578,26 @@ function renderScan() {
     : "No measurements have enough data for a trend verdict in this period.";
   el.innerHTML = head + `
     ${state.fullRecord.powerUnavailable ? `<p class="meta">Live NASA POWER data is unavailable. Bundled datasets are still available here.</p>` : ""}
+    <p class="summary">Use the evidence below to inspect ${escapeHTML(variable(state.code).name.toLowerCase())}. Open a lead when another measurement could help test an explanation.</p>
+    <details data-trend-scan${state.scanOpen ? " open" : ""}>
+    <summary>Browse measurement trends</summary>
     <p class="summary">${summary}</p>
     <div class="scan">${rows.map(({ v, r }) => `
       <button class="row${v.code === state.code ? " on" : ""}" data-code="${v.code}" title="${escapeHTML(v.definition)}">
         ${dotHTML(r)}
         <span class="what">${v.name}<small>${r ? (r.verdict === "none" ? "No clear trend yet" : r.verdict === "insufficient" ? "Not enough data" : verdictText(r) + confirmed(v)) : "No data here"}</small></span>
         <span class="rate">${r && r.slope_per_decade !== null ? `${num(r.slope_per_decade)} <small>${v.units} / decade</small>` : "–"}</span>
-      </button>`).join("")}</div>`;
+      </button>`).join("")}</div>
+    </details>`;
+  const scan = el.querySelector("[data-trend-scan]");
+  scan.addEventListener("toggle", () => { state.scanOpen = scan.open; });
   el.querySelectorAll(".row").forEach((b) => b.addEventListener("click", () => selectVariable(b.dataset.code)));
 }
 
 // ------------------------------------------------------------------ the evidence for one measurement
 function renderDetail() {
   const el = $("detail"), v = variable(state.code);
+  renderFollowUps(v);
   if (state.loading || state.error || !state.analysis) {
     el.innerHTML = `<div class="detail-text"><span class="tag">${escapeHTML(state.name)} · ${v.name}</span>
       <p style="margin:0"><strong style="font-weight:500">${v.name}:</strong> ${v.definition}</p>
@@ -681,6 +691,80 @@ function detailChart(r) {
 function bindDetailChart(el, r, s, v, reference) {
   el.querySelectorAll("[data-raw]").forEach((b) => b.addEventListener("click", () => { state.raw = b.dataset.raw === "1"; renderDetail(); }));
   drawChart("chart", r, s, v, state.raw, undefined, reference);
+}
+
+// ------------------------------------------------------------------ follow up on the current finding
+function renderFollowUps(measurement) {
+  const panel = $("follow-ups");
+  if (!state.analysis) {
+    panel.hidden = true;
+    panel.replaceChildren();
+    return;
+  }
+  const full = state.fullRecord;
+  const choices = ByteMeExperiments.relatedLeads(measurement.code, full.series);
+  const partner = partnerOf(measurement);
+  if (partner && full.series[partner.code]?.values.some(Number.isFinite)) {
+    choices.push({
+      from: measurement.code, to: partner.code, label: "Check another source", expectedSign: 1,
+      prediction: "If the products agree about the direction of change, both should show the same direction over their shared months.",
+      alternative: "Differences in coverage, resolution, or how a product defines the measurement can explain a disagreement.",
+    });
+  }
+  panel.hidden = choices.length === 0;
+  if (panel.hidden) return;
+  panel.innerHTML = `<h3>Test a lead</h3><div class="lead-options">${choices.map(({ to, label }) =>
+    `<button type="button" class="pill${state.selectedLead === to ? " on" : ""}" data-lead="${to}"
+      aria-pressed="${state.selectedLead === to}">${escapeHTML(label)}</button>`).join("")}</div>
+    <div class="lead-evidence"></div>`;
+
+  panel.querySelectorAll("[data-lead]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.selectedLead = button.dataset.lead;
+      renderFollowUps(measurement);
+      panel.querySelector(".lead-evidence h4")?.focus({ preventScroll: true });
+    });
+  });
+  const lead = choices.find(({ to }) => to === state.selectedLead);
+  if (lead) renderLeadEvidence(panel.querySelector(".lead-evidence"), lead);
+}
+
+function renderLeadEvidence(panel, lead) {
+  const { paired, fits, verdict } = ByteMeExperiments.assessLead(
+    lead, state.analysis.series[lead.from], state.analysis.series[lead.to],
+  );
+  const headlines = {
+    consistent: "The records fit this prediction",
+    weakened: "The trends weaken this explanation",
+    insufficient: "The evidence leaves this lead open",
+  };
+  const evidence = {
+    consistent: "Both measurements have a clear direction over the same months, and their directions fit the prediction.",
+    weakened: "Both measurements have a clear direction, and their directions differ from this prediction. Give this explanation less weight for the selected period.",
+    insufficient: "The trend tests do not give both measurements a clear, reliable direction over this period.",
+  };
+  const coverage = paired?.count
+    ? `${dateSpan(paired.first, paired.last)} · ${paired.count} shared observations`
+    : "No months with usable observations in both records.";
+  const chartSlots = [lead.from, lead.to].map((code, index) => {
+    const id = index === 0 ? "lead-chart-a" : "lead-chart-b";
+    return `<div><h4>${escapeHTML(variable(code).name)}</h4><div id="${id}" class="chart"></div></div>`;
+  }).join("");
+  panel.innerHTML = `<p>${escapeHTML(lead.prediction)}</p>
+    <div class="experiment-finding">
+      <h4 tabindex="-1">${headlines[verdict]}</h4>
+      <p class="meta">${coverage}</p>
+      <p>${paired?.count ? evidence[verdict] : ""}</p>
+      <p>${escapeHTML(lead.alternative)}</p>
+    </div>
+    ${fits.length ? `<div class="lead-charts">${chartSlots}</div>` : ""}`;
+  if (!fits.length) return;
+  [lead.from, lead.to].forEach((code, index) => {
+    const v = variable(code), id = index === 0 ? "lead-chart-a" : "lead-chart-b";
+    const series = { dates: paired.dates, values: paired.values[index] };
+    const reference = { dates: state.fullRecord.series[code]?.dates, fit: state.fullRecord.results[code] };
+    drawChart(id, fits[index], series, v, false, undefined, reference);
+  });
 }
 
 // ------------------------------------------------------------------ charts
@@ -879,7 +963,7 @@ function placePicker(input, list, onPick, withQuestions) {
     const q = withQuestions ? understand(text) : null;
     const notes = [];
     if (q && q.missing) notes.push(`<button disabled>${escapeHTML(q.missing.say)}<span class="why">${q.variable ? "Closest we have: " + q.variable.name : "Try another measurement"}</span></button>`);
-    if (q && q.asksWhy) notes.push(`<button disabled>ByteMe shows what changed and how sure we are, not why.<span class="why">Finding the cause needs a separate investigation</span></button>`);
+    if (q && q.asksWhy) notes.push(`<button disabled>Open a result to test related measurements.<span class="why">The London experiment shows how a comparison can help test a cause.</span></button>`);
     if (q && !q.placeCandidates.length && !q.leftoverWords.length) {   // a question about a measurement only: answer it for the place on the map
       hits = q.variable ? [{ name: state.name, lat: state.lat, lon: state.lon, variable: q.variable }] : [];
     } else {

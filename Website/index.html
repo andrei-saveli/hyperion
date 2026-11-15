@@ -16,7 +16,7 @@
 <header class="top">
   <a class="logo" href="#"><span class="mark">B/</span><span>ByteMe</span></a>
   <nav class="menu">
-    <a href="#explore">Explore</a><a href="#compare">Compare</a><a href="#method">Method</a><a href="#about">About</a>
+    <a href="#experiment">Experiment</a><a href="#explore">Explore</a><a href="#compare">Compare</a><a href="#method">Method</a><a href="#about">About</a>
   </nav>
 </header>
 
@@ -25,10 +25,9 @@
   <div>
     <span class="tag">Earth system trend detective</span>
     <h1>Is Earth changing where you look?</h1>
-    <p class="lead">Pick any place on the planet and a NASA measurement. We remove the seasons, fit a
-      straight-line trend through up to 45 years of monthly data, and test whether the change is real,
-      or just noise.</p>
-    <a class="btn" href="#explore"><span>Start exploring</span><span class="arrow">↓</span></a>
+    <p class="lead">Make a prediction, compare it with observations, and test another explanation.
+      Try a real policy experiment or follow a lead in the NASA records for a place you choose.</p>
+    <a class="btn" href="#experiment"><span>Start an experiment</span><span class="arrow">↓</span></a>
   </div>
   <div class="globe-wrap">
     <canvas id="globe" aria-label="Rotating globe made of satellite pixels; the demo cases are highlighted"></canvas>
@@ -36,6 +35,73 @@
       <span class="tag">Try a case</span>
       <div id="cases"></div>
     </div>
+  </div>
+</section>
+
+<section id="experiment" aria-labelledby="experiment-title">
+  <div class="section-head">
+    <div><span class="tag">Guided experiment</span><h2 id="experiment-title">Did London’s emissions zone reduce NO₂?</h2></div>
+    <p class="muted">On 8 April 2019, central London began charging drivers of vehicles that fell below its emissions standards.
+      Use roadside measurements to test what happened after the zone began.</p>
+  </div>
+
+  <div class="box experiment-step">
+    <h3>Make a prediction</h3>
+    <form id="experiment-prediction">
+      <fieldset>
+        <legend>How will central London’s NO₂ change compared with an estimate of what would have happened without the zone?</legend>
+        <label><input type="radio" name="prediction" value="lower" required> Lower</label>
+        <label><input type="radio" name="prediction" value="similar"> Stay close</label>
+        <label><input type="radio" name="prediction" value="higher"> Higher</label>
+      </fieldset>
+      <button type="submit" class="pill on">Inspect the comparison</button>
+      <p id="experiment-error" role="alert" hidden></p>
+    </form>
+  </div>
+
+  <div class="box experiment-step" id="experiment-baseline" hidden>
+    <h3 tabindex="-1">Check the comparison before the policy</h3>
+    <p>Researchers adjusted the weekly roadside records for weather. ByteMe builds a comparison from
+      roadside monitors outside London and fits their weights using the early part of the record.
+      The final eight pre-policy weeks test how well that comparison predicts London before the charge begins.</p>
+    <p id="experiment-fit" class="experiment-finding"></p>
+    <div id="experiment-pre-chart" class="experiment-chart" aria-label="London and its comparison before the zone"></div>
+    <details>
+      <summary>Which monitors contribute?</summary>
+      <p id="experiment-donors"></p>
+    </details>
+    <button type="button" class="pill on" id="run-experiment">Run the comparison</button>
+  </div>
+
+  <div class="box experiment-step" id="experiment-result" hidden>
+    <h3 tabindex="-1">Test what changed after launch</h3>
+    <div class="experiment-controls">
+      <label>Weeks after launch
+        <select id="experiment-window"><option value="13">First 13 weeks</option><option value="all">All weeks through 2 March 2020</option></select>
+      </label>
+      <label><input type="checkbox" id="experiment-adjust"> Adjust for the gap before launch</label>
+      <label><input type="checkbox" id="experiment-omit"> Remove the largest donor monitor</label>
+    </div>
+    <div id="experiment-answer" class="experiment-finding" aria-live="polite">
+      <h4 id="experiment-verdict"></h4>
+      <p id="experiment-effect"></p>
+      <p id="experiment-original" class="meta" hidden></p>
+      <p id="experiment-prediction-check"></p>
+    </div>
+    <div id="experiment-post-chart" class="experiment-chart" aria-label="London and its comparison before and after the zone"></div>
+    <h4>Check two rival explanations</h4>
+    <ul class="experiment-rivals">
+      <li><strong>London was already cleaner than its comparison.</strong> Try the adjustment to see how much of the later gap
+        remains if the earlier gap would have continued. <span id="experiment-baseline-check" aria-live="polite"></span></li>
+      <li><strong>One monitor drove the finding.</strong> Remove the largest donor to see whether the result depends on it.
+        <span id="experiment-donor-check" aria-live="polite"></span></li>
+    </ul>
+    <p>A causal interpretation depends on the comparison tracking what London would have done without the zone.
+      Earlier changes in vehicle fleets or other London-specific changes can affect the estimate.</p>
+    <p class="meta">ByteMe fits a simpler weighted comparison to the study’s weather-adjusted input data.
+      The paper uses augmented synthetic control and reports its own estimates.
+      <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC12545172/">Tong et al. study (2025)</a> ·
+      <a href="https://github.com/tu-xuu/London_ULEZ/tree/0ba2df44dec7a99b8d95e924cf1b1c59cc4ca623">Analysis data and code</a></p>
   </div>
 </section>
 
@@ -82,6 +148,7 @@
     <div class="box panel" id="scan"></div>
   </div>
   <div class="box detail" id="detail"></div>
+  <div class="box experiment-leads" id="follow-ups" hidden></div>
 </section>
 
 <!-- 3. Compare -->
@@ -141,13 +208,13 @@
       <li><a href="https://aura.gsfc.nasa.gov/omi.html">OMI</a> · NO₂ · <a href="https://airs.jpl.nasa.gov/">AIRS</a> · air temperature</li>
       <li>Place names: <a href="https://photon.komoot.io/">Photon</a> (OpenStreetMap), <a href="https://open-meteo.com/en/docs/geocoding-api">Open-Meteo</a> (GeoNames), BigDataCloud</li></ul></div>
     <div><span class="tag">Explore</span><ul>
-      <li><a href="#explore">Map and results</a></li><li><a href="#compare">Compare places</a></li>
+      <li><a href="#experiment">Guided experiment</a></li><li><a href="#explore">Map and results</a></li><li><a href="#compare">Compare places</a></li>
       <li><a href="#method">Method</a></li><li><a href="https://github.com/andrei-saveli/hyperion">Source code</a></li></ul></div>
     <div><span class="tag">Note</span><p style="margin:0;font-size:14px">Monthly data from 1981 for NASA POWER measurements
       (sunlight and clouds from 1984, haze from 2001) and from 1998–2004 for the satellite and land-model records
       (GPM, GLDAS, MODIS, OMI, AIRS), averaged over 1° squares. MERRA-2 blends satellite and ground observations with a
-      weather model, so values describe a grid square, not a single weather station. Trends are straight-line
-      summaries. They show what changed, not why. Map: OpenFreeMap, © OpenMapTiles, © OpenStreetMap contributors; outline Natural Earth.</p>
+      weather model, so values describe a grid square, not a single weather station. Trend cards summarize recorded changes.
+      The London experiment uses separate roadside observations. Map: OpenFreeMap, © OpenMapTiles, © OpenStreetMap contributors; outline Natural Earth.</p>
       <span class="muted" style="color:#bdbdb6" id="built"></span></div>
   </div>
 </footer>
@@ -157,7 +224,9 @@
 <script src="stats.js"></script>
 <script src="nasa.js"></script>
 <script src="investigation.js"></script>
+<script src="experiments.js"></script>
 <script src="app.js"></script>
+<script src="london-case.js"></script>
 <script src="globe.js"></script>
 </body>
 </html>

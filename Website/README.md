@@ -39,7 +39,7 @@ build_world.py and build_nasa_tiles.py     → precomputed map layers
 
   (Re-run after adding the 8 satellite/model measurements; greenness, NO₂ and runoff questions now
   count as answerable.) Most misses are riddle-style places ("Niger's capital", "the Nevada reservoir"). Questions that
-  ask for several measurements get one suggestion; the "What is changing here" list shows the rest.
+  ask for several measurements get one suggestion. **Browse measurement trends** shows the rest.
 - **World overview:** NASA POWER trends come from the precomputed 5° map in `data/world.json`.
   The bundled products have their own 2° overview maps.
 
@@ -59,6 +59,46 @@ build_world.py and build_nasa_tiles.py     → precomputed map layers
   the period. A narrower comparison shows the estimated difference for the full shared record
   as a reference. **Share comparison** opens a link containing both places, the measurement, and
   the selected dates.
+
+## Guided experiments
+
+**London NO₂.** The case tests whether central London’s Ultra Low Emission Zone, launched on
+8 April 2019, contributed to lower roadside nitrogen dioxide. The user makes a prediction, checks
+the comparison before launch, then tests the post-launch gap by changing the time window, allowing
+the earlier gap to continue, or removing the largest donor monitor.
+
+The case uses weather-normalized weekly input released by Tong et al. (2025). ByteMe fits a
+weighted combination of 13 non-London roadside monitors to London before the policy, with a
+constant level adjustment. It reserves the last eight pre-policy weeks to show how well the
+comparison predicts London outside the fitting period. In those eight weeks London was already
+5.7 µg/m³ below the comparison. The first 13 post-launch weeks averaged 11.9 µg/m³ below the
+comparison. Carrying the earlier gap forward reduces the estimated difference. These checks
+inform the causal interpretation and leave room for London-specific changes or early responses
+to the policy. The authors’ augmented synthetic-control model has its own estimates.
+[Study and method](https://pmc.ncbi.nlm.nih.gov/articles/PMC12545172/)
+
+**Explore leads.** `experiments.js` holds prediction and rival-explanation text for a few linked
+measurements. Compare the series on the same observed months. A lead is weakened when both trends
+have reliable directions and the direction combination disagrees with the stated prediction.
+The ordinary Explore results help screen hypotheses. The London case uses a control design
+to estimate a policy effect.
+
+### Rebuild the London comparison
+
+Download the [pinned weekly study input](https://github.com/tu-xuu/London_ULEZ/blob/0ba2df44dec7a99b8d95e924cf1b1c59cc4ca623/data/ASCM_NO2.Rdata)
+and save it as `ASCM_NO2.Rdata` outside the repository, or at the root temporarily. From a directory
+containing the downloaded file, export it with R. Then run the builder from the repository root,
+using the path to the exported CSV. The builder uses the existing Python NumPy, pandas, and SciPy
+dependencies.
+
+```bash
+Rscript -e 'write.csv(readRDS("ASCM_NO2.Rdata"), "ASCM_NO2.csv", row.names = FALSE)'
+python Website/build_london_case.py ASCM_NO2.csv
+node Website/tests/test_experiments.js
+```
+
+`data/london-ulez.json` contains the derived weekly London and comparison series, the fitted
+donor weights, and the comparison refitted without its largest donor.
 
 ## NASA satellite and model data (GPM, GLDAS, MODIS, OMI, AIRS)
 Eight more measurements come from the NASA datasets the challenge names. They need an Earthdata
@@ -113,6 +153,8 @@ much to the repository's history.
 | `app.js` | Page state, NASA requests, search, map and chart rendering. Compare renders its finding and charts separately. |
 | `stats.js` | Trend and significance math (copy of `Task4/stats.py`) |
 | `investigation.js` | Date selection, matched monthly records, and uncertainty for the difference in trends |
+| `experiments.js` | Related-measurement predictions and London gap and sensitivity calculations |
+| `london-case.js`, `build_london_case.py` | London experiment view and reproducible preprocessing of the fitted comparison |
 | `nasa.js` | Reads one square's monthly series from a NASA tile file |
 | `build_nasa_grids.py`, `build_nasa_tiles.py` | Download the NASA datasets to 1° grids; then trends, tiles and map layers (`data/nasa/`) |
 | `globe.js` | Hero art: rotating globe of teal "satellite pixels", demo cases in coral (decoration only) |
@@ -138,6 +180,7 @@ browser to load its JSON data and bundled grids.
 node Website/tests/test_stats.js
 node Website/tests/test_nasa.js
 node Website/tests/test_investigation.js
+node Website/tests/test_experiments.js
 ```
 Refresh the single-series reference results after changing `Task4/stats.py`.
 ```bash

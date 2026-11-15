@@ -17,12 +17,18 @@ directly from [NASA POWER](https://power.larc.nasa.gov/) and loads eight additio
 the site's bundled NASA grids. The website needs internet for live records, map services, and chart
 libraries.
 
+Choose **Start an experiment** to test whether London’s 2019 emissions zone contributed to a drop
+in roadside NO₂. Make a prediction, inspect the pre-policy comparison, and test whether the finding
+changes under different assumptions. The case uses published roadside study data.
+
 1. Search for a place, enter coordinates, or try `Is Svalbard getting warmer from 2001 to 2015?`.
    Search uses phrases, keywords, and place-name lookups.
 2. Choose a measurement and use **Apply period** to update the trend, uncertainty interval, and chart.
    The **Raw monthly** option shows seasonal variation.
 3. Open **Compare** to estimate the difference in trends over months observed at both locations.
    Try **Check the latest 15 years** to see how the finding depends on the period.
+4. Choose **Test a lead** where ByteMe has a related measurement or a second source. The evidence
+   can fit the prediction, weaken it, or leave the question open.
 
 The app fits season-adjusted linear trends. Its results describe the recorded change and its uncertainty.
 See the [website guide](Website/README.md) for the analysis, sources, and local checks.

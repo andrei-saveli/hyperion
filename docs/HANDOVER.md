@@ -28,6 +28,9 @@ with a Newey–West adjustment. The follow-up compares the latest 15 years with 
   `Task4/stats.py`. Run the parity test after changing either implementation.
 - `Website/nasa.js` decodes the bundled tiles. `Website/data/variables.json` owns labels, units,
   search terms, source metadata, and second-source pairs.
+- `Website/experiments.js` holds related-measurement predictions and the calculations for the
+  London NO₂ experiment. The experiment UI is in `Website/london-case.js`. The
+  [website guide](../Website/README.md#guided-experiments) documents the study data and rebuild.
 
 Use these checks after a website change.
 
@@ -35,11 +38,14 @@ Use these checks after a website change.
 node Website/tests/test_stats.js
 node Website/tests/test_nasa.js
 node Website/tests/test_investigation.js
+node Website/tests/test_experiments.js
 ```
 
 In the browser, try Svalbard air temperature from 2001 to 2015. Open Compare, select a short
 window, then recheck the full shared record. Reopen a shared URL to check that it restores the
 places, measurement, and selected months.
+In the London experiment, make a prediction, inspect the held-out weeks, then run the comparison
+and toggle both sensitivity checks.
 
 ## Python reference workflow
 
