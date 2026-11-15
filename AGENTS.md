@@ -205,6 +205,7 @@ or 24 valid months. Flags: `reliability` (low if < 30 effective months), `tests_
 Non-significant ≠ "no change". Never state causes (Investigate says how much a driver statistically accounts for; it never says "cause").
 
 ## Current status / handover (update this when you finish something)
+- Global website branch review and NASA Space Apps discussion notes: [Trend Detective handover](docs/TREND_DETECTIVE_HANDOVER.md).
 - ✅ Planning done: `docs/PLAN.md`, `docs/HANDSHAKES.md`.
 - ✅ Handshake change applied: places are **boxes** (`west,south,east,north`), variables use **short
   codes** (`TEMP`, `RAIN`, `SOILM`, `EVAP`) with a `source` column (Giovanni name).
@@ -260,6 +261,10 @@ Non-significant ≠ "no change". Never state causes (Investigate says how much a
 - 🖥️ **Website first version** in `FrontEnd_claude/` (built for P1 on the real Task2/3/4 parts):
   `app.py`, `charts.py` (H5), theme, 6 passing app tests, mock-ups + screenshots in `design/`.
   Run: `streamlit run FrontEnd_claude/app.py`. Combine with `--frontend FrontEnd_claude`.
+- 🖥️ **Byte Me browser demo** in `FrontEnd_nasa/` integrates the uploaded frontend from
+  `andrei-saveli/frontend-nasa` with the 12 real Giovanni series, Searchlight's ranked
+  dataset suggestions, and the Task3 guided demo.
+  See `FrontEnd_nasa/README.md` to build and run it.
 - 🔎 **Search (P3)** uses Searchlight and the H0 catalogs in `Task3/data/` (three regions
   with available series). Build and calibrate the local assets using `Task3/README.md`.
   The Streamlit search box can offer a labeled related dataset and previews each card's trend interval.
