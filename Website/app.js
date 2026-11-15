@@ -17,7 +17,6 @@ const GEOCODER = "https://geocoding-api.open-meteo.com/v1/search";
 const GEOCODER_2 = "https://photon.komoot.io/api/";
 const NOMINATIM = "https://nominatim.openstreetmap.org";   // outlines of countries and regions
 const REVERSE = "https://api.bigdatacloud.net/data/reverse-geocode-client";
-const REVERSE_2 = "https://nominatim.openstreetmap.org/reverse";
 const CELL = { lat: 0.5, lon: 0.625 };                  // size of one MERRA-2 grid square
 
 // Demo cases, chosen from real results (see README). Also lit up on the hero globe.
@@ -504,7 +503,8 @@ async function nameOf(lat, lon) {
     if (parts.length) return [...new Set(parts)].join(", ");
   } catch (e) { /* try the second service */ }
   try {
-    const j = await (await fetch(`${REVERSE_2}?lat=${lat}&lon=${lon}&zoom=8&format=jsonv2&accept-language=en`)).json();
+    const j = await nominatim(`/reverse?lat=${lat}&lon=${lon}&zoom=8&format=jsonv2&accept-language=en`);   // rate-limited
+    if (!j) return null;
     const a = j.address || {};
     const parts = [a.city || a.town || a.village || a.county || a.state || j.name, a.country].filter(Boolean);
     return [...new Set(parts)].join(", ") || null;
@@ -547,6 +547,9 @@ function buildMap(detailedStyle) {
     map.addLayer({ id: "area-fill", type: "fill", source: "area", filter: ["==", ["geometry-type"], "Polygon"],   // areas only, not rivers
       paint: { "fill-color": COLOURS.deep, "fill-opacity": 0.06 } });
     map.addLayer({ id: "area-line", type: "line", source: "area", paint: { "line-color": COLOURS.deep, "line-width": 2 } });
+    map.addSource("similar", { type: "geojson", data: { type: "FeatureCollection", features: [] } });   // places changing like this one
+    map.addLayer({ id: "similar-line", type: "line", source: "similar",
+      paint: { "line-color": COLOURS.ink, "line-width": ["case", ["get", "on"], 3, 1.2], "line-dasharray": [2, 1.5] } });
     placeMarker(); showAreaOutline();
   });
   map.on("click", (e) => { state.question = null; state.lastArea = null; selectPlace(e.lngLat.lat, e.lngLat.wrap().lng, null, null, false); });
@@ -710,6 +713,7 @@ function renderScan() {
 // ------------------------------------------------------------------ the evidence for one measurement
 function renderDetail() {
   renderInvestigate();
+  renderSimilar();
   const el = $("detail"), v = variable(state.code);
   if (state.loading || state.error || !state.place) {
     el.innerHTML = `<div class="detail-text"><span class="tag">${escapeHTML(state.name)} · ${v.name}</span>
@@ -1559,4 +1563,93 @@ async function renderPlanet(res, outcome) {
         <p class="caption">Each dot is one grid square's trend over the whole record; the coral dot is here. Neighbouring squares are related, so treat this as a picture, not a test.</p></div>
       ${planetScatter(ap, outcome, driver)}</div>`;
   $("planet-driver")?.addEventListener("change", (e) => { inv.planetDriver = e.target.value; renderPlanet(res, outcome); });
+}
+
+// ------------------------------------------------------------------ places changing like this one
+// Nearest-neighbour search over trend fingerprints (similar.js): the five parts of the planet whose
+// 18 NASA POWER trends (1981 onwards, whole record) follow the closest pattern to this place's.
+const VERDICT_NUMBER = { insufficient: 0, none: 1, possible: 2, significant: 3 };
+const similarCache = new Map(), similarNames = new Map();
+let similarShown = 0;   // which drawing of the panel is on screen (names arrive later)
+
+function similarFor() {
+  const key = state.area ? state.area.key : `${state.lat},${state.lon}`;
+  if (!similarCache.has(key)) {
+    const slopes = {}, verdicts = {};
+    POWER_VARS.forEach((v) => {
+      const r = state.full.results[v.code];
+      slopes[v.code] = r && r.verdict !== "insufficient" ? r.slope_per_decade : null;
+      verdicts[v.code] = r ? VERDICT_NUMBER[r.verdict] || 0 : 0;
+    });
+    const area = state.area;
+    // squares inside the chosen country or region are part of it, not "somewhere else"
+    const skip = area && !ByteMeArea.isLine(area.geometry) ? (lat, lon) => ByteMeArea.inside(lon, lat, area.geometry) : null;
+    similarCache.set(key, ByteMeSimilar.findSimilar(WORLD, { lat: state.lat, lon: state.lon, slopes, verdicts }, { skip }));
+  }
+  return similarCache.get(key);
+}
+
+function nameOfSquare(m) {
+  const key = `${m.lat},${m.lon}`;
+  // A 5-degree square is region-sized, so it is named after its state or province and country.
+  // Only Nominatim is asked (rate-limited, one request per second), so the names arrive one by one.
+  if (!similarNames.has(key)) similarNames.set(key, nominatim(`/reverse?lat=${m.lat}&lon=${m.lon}&zoom=5&format=jsonv2&accept-language=en`).then((j) => {
+    const a = (j && j.address) || {};
+    const parts = [a.state || a.region || a.province || a.county, a.country].filter(Boolean);
+    return parts.length ? [...new Set(parts)].join(", ") : coordText(m.lat, m.lon);   // open sea or an unnamed coast
+  }));
+  return similarNames.get(key);
+}
+
+function showSimilarOnMap(matches, on) {
+  if (!map || !map.getSource("similar")) return;
+  const h = WORLD ? WORLD.step / 2 : 2.5;
+  map.getSource("similar").setData({ type: "FeatureCollection", features: (matches || []).map((m, i) => ({
+    type: "Feature", properties: { on: i === on },
+    geometry: { type: "Polygon", coordinates: [[[m.lon - h, m.lat - h], [m.lon + h, m.lat - h], [m.lon + h, m.lat + h], [m.lon - h, m.lat + h], [m.lon - h, m.lat - h]]] },
+  })) });
+}
+
+function renderSimilar() {
+  const el = $("similar");
+  if (!el) return;
+  if (!WORLD || state.loading || state.error || !state.full) { el.style.display = "none"; showSimilarOnMap(null); return; }
+  const res = similarFor();
+  el.style.display = "flex";
+  const head = `<span class="tag">Places changing like this one · ${escapeHTML(state.name)}</span><h3>Where else is the planet changing like this?</h3>`;
+  if (!res || !res.matches.length) {
+    el.innerHTML = head + `<p class="muted">Too few of the 18 measurements have a trend here to compare this place with the rest of the planet.</p>`;
+    showSimilarOnMap(null);
+    return;
+  }
+  const land = state.full.results.EVLAND && state.full.results.EVLAND.verdict !== "insufficient";
+  const arrow = (t) => `${escapeHTML(variable(t.code).name)} ${t.sign > 0 ? "↑" : "↓"}`;
+  el.innerHTML = head + `
+    <p class="muted">We compared how ${escapeHTML(state.name)}'s 18 NASA POWER measurements changed (${WORLD.start}–${WORLD.end}, whole record${state.period ? ", not just the chosen period" : ""})
+      with ${res.compared.toLocaleString("en")} ${land ? "land" : "ocean"} squares of 5° at least 1,500 km away. These follow the closest pattern of change.</p>
+    <ol class="similar-list">${res.matches.map((m, i) => `
+      <li><button class="similar-row" data-i="${i}">
+        <span class="similar-name" data-name="${i}">${escapeHTML(coordText(m.lat, m.lon))}</span>
+        <span class="similar-score"><span class="bar"><i style="width:${Math.max(0, m.score) * 100}%"></i></span>${m.score.toFixed(2)}</span>
+        <span class="similar-shares">${m.shares.length ? "Both: " + m.shares.map(arrow).join(" · ") : "Similar pattern, but no single trend significant at both"}</span>
+      </button></li>`).join("")}</ol>
+    <p class="caption">Similarity runs from +1 (the same pattern of change) through 0 (unrelated) to −1 (the opposite); a typical square scores ${res.typical.toFixed(2)}.
+      Each trend is compared with how the whole planet changed, and related measurements (the four temperatures, the three humidities) share one vote.
+      Changing alike doesn't mean the same cause. Click a place to open it.</p>`;
+  showSimilarOnMap(res.matches, -1);
+  const shown = ++similarShown;
+  res.matches.forEach((m, i) => nameOfSquare(m).then((name) => {
+    const slot = el.querySelector(`[data-name="${i}"]`);
+    if (shown === similarShown && slot) slot.textContent = name;
+  }));
+  el.querySelectorAll(".similar-row").forEach((b) => {
+    const m = res.matches[+b.dataset.i];
+    b.addEventListener("mouseenter", () => showSimilarOnMap(res.matches, +b.dataset.i));
+    b.addEventListener("mouseleave", () => showSimilarOnMap(res.matches, -1));
+    b.addEventListener("click", async () => {
+      state.question = null; state.lastArea = null;
+      selectPlace(m.lat, m.lon, await nameOfSquare(m), state.code, true);
+      $("explore").scrollIntoView({ behavior: "smooth" });
+    });
+  });
 }
