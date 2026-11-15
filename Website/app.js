@@ -699,6 +699,7 @@ function renderScan() {
 
 // ------------------------------------------------------------------ the evidence for one measurement
 function renderDetail() {
+  renderInvestigate();
   const el = $("detail"), v = variable(state.code);
   if (state.loading || state.error || !state.place) {
     el.innerHTML = `<div class="detail-text"><span class="tag">${escapeHTML(state.name)} · ${v.name}</span>
@@ -1125,8 +1126,10 @@ function renderAnswer() {
       <h3>${headline}</h3>${detail ? `<p class="answer-numbers">${detail}</p>` : ""}
       ${notes.map((n) => `<p class="answer-note">${n}</p>`).join("")}
       ${(v.related || []).length ? `<div class="related"><span class="tag plain">Related measurements to check here</span><div class="chips">${relatedChips(v)}</div></div>` : ""}
-      <button class="pill" id="to-evidence">See the evidence ↓</button>`;
+      <div class="chips"><button class="pill" id="to-evidence">See the evidence ↓</button>
+      ${r && (r.verdict === "significant" || r.verdict === "possible") ? `<button class="pill" id="to-investigate">What might explain this? →</button>` : ""}</div>`;
     $("to-evidence").addEventListener("click", () => { selectVariable(v.code); $("detail").scrollIntoView({ behavior: "smooth" }); });
+    $("to-investigate")?.addEventListener("click", () => { selectVariable(v.code); $("investigate").scrollIntoView({ behavior: "smooth" }); });
   }
   el.querySelectorAll(".chip").forEach((b) => b.addEventListener("click", () => { selectVariable(b.dataset.code); $("detail").scrollIntoView({ behavior: "smooth" }); }));
 }
@@ -1218,5 +1221,192 @@ async function renderCompare() {
       <div class="chart" id="${p.id}-chart"></div>
       <p class="caption">Total over these months: ${num(r.total_change)} ${v.units}${r.percent_change !== null ? ` (${num(r.percent_change)}%)` : ""} · p-value ${pText(r.p_value)}${p.area ? ` · ${areaText(p.area, places[i].info)}` : ""}</p>`;
     drawChart(`${p.id}-chart`, r, { dates: paired.dates, values: paired.values[i] }, v, false, yRange);
+  });
+}
+
+// ------------------------------------------------------------------ Investigate: what might explain this trend?
+// Each idea links the chosen measurement (the outcome) to a possible driver and predicts which
+// way they move together. evidence.js climbs an evidence ladder: (1) month-to-month link,
+// (2) share of the trend it explains, (3) the same with independent data. We say how far an idea
+// got, never that it is the cause: a third factor can move both.
+
+// Independent versions of MERRA-2 measurements (different instrument or model)
+const INDEPENDENT = { PRECTOTCORR: "GPM_RAIN", T2M: "AIRS_T2M", GWETROOT: "GLDAS_SOILM", EVLAND: "GLDAS_EVAP", TS: "MODIS_LST" };
+const modelOf = (v) => (/^MERRA-2/.test(v.source) ? "MERRA-2" : /^GLDAS/.test(v.source) ? "GLDAS" : v.source);
+const sameModel = (a, b) => modelOf(a) === modelOf(b) && (modelOf(a) === "MERRA-2" || modelOf(a) === "GLDAS");
+const testCache = new Map();      // results, so a test isn't redone
+const attempts = new Map();       // ideas tested per place + measurement + period
+
+function placeKey() {
+  return `${state.area ? state.area.key : `${state.lat},${state.lon}`}|${state.period ? periodLabel(state.period) : "all"}|${state.code}`;
+}
+
+// Run the ladder for one idea on the records of the chosen place and period
+function testIdea(outcome, idea) {
+  const driver = variable(idea.driver), s = state.place.series;
+  const key = `${placeKey()}|${idea.driver}|${idea.sign}|${idea.season || ""}`;
+  if (testCache.has(key)) return testCache.get(key);
+  const run = (o, d) => {
+    if (!s[o.code] || !s[d.code]) return null;
+    const months = ByteMeEvidence.seasonMonths(idea.season, s[o.code]);
+    if (idea.season && !months) return { level: "unclear", reason: "no clear season for this here" };
+    return ByteMeEvidence.assess(s[o.code], s[d.code], idea.sign, months, o.percent);
+  };
+  const main = run(outcome, driver);
+  // step 3: if both come from the same model, try an independent version of one of them
+  let independent = null;
+  if (main && sameModel(outcome, driver)) {
+    const swapDriver = INDEPENDENT[driver.code] && variable(INDEPENDENT[driver.code]);
+    const swapOutcome = INDEPENDENT[outcome.code] && variable(INDEPENDENT[outcome.code]);
+    const [o, d] = swapDriver && s[swapDriver.code] ? [outcome, swapDriver] : swapOutcome && s[swapOutcome.code] ? [swapOutcome, driver] : [null, null];
+    independent = o ? { with: o === outcome ? d : o, result: run(o, d) } : { with: null };
+  }
+  const result = { idea, driver, main, independent, sameModel: sameModel(outcome, driver) };
+  testCache.set(key, result);
+  attempts.set(placeKey(), (attempts.get(placeKey()) || 0) + 1);
+  return result;
+}
+
+const LEVEL_TEXT = {
+  against: ["Not consistent with the data", "against"],
+  unclear: ["No clear evidence either way", "unclear"],
+  link: ["Consistent month to month, but doesn't explain the trend", "link"],
+  explains: ["Consistent, and explains part of the trend", "explains"],
+};
+const pct = (x) => `${Math.round(100 * x)}%`;
+// The headline for one tested idea: how far up the ladder it got, with the size when it explains
+function verdictLine(t) {
+  const level = t.main ? t.main.level : "unclear";
+  let text = LEVEL_TEXT[level][0];
+  if (level === "explains") {
+    const share = t.main.explained.share;
+    text = share < 0.25 ? `Consistent, but explains only a small part (about ${pct(share)}) of the trend` : `Consistent, and explains about ${pct(Math.min(share, 1))} of the trend`;
+    if (t.independent && t.independent.with && !(t.independent.result && ["link", "explains"].includes(t.independent.result.level))) text += " · not confirmed with independent data";
+  }
+  return `<div class="verdict-line ${LEVEL_TEXT[level][1]}">${text}</div>`;
+}
+
+function ladderHTML(outcome, t) {
+  const m = t.main, d = t.driver;
+  if (!m) return `<p class="meta">No ${escapeHTML(d.name.toLowerCase())} data here.</p>`;
+  const season = t.idea.season && m.months ? ` in ${monthNames(m.months)}` : "";
+  const step = (state, title, text) => `<li class="step ${state}"><span class="mark">${state === "pass" ? "✓" : state === "fail" ? "✗" : "–"}</span><div><b>${title}</b><span>${text}</span></div></li>`;
+  const steps = [];
+  if (!m.link) steps.push(step("none", "Month to month", escapeHTML(m.reason || "too little data")));
+  else {
+    const L = m.link, u = `${outcome.units} per ${d.units}`;
+    const passed = m.level === "link" || m.level === "explains";
+    steps.push(step(passed ? "pass" : m.level === "against" ? "fail" : "none", `Month to month${season}`,
+      `When ${escapeHTML(d.name.toLowerCase())} is 1 ${escapeHTML(d.units)} above usual, ${escapeHTML(outcome.name.toLowerCase())} is ${num(L.slope)} ${escapeHTML(outcome.units)} from usual ` +
+      `(95% range ${num(L.low)} to ${num(L.high)} ${escapeHTML(u)}; ${Math.round(L.effectiveN)} independent months of ${L.n}).` +
+      (m.level === "against" ? " That is the opposite of the prediction." : m.level === "unclear" ? " The range includes zero: no clear link." : "")));
+    if (passed) {
+      const e = m.explained;
+      steps.push(step(m.level === "explains" ? "pass" : "fail", `Size of the trend${season}`,
+        e ? `${escapeHTML(d.name)} changed by ${num(m.driverTrend.slope_per_decade)} ${escapeHTML(d.units)} per decade. Through this link that would give ${num(e.predicted)} ${escapeHTML(outcome.units)} per decade, ` +
+            `${m.level === "explains" ? `about <strong>${pct(e.share)}</strong> (range ${pct(Math.max(0, e.low))} to ${pct(e.high)})` : `which is ${e.share < 0 ? "the wrong direction" : `only about ${pct(e.share)}`}`} of the observed ${num(m.outcomeTrend.slope_per_decade)} ${escapeHTML(outcome.units)} per decade.`
+          : escapeHTML(m.reason)));
+    }
+  }
+  if (t.sameModel) {
+    const ind = t.independent;
+    if (!ind || !ind.with) steps.push(step("none", "Independent data", `Both come from the ${modelOf(d)} model, which links them by its own equations, and we have no independent version of either here.`));
+    else {
+      const r = ind.result, ok = r && (r.level === "link" || r.level === "explains");
+      steps.push(step(ok ? "pass" : r && r.level === "against" ? "fail" : "none", "Independent data",
+        `Both come from the ${modelOf(d)} model, which links them by its own equations. With ${escapeHTML(ind.with.name)} instead: ` +
+        (r && r.link ? `${num(r.link.slope)} (95% range ${num(r.link.low)} to ${num(r.link.high)}), ${ok ? "the link holds." : r.level === "against" ? "the link reverses." : "no clear link."}` : "too little shared data.")));
+    }
+  } else if (m.link) steps.push(step("pass", "Independent data", `${escapeHTML(d.name)} (${escapeHTML(d.source)}) and ${escapeHTML(outcome.name.toLowerCase())} (${escapeHTML(outcome.source)}) come from different sources.`));
+  return `<ol class="ladder">${steps.join("")}</ol>`;
+}
+
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const monthNames = (ms) => ms.map((m) => MONTHS[m - 1]).join(", ");
+
+// Simple diagram: ideas on the left, the measurement on the right, shared drivers on top
+function diagramSVG(outcome, ideas, results) {
+  const H = Math.max(200, 70 + ideas.length * 52), W = 640, ox = 440, oy = H / 2 + 20;
+  const colour = { explains: COLOURS.deep, link: "#5aa9a0", unclear: "#9aa5a2", against: COLOURS.up };
+  const boxes = ideas.map((idea, i) => {
+    const y = 80 + i * 52, t = results[i], level = t && t.main ? t.main.level : null;
+    const stroke = level ? colour[level] : "#c6cfcc", dash = !level || level === "unclear" || level === "against" ? "5 4" : "", w = level === "explains" ? 3 : 1.6;
+    const label = variable(idea.driver).name + (idea.season ? ` (${idea.season === "falling" ? "falling months" : "build-up months"})` : "");
+    return `<g><rect x="10" y="${y - 16}" width="230" height="32" rx="7" fill="#fff" stroke="${stroke}" stroke-width="1.2"/>
+      <text x="22" y="${y + 5}" font-size="12.5">${escapeHTML(label.length > 34 ? label.slice(0, 33) + "…" : label)}</text>
+      <line x1="240" y1="${y}" x2="${ox - 12}" y2="${oy}" stroke="${stroke}" stroke-width="${w}" stroke-dasharray="${dash}" marker-end="url(#arrow-${level || "none"})"/></g>`;
+  }).join("");
+  const markers = ["explains", "link", "unclear", "against", "none"].map((k) =>
+    `<marker id="arrow-${k}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="${colour[k] || "#c6cfcc"}"/></marker>`).join("");
+  return `<svg class="diagram" viewBox="0 0 ${W} ${H}" role="img" aria-label="Ideas that might explain the trend, and how far each got">
+    <defs>${markers}</defs>
+    <rect x="160" y="8" width="320" height="34" rx="8" fill="#f4f8f6" stroke="#9aa5a2" stroke-dasharray="4 3"/>
+    <text x="320" y="30" font-size="12" text-anchor="middle">Shared drivers: a changing climate, weather patterns…</text>
+    <line x1="320" y1="42" x2="${ox + 40}" y2="${oy - 20}" stroke="#9aa5a2" stroke-dasharray="4 3"/>
+    <line x1="320" y1="42" x2="200" y2="62" stroke="#9aa5a2" stroke-dasharray="4 3"/>
+    ${boxes}
+    <rect x="${ox}" y="${oy - 22}" width="190" height="44" rx="9" fill="${COLOURS.deep}"/>
+    <text x="${ox + 95}" y="${oy + 5}" font-size="13" fill="#fff" text-anchor="middle">${escapeHTML(outcome.name.length > 26 ? outcome.name.slice(0, 25) + "…" : outcome.name)}</text>
+  </svg>`;
+}
+
+function renderInvestigate() {
+  const el = $("investigate");
+  if (!el) return;
+  if (state.loading || state.error || !state.place) { el.innerHTML = ""; el.style.display = "none"; return; }
+  el.style.display = "flex";
+  const outcome = variable(state.code), r = state.place.results[outcome.code];
+  const head = `<span class="tag">Investigate</span><h3>What might explain this?</h3>`;
+  if (!r || !(r.verdict === "significant" || r.verdict === "possible")) {
+    el.innerHTML = head + `<p>${escapeHTML(outcome.name)} shows no clear trend in ${escapeHTML(state.name)}${state.period ? " in this period" : ""}, so there is nothing to explain yet. Pick a measurement with a trend from the list above.</p>`;
+    return;
+  }
+  const ideas = (outcome.explanations || []).filter((idea) => variable(idea.driver) && state.place.series[idea.driver]);
+  const key = placeKey();
+  const results = ideas.map((idea) => testCache.get(`${key}|${idea.driver}|${idea.sign}|${idea.season || ""}`) || null);
+  const custom = [...testCache.entries()].filter(([k, t]) => k.startsWith(key + "|") && t.idea.custom).map(([, t]) => t);
+  const tried = attempts.get(key) || 0;
+  const cards = ideas.map((idea, i) => {
+    const d = variable(idea.driver), t = results[i];
+    const season = idea.season ? ` in the months when ${outcome.name.toLowerCase()} usually ${idea.season === "falling" ? "falls" : "builds up"}` : "";
+    const prediction = `If this idea is right, months with higher ${d.name.toLowerCase()} than usual should have ${idea.sign > 0 ? "higher" : "lower"} ${outcome.name.toLowerCase()} than usual${season}.`;
+    return `<div class="idea">
+      <div class="idea-head"><b>${escapeHTML(d.name)}</b><span>${escapeHTML(idea.how)}</span></div>
+      <p class="prediction"><span>Prediction</span>${escapeHTML(prediction)}</p>
+      ${t ? `${verdictLine(t)}${ladderHTML(outcome, t)}`
+          : `<button class="pill" data-test="${i}">Test this idea</button>`}
+    </div>`;
+  }).join("");
+  const customCards = custom.map((t) => `<div class="idea"><div class="idea-head"><b>Your idea: ${escapeHTML(t.driver.name)}</b>
+      <span>${t.idea.sign > 0 ? "They move the same way" : "They move opposite ways"}${t.idea.season ? `, ${t.idea.season === "falling" ? "when it usually falls" : "when it usually builds up"}` : ""}</span></div>
+      ${verdictLine(t)}${ladderHTML(outcome, t)}</div>`).join("");
+  const options = VARS.filter((v) => v.code !== outcome.code && v.code !== outcome.pair && v.pair !== outcome.code && state.place.series[v.code])
+    .map((v) => `<option value="${v.code}">${escapeHTML(v.name)}</option>`).join("");
+  el.innerHTML = head + `
+    <p>${escapeHTML(outcome.name)} in ${escapeHTML(state.name)} shows a ${verdictText(r).toLowerCase()}. Here are ideas that could explain it. Each one makes a prediction we can check in the data.
+      Passing a check makes an idea more believable; it never proves it is the cause.</p>
+    ${ideas.length ? diagramSVG(outcome, ideas, results) : ""}
+    <div class="ideas">${cards || `<p>We have no ready-made ideas for ${escapeHTML(outcome.name.toLowerCase())}${outcome.code === "OMI_NO2" ? ": NO₂ mostly comes from traffic, industry and fires, which aren't in our data" : ""}. Try your own below.</p>`}${customCards}</div>
+    <form class="own-idea" id="own-idea">
+      <b>Test your own idea</b>
+      <label>Possible driver<select name="driver">${options}</select></label>
+      <label>My prediction<select name="sign"><option value="1">They move the same way</option><option value="-1">They move opposite ways</option></select></label>
+      <label>Which months<select name="season"><option value="">All months</option><option value="falling">When ${escapeHTML(outcome.name.toLowerCase())} usually falls</option><option value="rising">When it usually builds up</option></select></label>
+      <button class="pill on" type="submit">Test my idea</button>
+    </form>
+    ${(() => {                                   // once every ready-made idea is tested: what is left?
+      const all = [...results, ...custom];
+      if (!ideas.length || results.some((t) => !t)) return "";
+      const best = Math.max(0, ...all.map((t) => (t.main && t.main.level === "explains" ? t.main.explained.share : 0)));
+      return best < 0.5 ? `<p class="answer-note"><b>None of these ideas explains most of the trend</b>${best ? ` (the best explains about ${pct(best)})` : ""}. Most of the change is left unexplained by local measurements here; ideas can also overlap, so their shares don't simply add up.</p>` : "";
+    })()}
+    ${tried ? `<p class="meta">Ideas tested here: ${tried}. Each test has about a 1 in 20 chance of passing step 1 by luck, so the more ideas you try, the more the later steps matter.</p>` : ""}
+    <p class="answer-note">Remember: two things that move together may both be driven by something else, such as a changing climate or a shift in weather patterns (the dashed box). This tool shows how well an idea fits the data, not what caused the change.</p>`;
+  el.querySelectorAll("[data-test]").forEach((b) => b.addEventListener("click", () => { testIdea(outcome, ideas[+b.dataset.test]); renderInvestigate(); }));
+  $("own-idea").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const f = e.currentTarget.elements;
+    testIdea(outcome, { driver: f.driver.value, sign: +f.sign.value, season: f.season.value || null, how: "", custom: true });
+    renderInvestigate();
   });
 }

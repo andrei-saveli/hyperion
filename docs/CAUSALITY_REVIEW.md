@@ -148,6 +148,9 @@ Merged into `claude/epic-hypatia-eq4vfd`, commit "Add time period selection to E
 - **Compare:** months observed at both places, A − B with a Newey–West range, and a "latest 15
   years" check.
 
+**Built instead (same branch, later commit):** the evidence ladder above, steps 1–3, as "Investigate: what might explain
+this?" (`Website/evidence.js`, tests in `Website/tests/test_evidence.js`).
+
 Not merged: the workspace, rivals, dated events, experiment form and London case. They need the
 redesign above first. The branch also started before the answer card and area averages, so a plain
 git merge would conflict heavily in `app.js`; port the parts by hand.

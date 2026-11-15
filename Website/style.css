@@ -385,3 +385,34 @@ footer { background: linear-gradient(180deg, #17302f, #102221); color: #e4efec; 
 .compare-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .compare-actions:empty { display: none; }
 @media (max-width: 980px) { .compare-finding { padding: 16px; } .period-controls label { flex: 1 1 40%; } }
+
+/* Investigate: ideas that might explain a trend, and how far each got up the evidence ladder */
+.investigate { margin-top: 14px; padding: 26px 30px; display: none; flex-direction: column; gap: 14px; }
+.investigate h3 { font-size: 28px; }
+.investigate > p { margin: 0; max-width: 900px; }
+.diagram { width: 100%; max-width: 760px; height: auto; font-family: var(--sans); }
+.ideas { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 12px; }
+.idea { border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; background: var(--paper); }
+.idea .pill { align-self: flex-start; }
+.idea-head { display: grid; gap: 4px; }
+.idea-head b { font-weight: 500; font-size: 16px; }
+.idea-head span { font-size: 14px; color: var(--muted); }
+.prediction { margin: 0; font-size: 14px; }
+.prediction span { display: block; font: 400 10.5px/1.6 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.verdict-line { font: 500 12px/1.4 var(--mono); letter-spacing: 0.06em; text-transform: uppercase; padding: 6px 10px; border-radius: 6px; }
+.verdict-line.explains { background: linear-gradient(90deg, var(--mint), var(--aqua)); }
+.verdict-line.link { background: #eef6f4; }
+.verdict-line.unclear { background: #f2f3f2; color: var(--muted); }
+.verdict-line.against { background: #fff1ec; color: #9b3b22; }
+.ladder { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.ladder .step { display: grid; grid-template-columns: 22px 1fr; gap: 8px; font-size: 13.5px; }
+.ladder .step b { display: block; font: 500 11px/1.5 var(--mono); letter-spacing: 0.06em; text-transform: uppercase; }
+.ladder .mark { width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; border: 1px solid var(--line); }
+.ladder .pass .mark { background: var(--deep); color: #fff; border-color: var(--deep); }
+.ladder .fail .mark { background: #fff1ec; color: #9b3b22; border-color: #9b3b22; }
+.ladder .none .mark { color: var(--muted); border-color: #c6cfcc; }
+.own-idea { display: flex; flex-wrap: wrap; align-items: end; gap: 10px; border-top: 1px solid var(--hair); padding-top: 14px; }
+.own-idea b { flex-basis: 100%; font-weight: 500; }
+.own-idea label { display: grid; gap: 6px; font: 400 11px/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.own-idea select { min-width: 200px; }
+@media (max-width: 980px) { .investigate { padding: 20px 18px; } .investigate h3 { font-size: 22px; } .ideas { grid-template-columns: 1fr; } }
