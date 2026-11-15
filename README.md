@@ -67,31 +67,31 @@ are). The **Mann-Kendall test** double-checks for a steady rise or fall without 
 curve. As the challenge suggests, we stick to **linear trends**: a straight line is a
 simplification, and we say so.
 
-## Run the Byte Me Streamlit app
+## Run the live NASA website
 
-Use Python 3.11 or newer. From the repository root, assemble the Byte Me frontend and its
-bundled NASA data. The assembly command recreates `final/streamlit/`.
+From the repository root, serve `Website/` and open [localhost:8503](http://localhost:8503).
 
 ```bash
-python Task4/scripts/combine.py --frontend FrontEnd_nasa --out final/streamlit --no-checks
-cd final/streamlit
-pip install -r requirements.txt
-streamlit run app.py
+python -m http.server 8503 --bind 127.0.0.1 --directory Website
 ```
 
-Open [localhost:8501](http://localhost:8501). Choose **Start** and enter a query such as
-`Lake Mead from 2005 to 2020`. Byte Me matches the place name or alias and extracts the years.
-Use **Months to analyze** to change the period and **Compare with another place** to compare
-locations over the same observed months. The Query URL preserves the place, dates, and
-comparison. See the [Byte Me frontend README](FrontEnd_nasa/README.md).
+Search by place, question, or coordinates. The browser requests NASA POWER records when
+you choose a location. Use **Apply period** in Explore or Compare to recalculate the trends
+for selected months. Compare uses the same observed months at both locations.
+See the [website README](Website/README.md) for data sources and tests.
 
 ## Repository
 
-- `FrontEnd_nasa/` holds the Byte Me Streamlit pages and charts. `FrontEnd_claude/` holds the earlier Hyperion frontend.
-- `Task2/`, `Task3/`, and `Task4/` hold the data, search and explanations, and trend analysis.
-- `final/streamlit/` is the runnable app produced by the command above.
-- `Website/` holds the separate static site.
-- `docs/PLAN.md` and `docs/HANDSHAKES.md` describe the team plan and shared interfaces.
+```
+AGENTS.md            instructions for AI coding agents (and humans)
+docs/PLAN.md         roles, tasks, timeline, starter prompts
+docs/HANDSHAKES.md   interfaces between the 4 parts
+app.py, charts.py    website (Frontend)
+scripts/, data_io.py data download + loading (Data)
+search.py, explain.py, pages/  search, explanations, guided demo (Search + explainability)
+stats.py, tests/     trend + significance (Trend & integration)
+data/                places, variables, monthly CSVs, sources
+```
 
 ## Data sources
 Main source: [NASA Giovanni](https://giovanni.gsfc.nasa.gov) (fallback: [NASA POWER](https://power.larc.nasa.gov)).

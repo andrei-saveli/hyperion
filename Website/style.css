@@ -210,7 +210,21 @@ select {
 .compare > .box:last-child { border-radius: 0 var(--radius) var(--radius) 0; margin-left: -1px; }
 .compare h3 { font-size: 22px; }
 .compare .chart { height: 260px; }
-.insight { margin-top: 18px; font-size: 18px; max-width: 760px; }
+.period-controls { display: flex; flex-wrap: wrap; align-items: end; gap: 8px; margin: 0 0 18px; }
+.period-controls label { display: grid; gap: 6px; color: var(--muted); font: 400 11px/1 var(--mono); text-transform: uppercase; }
+.period-controls input { min-height: 36px; padding: 6px 8px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--paper); color: var(--ink); font: 400 14px/1.2 var(--sans); }
+.period-controls .meta { flex-basis: 100%; margin: 0; }
+.period-controls .meta:empty { display: none; }
+.period-error { color: #902b1f; }
+.compare-finding { margin: 0 0 12px; padding: 18px 24px; display: grid; gap: 8px; }
+.compare-finding h3 { font-size: 24px; }
+.compare-finding p { margin: 0; }
+.compare-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 4px; }
+.detail .compare-lead { align-self: flex-start; }
+.compare > .box { min-width: 0; }
+@media (max-width: 600px) {
+  .compare-finding { padding: 16px; }
+}
 
 /* ---------- method ---------- */
 .steps { display: grid; grid-template-columns: repeat(5, 1fr); }
