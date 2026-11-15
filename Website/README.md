@@ -25,8 +25,14 @@ build_world.py (run once, Python, Task4/stats.py) ─► data/world.json ─► 
   series. If you change one, change the other and re-run the test.
 - **Search:** understands a place ("Bucharest"), a question ("is Romania getting warmer?"), a
   famous region ("Sahel") or coordinates ("44.4, 26.1"). Simple rules, no AI:
-  1. *Measurement:* each measurement in `data/variables.json` has `phrases` (several words, strong)
-     and `keywords` (single words). The best score wins.
+  1. *Measurement:* each measurement in `data/variables.json` has `phrases` (several words, 6 points),
+     `keywords` (3), optional `weak` words (2) and the words of its name (2). Words match by their
+     stem (warmer = warming = warm, hazier = haze). Where phrases overlap, the longest wins ("land
+     surface temperature" beats "surface temperature"). Related measurements form `families`
+     (temperatures, rain, soil, evaporation, humidity, pollution): members also get the family's
+     words at 2, so a specific word plus a family word ("nights" + "warmer") beats a lone generic
+     word, while plain "warmer" still means air temperature. Words of "not available" topics ("sea
+     ice", "floods") are set aside first.
   2. *Things we don't have* (NO₂, river flow, crop yield, forecasts, hourly data...) are listed in
      `not_available`: the search says so plainly and offers the closest measurement we do have.
      Years before 1981 or after the last complete year get the same kind of note.
@@ -160,7 +166,7 @@ much to the repository's history.
 | `data/variables.json` | The 26 measurements (18 NASA POWER + 8 satellite/model): code, name, units, definition, search words, second-source pairs |
 | `data/world.json` | World overview: trend of every measurement on a 5 degree grid (made by `build_world.py`) |
 | `build_world.py` | Rebuilds `data/world.json` with the Python trend code (about 25 minutes, can be stopped and restarted) |
-| `tests/` | `make_reference.py` + `test_stats.js` (website math = Python math); `test_nasa.js` + `nasa_reference.json` (tiles read back correctly); `test_area.js` (outlines and area averages); `test_investigation.js` (periods and matched comparisons); `test_evidence.js` (evidence ladder, incl. real Svalbard data) |
+| `tests/` | `make_reference.py` + `test_stats.js` (website math = Python math); `test_nasa.js` + `nasa_reference.json` (tiles read back correctly); `test_area.js` (outlines and area averages); `test_investigation.js` (periods and matched comparisons); `test_evidence.js` (evidence ladder, incl. real Svalbard data); `test_search.js` + `search_questions.json` (search picks the right measurement; needs Playwright) |
 | `data/land.geojson` | World land outline (Natural Earth, public domain): the fallback map |
 | `vendor/maplibre-gl.css` | The map library's stylesheet (kept locally) |
 | `build_data.py`, `data/results.json` | The earlier version (3 Giovanni regions). No longer read by the page; kept for reference |

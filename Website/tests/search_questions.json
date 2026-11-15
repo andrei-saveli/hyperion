@@ -1,0 +1,583 @@
+{
+ "note": "Everyday questions and the measurement(s) that count as right. tuning: used while improving the search. heldout: written before changing it and never tuned on. Run: node Website/tests/test_search.js",
+ "tuning": [
+  [
+   "Is Romania getting warmer?",
+   [
+    "T2M",
+    "AIRS_T2M"
+   ]
+  ],
+  [
+   "temperature in Paris",
+   [
+    "T2M",
+    "AIRS_T2M"
+   ]
+  ],
+  [
+   "Are heatwaves getting worse in Spain?",
+   [
+    "T2M_MAX"
+   ]
+  ],
+  [
+   "Are the hottest days getting hotter in Texas?",
+   [
+    "T2M_MAX"
+   ]
+  ],
+  [
+   "Are nights getting warmer in Cairo?",
+   [
+    "T2M_MIN"
+   ]
+  ],
+  [
+   "Is there less frost in Finland?",
+   [
+    "T2M_MIN"
+   ]
+  ],
+  [
+   "Is the sea surface warming near Hawaii?",
+   [
+    "TS"
+   ]
+  ],
+  [
+   "Is the ocean getting warmer off Peru?",
+   [
+    "TS"
+   ]
+  ],
+  [
+   "Is the ground getting hotter in the Sahara?",
+   [
+    "MODIS_LST",
+    "TS"
+   ]
+  ],
+  [
+   "land surface temperature in Phoenix",
+   [
+    "MODIS_LST"
+   ]
+  ],
+  [
+   "What does the AIRS satellite say about temperature in Siberia?",
+   [
+    "AIRS_T2M"
+   ]
+  ],
+  [
+   "satellite temperature measurements over Greenland",
+   [
+    "AIRS_T2M",
+    "MODIS_LST"
+   ]
+  ],
+  [
+   "Is it raining less in Kenya?",
+   [
+    "PRECTOTCORR",
+    "GPM_RAIN"
+   ]
+  ],
+  [
+   "Is it raining more in Bangladesh?",
+   [
+    "PRECTOTCORR",
+    "GPM_RAIN"
+   ]
+  ],
+  [
+   "Is the monsoon getting weaker in India?",
+   [
+    "PRECTOTCORR",
+    "GPM_RAIN"
+   ]
+  ],
+  [
+   "GPM rainfall in Brazil",
+   [
+    "GPM_RAIN"
+   ]
+  ],
+  [
+   "satellite rainfall over Indonesia",
+   [
+    "GPM_RAIN"
+   ]
+  ],
+  [
+   "Is California getting more droughts?",
+   [
+    "PRECTOTCORR",
+    "GPM_RAIN",
+    "GWETROOT",
+    "GLDAS_SOILM",
+    "GWETTOP"
+   ]
+  ],
+  [
+   "Is the soil drying out in Australia?",
+   [
+    "GWETROOT",
+    "GLDAS_SOILM",
+    "GWETTOP"
+   ]
+  ],
+  [
+   "soil moisture in Ukraine",
+   [
+    "GWETROOT",
+    "GLDAS_SOILM"
+   ]
+  ],
+  [
+   "Is the topsoil getting drier in Kansas?",
+   [
+    "GWETTOP"
+   ]
+  ],
+  [
+   "GLDAS soil moisture in Iowa",
+   [
+    "GLDAS_SOILM"
+   ]
+  ],
+  [
+   "Is more water evaporating in Spain?",
+   [
+    "EVLAND",
+    "GLDAS_EVAP"
+   ]
+  ],
+  [
+   "evapotranspiration trend in Egypt",
+   [
+    "EVLAND",
+    "GLDAS_EVAP"
+   ]
+  ],
+  [
+   "GLDAS evaporation in Mali",
+   [
+    "GLDAS_EVAP"
+   ]
+  ],
+  [
+   "Is runoff increasing in Norway?",
+   [
+    "GLDAS_RUNOFF"
+   ]
+  ],
+  [
+   "Are rivers carrying more water in Canada?",
+   [
+    "GLDAS_RUNOFF"
+   ]
+  ],
+  [
+   "Is more water draining off the land in Japan?",
+   [
+    "GLDAS_RUNOFF"
+   ]
+  ],
+  [
+   "Is it getting more humid in Florida?",
+   [
+    "RH2M",
+    "QV2M"
+   ]
+  ],
+  [
+   "Is the air getting more muggy in Singapore?",
+   [
+    "RH2M",
+    "QV2M"
+   ]
+  ],
+  [
+   "water vapour over the Amazon",
+   [
+    "QV2M",
+    "PW"
+   ]
+  ],
+  [
+   "Is there more moisture in the air over India?",
+   [
+    "QV2M",
+    "PW",
+    "RH2M"
+   ]
+  ],
+  [
+   "precipitable water over Brazil",
+   [
+    "PW"
+   ]
+  ],
+  [
+   "Is there less snow in the Alps?",
+   [
+    "SNODP"
+   ]
+  ],
+  [
+   "Is the snowpack shrinking in Colorado?",
+   [
+    "SNODP"
+   ]
+  ],
+  [
+   "Is it getting windier in Chicago?",
+   [
+    "WS10M"
+   ]
+  ],
+  [
+   "Are winds getting stronger in Patagonia?",
+   [
+    "WS10M"
+   ]
+  ],
+  [
+   "air pressure trend in London",
+   [
+    "PS"
+   ]
+  ],
+  [
+   "Is the ozone layer recovering over Antarctica?",
+   [
+    "TO3"
+   ]
+  ],
+  [
+   "Is there more UV in Australia?",
+   [
+    "TO3",
+    "ALLSKY_SFC_SW_DWN"
+   ]
+  ],
+  [
+   "Is the air getting hazier in Beijing?",
+   [
+    "AOD_55"
+   ]
+  ],
+  [
+   "Is there more dust in the air over Iraq?",
+   [
+    "AOD_55"
+   ]
+  ],
+  [
+   "Is wildfire smoke increasing in California?",
+   [
+    "AOD_55"
+   ]
+  ],
+  [
+   "Is air pollution getting worse in Delhi?",
+   [
+    "OMI_NO2",
+    "AOD_55"
+   ]
+  ],
+  [
+   "Is pollution falling in Los Angeles?",
+   [
+    "OMI_NO2",
+    "AOD_55"
+   ]
+  ],
+  [
+   "NO2 in Madrid",
+   [
+    "OMI_NO2"
+   ]
+  ],
+  [
+   "Is traffic pollution decreasing in Paris?",
+   [
+    "OMI_NO2"
+   ]
+  ],
+  [
+   "nitrogen dioxide over Tehran",
+   [
+    "OMI_NO2"
+   ]
+  ],
+  [
+   "Is it getting sunnier in Germany?",
+   [
+    "ALLSKY_SFC_SW_DWN"
+   ]
+  ],
+  [
+   "solar radiation in Chile",
+   [
+    "ALLSKY_SFC_SW_DWN"
+   ]
+  ],
+  [
+   "Are there more clouds over Ireland?",
+   [
+    "CLOUD_AMT"
+   ]
+  ],
+  [
+   "Is it getting cloudier in Seattle?",
+   [
+    "CLOUD_AMT"
+   ]
+  ],
+  [
+   "Is the Amazon getting less green?",
+   [
+    "MODIS_NDVI"
+   ]
+  ],
+  [
+   "Are forests disappearing in Borneo?",
+   [
+    "MODIS_NDVI"
+   ]
+  ],
+  [
+   "Is vegetation growing in the Sahel?",
+   [
+    "MODIS_NDVI"
+   ]
+  ],
+  [
+   "Is the desert getting greener in Saudi Arabia?",
+   [
+    "MODIS_NDVI"
+   ]
+  ],
+  [
+   "NDVI in Ethiopia",
+   [
+    "MODIS_NDVI"
+   ]
+  ],
+  [
+   "Are crops doing better in Ukraine?",
+   [
+    "MODIS_NDVI",
+    "GWETROOT"
+   ]
+  ],
+  [
+   "Is it getting colder in Moscow?",
+   [
+    "T2M",
+    "AIRS_T2M"
+   ]
+  ],
+  [
+   "climate change in Bucharest",
+   [
+    "T2M",
+    "AIRS_T2M"
+   ]
+  ]
+ ],
+ "heldout": [
+  [
+   "Has it become hotter in Athens over the years?",
+   [
+    "T2M",
+    "AIRS_T2M"
+   ]
+  ],
+  [
+   "Are summer heat waves more extreme in Italy?",
+   [
+    "T2M_MAX"
+   ]
+  ],
+  [
+   "Are nighttime temperatures rising in Mexico City?",
+   [
+    "T2M_MIN"
+   ]
+  ],
+  [
+   "Is it freezing less often in Montreal?",
+   [
+    "T2M_MIN"
+   ]
+  ],
+  [
+   "How warm is the sea getting near the Maldives?",
+   [
+    "TS"
+   ]
+  ],
+  [
+   "Is the land surface heating up in Australia according to MODIS?",
+   [
+    "MODIS_LST"
+   ]
+  ],
+  [
+   "Does the AIRS instrument show warming over Alaska?",
+   [
+    "AIRS_T2M"
+   ]
+  ],
+  [
+   "Are rainy seasons getting wetter in Nigeria?",
+   [
+    "PRECTOTCORR",
+    "GPM_RAIN"
+   ]
+  ],
+  [
+   "Is precipitation declining in Morocco?",
+   [
+    "PRECTOTCORR",
+    "GPM_RAIN"
+   ]
+  ],
+  [
+   "What do GPM satellites show for rainfall in Vietnam?",
+   [
+    "GPM_RAIN"
+   ]
+  ],
+  [
+   "Are the fields getting drier in Argentina?",
+   [
+    "GWETROOT",
+    "GWETTOP",
+    "GLDAS_SOILM"
+   ]
+  ],
+  [
+   "Is surface soil wetness changing in Turkey?",
+   [
+    "GWETTOP"
+   ]
+  ],
+  [
+   "How much water is in the root zone in Iran?",
+   [
+    "GWETROOT",
+    "GLDAS_SOILM"
+   ]
+  ],
+  [
+   "Is evaporation rising in Kazakhstan?",
+   [
+    "EVLAND",
+    "GLDAS_EVAP"
+   ]
+  ],
+  [
+   "Is surface runoff changing in Poland?",
+   [
+    "GLDAS_RUNOFF"
+   ]
+  ],
+  [
+   "Is the air in Houston becoming more humid?",
+   [
+    "RH2M",
+    "QV2M"
+   ]
+  ],
+  [
+   "Has specific humidity increased in Thailand?",
+   [
+    "QV2M"
+   ]
+  ],
+  [
+   "Are snowfalls leaving less snow on the ground in Utah?",
+   [
+    "SNODP"
+   ]
+  ],
+  [
+   "Is snow depth falling in Hokkaido?",
+   [
+    "SNODP"
+   ]
+  ],
+  [
+   "Have windy days become more common in Denmark?",
+   [
+    "WS10M"
+   ]
+  ],
+  [
+   "Is the ozone hole shrinking?",
+   [
+    "TO3"
+   ]
+  ],
+  [
+   "Is dust from the desert increasing over Niger?",
+   [
+    "AOD_55"
+   ]
+  ],
+  [
+   "Is the sky smokier in Siberia?",
+   [
+    "AOD_55"
+   ]
+  ],
+  [
+   "Is nitrogen dioxide pollution going down in Milan?",
+   [
+    "OMI_NO2"
+   ]
+  ],
+  [
+   "Is there less NO2 over Beijing now?",
+   [
+    "OMI_NO2"
+   ]
+  ],
+  [
+   "Are we getting more sunshine in Portugal?",
+   [
+    "ALLSKY_SFC_SW_DWN"
+   ]
+  ],
+  [
+   "Is cloud cover changing over Scotland?",
+   [
+    "CLOUD_AMT"
+   ]
+  ],
+  [
+   "Is the vegetation browning in Mongolia?",
+   [
+    "MODIS_NDVI"
+   ]
+  ],
+  [
+   "Has the Congo forest lost greenness?",
+   [
+    "MODIS_NDVI"
+   ]
+  ],
+  [
+   "Is it getting cooler in Antarctica?",
+   [
+    "T2M",
+    "AIRS_T2M"
+   ]
+  ]
+ ]
+}

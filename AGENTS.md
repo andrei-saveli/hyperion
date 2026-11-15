@@ -242,6 +242,8 @@ Non-significant ≠ "no change". Never state causes (Investigate grades how well
   place from famous regions, capitalised names, then leftover words (Photon + Open-Meteo geocoders).
   On Task3's 48 fresh benchmark questions (held out): right measurement 36/36, right place and
   measurement 33/36, 1/12 unavailable requests answered without a note. Details: `Website/README.md`.
+  With all 26 measurements: stems, longest-phrase-wins and measurement families; 30 held-out everyday
+  questions 30/30 (was 24/30). Check: `node Website/tests/test_search.js` (Playwright).
   Questions get a direct answer card (Yes / No, the opposite / Maybe / No clear change yet) that
   respects the direction asked and a named season. Countries and regions are **averaged over their
   outline** (`Website/area.js`: up to 16 NASA POWER points + every 1° satellite/model square, cos-latitude
