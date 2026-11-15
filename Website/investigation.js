@@ -1,12 +1,13 @@
-// Calendar-month windows and matched comparisons, independent of the page and data loaders.
+// A series has parallel dates ({ year, month }) and values (null for missing).
+// A period has inclusive YYYY-MM bounds. An empty bound uses the available record.
 const ByteMeInvestigation = (function (stats) {
-  const key = ({ year, month }) => year * 12 + month - 1;
-  const dateOf = (index) => ({ year: Math.floor(index / 12), month: index % 12 + 1 });
+  const monthIndex = ({ year, month }) => year * 12 + month - 1;
+  const dateFromIndex = (index) => ({ year: Math.floor(index / 12), month: index % 12 + 1 });
   const monthText = ({ year, month }) => `${year}-${String(month).padStart(2, "0")}`;
   const isMonth = (value) => typeof value === "string" && /^[1-9]\d{3}-(0[1-9]|1[0-2])$/.test(value);
-  function monthKey(value) {
+  function parseMonthIndex(value) {
     const [year, month] = value.split("-").map(Number);
-    return key({ year, month });
+    return monthIndex({ year, month });
   }
 
   function periodOf(from, to) {
@@ -26,7 +27,7 @@ const ByteMeInvestigation = (function (stats) {
     return periodOf(since[1].length === 4 ? since[1] + "-01" : since[1], "");
   }
 
-  function slice(series, period) {
+  function slicePeriod(series, period) {
     if (!series || !period) return series;
     const dates = [], values = [];
     series.dates.forEach((date, i) => {
@@ -38,36 +39,39 @@ const ByteMeInvestigation = (function (stats) {
     return dates.length ? { dates, values } : null;
   }
 
-  function match(a, b, period = null) {
+  function matchMonths(a, b, period = null) {
     if (!a || !b) return null;
-    const start = Math.max(key(a.dates[0]), key(b.dates[0]), period?.from ? monthKey(period.from) : -Infinity);
-    const end = Math.min(key(a.dates.at(-1)), key(b.dates.at(-1)), period?.to ? monthKey(period.to) : Infinity);
+    const selectedStart = period?.from ? parseMonthIndex(period.from) : -Infinity;
+    const selectedEnd = period?.to ? parseMonthIndex(period.to) : Infinity;
+    const start = Math.max(monthIndex(a.dates[0]), monthIndex(b.dates[0]), selectedStart);
+    const end = Math.min(monthIndex(a.dates.at(-1)), monthIndex(b.dates.at(-1)), selectedEnd);
     if (start > end) return null;
 
-    const byMonth = (series) => new Map(series.dates.map((date, i) => [key(date), series.values[i]]));
-    const am = byMonth(a), bm = byMonth(b);
-    const dates = [], av = [], bv = [], difference = [];
+    const byMonth = (series) => new Map(series.dates.map((date, i) => [monthIndex(date), series.values[i]]));
+    const aByMonth = byMonth(a), bByMonth = byMonth(b);
+    const dates = [], aValues = [], bValues = [], difference = [];
     let count = 0, first = null, last = null;
-    for (let k = start; k <= end; k++) {
-      const va = am.get(k), vb = bm.get(k);
-      const paired = Number.isFinite(va) && Number.isFinite(vb);
-      const date = dateOf(k);
+    // Keep missing months in the timeline so the chart and serial lags follow the calendar.
+    for (let index = start; index <= end; index++) {
+      const aValue = aByMonth.get(index), bValue = bByMonth.get(index);
+      const observedInBoth = Number.isFinite(aValue) && Number.isFinite(bValue);
+      const date = dateFromIndex(index);
       dates.push(date);
-      av.push(paired ? va : null);
-      bv.push(paired ? vb : null);
-      difference.push(paired ? va - vb : null);
-      if (paired) {
+      aValues.push(observedInBoth ? aValue : null);
+      bValues.push(observedInBoth ? bValue : null);
+      difference.push(observedInBoth ? aValue - bValue : null);
+      if (observedInBoth) {
         count++;
         first ??= date;
         last = date;
       }
     }
-    return { dates, values: [av, bv], difference, count, first, last };
+    return { dates, values: [aValues, bValues], difference, count, first, last };
   }
 
   function recentPeriod(first, last, years) {
-    const from = key(last) - years * 12 + 1;
-    return from > key(first) ? { from: monthText(dateOf(from)), to: monthText(last) } : null;
+    const from = monthIndex(last) - years * 12 + 1;
+    return from > monthIndex(first) ? { from: monthText(dateFromIndex(from)), to: monthText(last) } : null;
   }
 
   // Newey-West uncertainty for the slope of the paired difference. Partial out calendar-month
@@ -75,7 +79,8 @@ const ByteMeInvestigation = (function (stats) {
   function differenceInterval(paired, fit) {
     const { dates, difference, count } = paired;
     const countByMonth = Array(13).fill(0), timeByMonth = Array(13).fill(0);
-    const time = dates.map((date) => (key(date) - key(dates[0])) / 12);
+    const start = monthIndex(dates[0]);
+    const time = dates.map((date) => (monthIndex(date) - start) / 12);
     dates.forEach(({ month }, i) => {
       if (difference[i] === null) return;
       countByMonth[month]++;
@@ -84,9 +89,9 @@ const ByteMeInvestigation = (function (stats) {
     let sumSquares = 0;
     const scores = dates.map(({ month }, i) => {
       if (difference[i] === null) return 0;
-      const adjustedTime = time[i] - timeByMonth[month] / countByMonth[month];
-      sumSquares += adjustedTime ** 2;
-      return adjustedTime * (fit.anomaly[i] - fit.trend[i]);
+      const timeWithinMonth = time[i] - timeByMonth[month] / countByMonth[month];
+      sumSquares += timeWithinMonth ** 2;
+      return timeWithinMonth * (fit.anomaly[i] - fit.trend[i]);
     });
     const df = count - countByMonth.filter(Boolean).length - 1;
     if (sumSquares <= 0 || df <= 0) return null;
@@ -98,11 +103,12 @@ const ByteMeInvestigation = (function (stats) {
       for (let i = lag; i < scores.length; i++) covariance += scores[i] * scores[i - lag];
       variance += 2 * (1 - lag / (lags + 1)) * covariance;
     }
-    const margin = 10 * stats.tCritical975(df) * Math.sqrt(Math.max(0, variance) * count / df) / sumSquares;
+    const standardErrorPerYear = Math.sqrt(Math.max(0, variance) * count / df) / sumSquares;
+    const margin = 10 * stats.tCritical975(df) * standardErrorPerYear;
     return [fit.slope_per_decade - margin, fit.slope_per_decade + margin];
   }
 
-  function compare(paired, percent) {
+  function fitComparison(paired, percent) {
     if (!paired?.count) return null;
     const { dates, values, difference } = paired;
     const sides = values.map((v) => stats.analyze(dates, v, percent));
@@ -111,7 +117,7 @@ const ByteMeInvestigation = (function (stats) {
     return { sides, slope: fit.slope_per_decade, interval };
   }
 
-  return { monthText, periodOf, periodInQuestion, slice, match, recentPeriod, compare };
+  return { monthText, periodOf, periodInQuestion, slicePeriod, matchMonths, recentPeriod, fitComparison };
 })(typeof module === "undefined" ? ByteMeStats : require("./stats.js"));
 
 if (typeof module !== "undefined") module.exports = ByteMeInvestigation;

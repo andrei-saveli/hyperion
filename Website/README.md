@@ -1,35 +1,29 @@
-# Website: the ByteMe site (static, works for any place on Earth)
+# ByteMe website
 
-The public website. A visitor searches for any place (or clicks the map), and the site reads the
-NASA record for that spot and tests **every measurement** for a trend: what is changing, how fast,
-and whether the change is statistically significant.
-
-**Static** means plain HTML + CSS + JavaScript: no server of our own, no login, nothing to install,
-and it can be uploaded to any web hosting (e.g. the free Space Apps domain hosting).
+ByteMe runs in the browser using HTML, CSS, and JavaScript. Visitors can search for a place or
+click the map and see trends for the available NASA records at that location.
 
 ## How it works
 ```
-visitor picks a place ─► NASA POWER (live, no login) ─► stats.js ─► list of trends + chart + verdict
-                         monthly data since 1981        (same math as Task4/stats.py, tested)
-
-build_world.py (run once, Python, Task4/stats.py) ─► data/world.json ─► coloured squares on the map
+NASA POWER requests and bundled NASA tiles → monthly records → single-series analysis in stats.js
+                                                             → matched comparison in investigation.js
+build_world.py and build_nasa_tiles.py     → precomputed map layers
 ```
-- **Data:** [NASA POWER](https://power.larc.nasa.gov/) monthly values (MERRA-2 and CERES) for the
-  grid square, about 50 km wide, around the chosen point. 18 measurements, listed with
-  plain-language definitions in `data/variables.json`. Most start in 1981, sunlight and clouds in
-  1984, haze in 2001.
+- **Data:** the browser requests 18 monthly measurements from
+  [NASA POWER](https://power.larc.nasa.gov/) (MERRA-2 and CERES) for the selected location.
+  Most start in 1981. Sunlight and clouds start in 1984, and haze starts in 2001. Coverage and grid
+  resolution vary by product. The catalog with units and definitions lives in `data/variables.json`.
 - **Trend math:** seasons removed (the 12 monthly averages are estimated together with the trend
   line), straight-line trend, significance corrected for month-to-month memory, seasonal
-  Mann-Kendall as a second test. `stats.js` is a line-by-line copy of the project's Python code
-  (`Task4/stats.py`). `tests/test_stats.js` checks that both give the same numbers on 105 real
-  series. If you change one, change the other and re-run the test.
+  Mann-Kendall as a second test. `stats.js` ports the shared trend method from `Task4/stats.py`.
+  Keep their shared calculations aligned and run `tests/test_stats.js` after a change. It checks
+  both implementations against 105 real series.
 - **Search:** understands a place ("Bucharest"), a question ("is Romania getting warmer?"), a
   famous region ("Sahel") or coordinates ("44.4, 26.1"). Simple rules, no AI:
   1. *Measurement:* each measurement in `data/variables.json` has `phrases` (several words, strong)
      and `keywords` (single words). The best score wins.
-  2. *Things we don't have* (NO₂, river flow, crop yield, forecasts, hourly data...) are listed in
-     `not_available`: the search says so plainly and offers the closest measurement we do have.
-     Years before 1981 or after the last complete year get the same kind of note.
+  2. *Unavailable measurements* such as river discharge and crop yield are listed in
+     `not_available`. The search can offer a related measurement from the catalog.
   3. *Place:* well-known regions first ("Sahel"), then names written with capital letters
      ("Hoover Dam"), then the leftover words. Each is looked up in Photon (OpenStreetMap, good for
      lakes, dams, islands) and Open-Meteo (GeoNames, good for towns).
@@ -46,8 +40,8 @@ build_world.py (run once, Python, Task4/stats.py) ─► data/world.json ─► 
   (Re-run after adding the 8 satellite/model measurements; greenness, NO₂ and runoff questions now
   count as answerable.) Most misses are riddle-style places ("Niger's capital", "the Nevada reservoir"). Questions that
   ask for several measurements get one suggestion; the "What is changing here" list shows the rest.
-- **World overview:** the coloured squares on the map show where the chosen measurement is rising
-  or falling (every 5 degrees). They come from `data/world.json`.
+- **World overview:** NASA POWER trends come from the precomputed 5° map in `data/world.json`.
+  The bundled products have their own 2° overview maps.
 
 ## Investigate a period
 
@@ -60,6 +54,7 @@ build_world.py (run once, Python, Task4/stats.py) ─► data/world.json ─► 
   the rates differ by fitting the series of paired monthly differences, with an approximate 95%
   Newey–West interval using 12 calendar-month lags when there is enough usable data.
 - Short windows still show the observations against a seasonal baseline from the full record.
+  A trend verdict requires at least 24 observations spanning 10 years.
   After a comparison, **Check the latest 15 years** lets you test how sensitive the finding is to
   the period. A narrower comparison shows the estimated difference for the full shared record
   as a reference. **Share comparison** opens a link containing both places, the measurement, and
@@ -83,9 +78,8 @@ asked for live like NASA POWER.
 
 - **Grid:** every dataset is averaged into 1 x 1 degree squares (about 110 km). A square needs data
   in at least half of its small cells, so coasts and gaps don't give misleading averages.
-- **Second source:** where a measurement exists twice, the evidence panel tests both over the
-  years they share and says whether they agree. A significant trend that an independent
-  satellite or model confirms gets "confirmed by ..." in the list.
+- **Second source:** where two products track related measurements, the evidence panel fits both
+  to their shared valid months and reports whether their trend directions agree.
 - **Map:** the coloured squares for these measurements are 2 x 2 degrees (`data/nasa/<CODE>_map.json`).
 - **NO₂ caution:** over clean areas (average below 1 × 10¹⁵ molecules/cm², e.g. oceans) OMI is near its
   detection limit and small trends can come from the instrument. Those squares are left blank on
@@ -116,34 +110,36 @@ much to the repository's history.
 |---|---|
 | `index.html` | Page structure: hero + demo cases, explore (search, map, list of trends, evidence), compare, method, footer |
 | `style.css` | The look: colours, fonts, outlines, phone layout |
-| `app.js` | Live data download, search, map (MapLibre), charts (Plotly), compare |
+| `app.js` | Page state, NASA requests, search, map and chart rendering. Compare renders its finding and charts separately. |
 | `stats.js` | Trend and significance math (copy of `Task4/stats.py`) |
 | `investigation.js` | Date selection, matched monthly records, and uncertainty for the difference in trends |
 | `nasa.js` | Reads one square's monthly series from a NASA tile file |
 | `build_nasa_grids.py`, `build_nasa_tiles.py` | Download the NASA datasets to 1° grids; then trends, tiles and map layers (`data/nasa/`) |
 | `globe.js` | Hero art: rotating globe of teal "satellite pixels", demo cases in coral (decoration only) |
 | `data/variables.json` | The 26 measurements (18 NASA POWER + 8 satellite/model): code, name, units, definition, search words, second-source pairs |
-| `data/world.json` | World overview: trend of every measurement on a 5 degree grid (made by `build_world.py`) |
+| `data/world.json` | Precomputed NASA POWER trends on a 5° grid (made by `build_world.py`) |
 | `build_world.py` | Rebuilds `data/world.json` with the Python trend code (about 25 minutes, can be stopped and restarted) |
-| `tests/` | `make_reference.py` + `test_stats.js` (website math = Python math); `test_nasa.js` + `nasa_reference.json` (tiles read back correctly) |
+| `tests/` | Single-series parity, NASA tile decoding, and period and matched-comparison checks |
 | `data/land.geojson` | World land outline (Natural Earth, public domain): the fallback map |
 | `vendor/maplibre-gl.css` | The map library's stylesheet (kept locally) |
 | `build_data.py`, `data/results.json` | The earlier version (3 Giovanni regions). No longer read by the page; kept for reference |
 | `design/` | Screenshots |
 
 ## Run it locally (from the repository root)
-```bash
-python3 -m http.server 8000 --directory Website
-```
-Then open http://localhost:8000 (opening `index.html` directly doesn't work: browsers block
-reading the data files from a file). Nothing to build first.
 
-## Check the math
+```bash
+python -m http.server 8503 --bind 127.0.0.1 --directory Website
+```
+Open [http://127.0.0.1:8503](http://127.0.0.1:8503). Serving the directory over HTTP allows the
+browser to load its JSON data and bundled grids.
+
+## Check a change
 ```bash
 node Website/tests/test_stats.js
+node Website/tests/test_nasa.js
 node Website/tests/test_investigation.js
 ```
-To refresh the expected answers after changing `Task4/stats.py`:
+Refresh the single-series reference results after changing `Task4/stats.py`.
 ```bash
 python3 Website/tests/make_reference.py
 ```

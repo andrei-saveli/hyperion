@@ -11,6 +11,8 @@
 const COLOURS = { up: "#ec7a6a", down: "#2d8bb5", neutral: "#b2bcb8", ink: "#141a19", deep: "#0e5e63" };
 const START_YEAR = 1981;
 const END_YEAR = new Date().getFullYear() - 1;          // last complete year
+const RECENT_COMPARISON_YEARS = 15;
+const COMPARE_SIDES = ["a", "b"];
 const POWER = "https://power.larc.nasa.gov/api/temporal/monthly/point";
 const MAP_STYLE = "https://tiles.openfreemap.org/styles/positron";
 const GEOCODER = "https://geocoding-api.open-meteo.com/v1/search";
@@ -29,10 +31,18 @@ const CASES = [
 window.BYTEME_CASES = CASES;
 
 let VARS = [], POWER_VARS = [], NASA = null, NOT_AVAILABLE = [], WORLD = null, LAND = null, map = null, marker = null;
-const state = { lat: null, lon: null, name: "", code: "T2M", raw: false, loading: false, error: null, place: null, active: null, period: null, layer: true };
-const compare = { code: "AOD_55", a: { name: "Beijing (China)", lat: 40.0, lon: 116.25 }, b: { name: "Delhi (India)", lat: 28.5, lon: 77.5 }, period: null };
+const state = {
+  lat: null, lon: null, name: "", code: "T2M",
+  raw: false, loading: false, error: null, layer: true,
+  fullRecord: null, analysis: null, period: null,
+};
+const compare = {
+  code: "AOD_55", period: null, records: null,
+  a: { name: "Beijing (China)", lat: 40.0, lon: 116.25 },
+  b: { name: "Delhi (India)", lat: 28.5, lon: 77.5 },
+};
 const $ = (id) => document.getElementById(id);
-const { monthText, periodOf, periodInQuestion, slice, match, recentPeriod } = ByteMeInvestigation;
+const { monthText, periodOf, periodInQuestion, slicePeriod, matchMonths, recentPeriod, fitComparison } = ByteMeInvestigation;
 
 // ------------------------------------------------------------------ small helpers
 function num(v, signed = true) {
@@ -123,11 +133,11 @@ function loadPlace(lat, lon) {
     const job = Promise.all([powerAt(lat, lon).catch(() => null), loadNasaCell(lat, lon)])
       .then(([raw, nasa]) => {
         const series = Object.fromEntries(VARS.map((v) => [
-          v.code, v.dataset === "nasa" ? nasa[v.code] || null : toSeries(raw?.[v.code], v.scale || 1),
+          v.code, v.dataset === "nasa" ? nasa.series[v.code] || null : toSeries(raw?.[v.code], v.scale || 1),
         ]));
         if (!raw || nasa.incomplete) placeCache.delete(key);
         if (!raw && !Object.values(series).some(Boolean)) throw new Error("Neither data source is available");
-        return { ...analyzeSeries(series), powerUnavailable: !raw };
+        return { ...analyzeMeasurements(series), powerUnavailable: !raw };
       });
     job.catch(() => placeCache.delete(key));   // a failed download can be tried again
     placeCache.set(key, job);
@@ -135,12 +145,12 @@ function loadPlace(lat, lon) {
   return placeCache.get(key);
 }
 
-function analyzeSeries(series, period = null) {
+function analyzeMeasurements(series, period = null) {
   const selected = {}, results = {};
-  for (const v of VARS) {
-    const s = slice(series[v.code], period);
-    selected[v.code] = s;
-    results[v.code] = s ? ByteMeStats.analyze(s.dates, s.values, v.percent) : null;
+  for (const { code, percent } of VARS) {
+    const record = slicePeriod(series[code], period);
+    selected[code] = record;
+    results[code] = record ? ByteMeStats.analyze(record.dates, record.values, percent) : null;
   }
   return { series: selected, results };
 }
@@ -194,13 +204,12 @@ async function nasaSeries(lat, lon, code) {
 }
 
 async function loadNasaCell(lat, lon) {
-  if (!NASA) return {};
-  const out = {};
-  await Promise.all(Object.keys(NASA.variables).map(async (code) => {
-    try { out[code] = await nasaSeries(lat, lon, code); }
-    catch { out.incomplete = true; }
-  }));
-  return out;
+  const codes = Object.keys(NASA?.variables || {});
+  const attempts = await Promise.allSettled(codes.map((code) => nasaSeries(lat, lon, code)));
+  return {
+    series: Object.fromEntries(codes.map((code, index) => [code, attempts[index].value ?? null])),
+    incomplete: attempts.some((attempt) => attempt.status === "rejected"),
+  };
 }
 
 // ------------------------------------------------------------------ second source
@@ -212,7 +221,7 @@ function partnerOf(v) {
 function secondOpinion(place, v) {
   const other = partnerOf(v);
   if (!other || !place.series[v.code] || !place.series[other.code]) return null;
-  const paired = match(place.series[v.code], place.series[other.code]);
+  const paired = matchMonths(place.series[v.code], place.series[other.code]);
   if (!paired || paired.count < 24) return null;
   const ra = ByteMeStats.analyze(paired.dates, paired.values[0], v.percent);
   const rb = ByteMeStats.analyze(paired.dates, paired.values[1], other.percent);
@@ -300,15 +309,20 @@ function validPoint({ lat, lon }) {
 }
 
 function showExplorePeriod() {
-  const bounds = seriesBounds(state.place?.series[state.code]);
+  const bounds = seriesBounds(state.fullRecord?.series[state.code]);
   const coverage = bounds ? `Available for ${variable(state.code).name} · ${dateSpan(bounds.first, bounds.last)}` : "";
   showPeriod("explore-period", state.period, bounds, coverage);
 }
 
 function setExplorePeriod(period) {
   state.period = period;
-  state.active = state.place && (period ? analyzeSeries(state.place.series, period) : state.place);
+  updateExploreAnalysis();
   writeHash();
+}
+
+function updateExploreAnalysis() {
+  const { fullRecord, period } = state;
+  state.analysis = fullRecord && period ? analyzeMeasurements(fullRecord.series, period) : fullRecord;
   showExplorePeriod();
   renderScan();
   renderDetail();
@@ -344,7 +358,10 @@ function buildCases() {
 let selectionTicket = 0;
 async function selectPlace(lat, lon, name, code, fly, period = state.period) {
   const ticket = ++selectionTicket;
-  Object.assign(state, { lat, lon, name: name || coordText(lat, lon), loading: true, error: null, place: null, active: null, period });
+  Object.assign(state, {
+    lat, lon, name: name || coordText(lat, lon), period,
+    loading: true, error: null, fullRecord: null, analysis: null,
+  });
   if (code) { state.code = code; $("var-select").value = code; }
   showExplorePeriod();
   writeHash(); refreshWorldLayer(); placeMarker(); renderScan(); renderDetail();
@@ -353,17 +370,15 @@ async function selectPlace(lat, lon, name, code, fly, period = state.period) {
     if (found && ticket === selectionTicket) { state.name = found; writeHash(); renderScan(); renderDetail(); }
   });
   try {
-    const place = await loadPlace(lat, lon);
+    const fullRecord = await loadPlace(lat, lon);
     if (ticket !== selectionTicket) return;
-    state.place = place;
-    state.active = state.period ? analyzeSeries(place.series, state.period) : place;
+    state.fullRecord = fullRecord;
   } catch (e) {
     if (ticket !== selectionTicket) return;
     state.error = "We couldn't reach NASA's data service just now.";
   }
   state.loading = false;
-  showExplorePeriod();
-  renderScan(); renderDetail();
+  updateExploreAnalysis();
 }
 
 // A readable name for a clicked point ("Bucharest, Romania", "North Atlantic Ocean").
@@ -503,7 +518,7 @@ function placeMarker() {
     marker = new maplibregl.Marker({ element: el, anchor: "left", offset: [-8, 0] });
   }
   marker.setLngLat([state.lon, state.lat]).addTo(map);
-  const r = state.active?.results[state.code];
+  const r = state.analysis?.results[state.code];
   const el = marker.getElement();
   el.querySelector(".name").textContent = state.name;
   el.querySelector(".dot").outerHTML = dotHTML(r);
@@ -541,11 +556,11 @@ function renderScan() {
     $("retry").addEventListener("click", () => selectPlace(state.lat, state.lon, state.name, null, false));
     return;
   }
-  const results = state.active.results;
+  const results = state.analysis.results;
   const confirmed = (v) => {               // short note for measurements an independent source backs up
     const other = partnerOf(v);
     if (!other || !results[v.code] || results[v.code].verdict !== "significant") return "";
-    const s = secondOpinion(state.active, v);
+    const s = secondOpinion(state.analysis, v);
     return s && s.agreement === "agree" ? ` · also seen in ${other.source.split(" ")[0]}` : "";
   };
   const rows = VARS.map((v) => ({ v, r: results[v.code] })).sort((a, b) => {
@@ -559,7 +574,7 @@ function renderScan() {
       + (count("possible") ? `, ${count("possible")} more show a possible one.` : ".")
     : "No measurements have enough data for a trend verdict in this period.";
   el.innerHTML = head + `
-    ${state.place.powerUnavailable ? `<p class="meta">Live NASA POWER data is unavailable. Bundled datasets are still available here.</p>` : ""}
+    ${state.fullRecord.powerUnavailable ? `<p class="meta">Live NASA POWER data is unavailable. Bundled datasets are still available here.</p>` : ""}
     <p class="summary">${summary}</p>
     <div class="scan">${rows.map(({ v, r }) => `
       <button class="row${v.code === state.code ? " on" : ""}" data-code="${v.code}" title="${escapeHTML(v.definition)}">
@@ -573,22 +588,22 @@ function renderScan() {
 // ------------------------------------------------------------------ the evidence for one measurement
 function renderDetail() {
   const el = $("detail"), v = variable(state.code);
-  if (state.loading || state.error || !state.place) {
+  if (state.loading || state.error || !state.analysis) {
     el.innerHTML = `<div class="detail-text"><span class="tag">${escapeHTML(state.name)} · ${v.name}</span>
       <p style="margin:0"><strong style="font-weight:500">${v.name}:</strong> ${v.definition}</p>
       ${state.loading ? `<div class="loading"><span class="spinner"></span>Working on the trend…</div>` : ""}</div>`;
     return;
   }
-  const r = state.active.results[v.code], s = state.active.series[v.code];
-  const full = state.place.series[v.code], fullFit = state.place.results[v.code], cell = snap(state.lat, state.lon);
+  const r = state.analysis.results[v.code], s = state.analysis.series[v.code];
+  const full = state.fullRecord.series[v.code], fullFit = state.fullRecord.results[v.code], cell = snap(state.lat, state.lon);
   const text = explain(r, v, state.name);
   const nasaGrid = v.dataset === "nasa";
   const sourceLine = nasaGrid ? `${v.source} · ${v.product} · monthly · 1° square` : `${v.source} via NASA POWER · ${v.code} · monthly`;
-  const reference = { series: full, fit: fullFit };
+  const reference = { dates: full?.dates, fit: fullFit };
   if (!r || r.verdict === "insufficient") {
     const hasValues = s?.values.some(Number.isFinite);
     let message = text.details;
-    if (state.place.powerUnavailable && !nasaGrid) message = "Live NASA POWER data is unavailable. Try again or select a bundled measurement.";
+    if (state.fullRecord.powerUnavailable && !nasaGrid) message = "Live NASA POWER data is unavailable. Try again or select a bundled measurement.";
     else if (!hasValues && full) message = "This measurement has no usable months in the selected period.";
     else if (hasValues) message = "A trend verdict requires at least 24 observations spanning 10 years. The chart shows the months available in this period.";
     el.innerHTML = `<div class="detail-text"><span class="tag">${escapeHTML(state.name)} · ${v.name}</span>
@@ -605,11 +620,10 @@ function renderDetail() {
   if (r.reliability === "low") notes.push(`<div class="note warn"><b>Caution</b><span>${r.reliability_note}</span></div>`);
   if (r.tests_agree === false) notes.push(`<div class="note warn"><b>Caution</b><span>${r.tests_note}</span></div>`);
   if (r.years_to_significance !== null) notes.push(`<div class="note time"><b>Estimate</b><span>About <strong>${r.years_to_significance} more years</strong> of data would make this trend significant, if the trend and the noise stay the same. Not a forecast.</span></div>`);
-  if (v.low_level !== undefined) {           // e.g. NO2 over clean areas: too close to the satellite's detection limit
-    const present = s.values.filter((x) => x !== null);
-    if (present.reduce((sum, x) => sum + x, 0) / present.length < v.low_level) notes.unshift(`<div class="note warn"><b>Caution</b><span>${v.low_note}</span></div>`);
+  if (belowSourceFloor(s.values, v)) {
+    notes.unshift(`<div class="note warn"><b>Caution</b><span>${v.low_note}</span></div>`);
   }
-  const second = secondOpinion(state.active, v);
+  const second = secondOpinion(state.analysis, v);
   if (second) {
     const line = (x, rx) => `<li><strong style="font-weight:500">${x.source}</strong>: ${verdictText(rx).toLowerCase()}, ${num(rx.slope_per_decade)} ${x.units} per decade</li>`;
     notes.push(`<div class="note second ${second.agreement}"><b>Second source</b><span>${second.count} shared months (${second.period}).
@@ -672,7 +686,7 @@ function bindDetailChart(el, r, s, v, reference) {
 // ------------------------------------------------------------------ charts
 function chartAnomalies(r, s, reference) {
   if (r.verdict !== "insufficient" || !reference?.fit) return r.anomaly;
-  const byMonth = new Map(reference.series.dates.map((date, i) => [monthText(date), reference.fit.anomaly[i]]));
+  const byMonth = new Map(reference.dates.map((date, i) => [monthText(date), reference.fit.anomaly[i]]));
   return s.dates.map((date, i) => Number.isFinite(s.values[i]) ? byMonth.get(monthText(date)) ?? null : null);
 }
 
@@ -681,7 +695,7 @@ function drawChart(el, r, s, v, raw, yRange, reference) {
     $(el).textContent = "The chart library is unavailable.";
     return;
   }
-  const x = s.dates.map((d) => `${d.year}-${String(d.month).padStart(2, "0")}-01`);
+  const x = s.dates.map((date) => `${monthText(date)}-01`);
   const neutral = !hasTrend(r);
   const colour = neutral ? COLOURS.deep : colourOf(r);
   const traces = raw
@@ -709,7 +723,7 @@ function drawChart(el, r, s, v, raw, yRange, reference) {
 // How a question is read (simple rules, no AI):
 // 1. Measurement: look for each measurement's phrases (strong) and keywords (weaker) from
 //    data/variables.json. The best score wins.
-// 2. Things we don't have (NO₂, river flow, forecasts...): "not_available" in variables.json.
+// 2. Unavailable measurements (e.g. river discharge): "not_available" in variables.json.
 //    We say so plainly and offer the closest measurement we do have.
 // 3. Place: well-known regions ("Sahel"), then names written with capital letters ("Hoover Dam"),
 //    then the words left over. Each is looked up in two free place-name services.
@@ -899,14 +913,14 @@ function buildCompare(groups) {
   $("cmp-var").innerHTML = optionsHTML(groups);
   $("cmp-var").value = compare.code;
   $("cmp-var").addEventListener("change", (e) => { compare.code = e.target.value; loadComparison(); });
-  ["a", "b"].forEach((side) => {
+  for (const side of COMPARE_SIDES) {
     $(`cmp-${side}`).value = compare[side].name;
     placePicker($(`cmp-${side}`), $(`cmp-${side}-list`), (hit) => {
       compare[side] = { name: hit.name || hit.label, lat: hit.lat, lon: hit.lon };
       $(`cmp-${side}`).value = compare[side].name;
       loadComparison();
     }, false);
-  });
+  }
   $("cmp-use").addEventListener("click", () => useExploreInCompare(false));
   bindPeriod("compare-period", setComparePeriod);
   loadComparison();
@@ -957,27 +971,29 @@ async function comparisonSeries({ lat, lon }, v) {
 
 let compareTicket = 0;
 async function loadComparison() {
-  const v = variable(compare.code), mine = ++compareTicket;
+  const measurement = variable(compare.code);
+  const ticket = ++compareTicket;
   compare.records = null;
   showPeriod("compare-period", compare.period, null, "Reading the selected records…");
   $("compare-finding").innerHTML = `<p class="loading"><span class="spinner"></span>Finding months observed in both places…</p>`;
-  for (const side of ["a", "b"]) {
+  for (const side of COMPARE_SIDES) {
     $(`cmp-panel-${side}`).innerHTML = `<span class="tag">${escapeHTML(compare[side].name)}</span>`;
   }
-  const loaded = await Promise.allSettled([comparisonSeries(compare.a, v), comparisonSeries(compare.b, v)]);
-  if (mine !== compareTicket) return;
-  const full = match(...loaded.map((record) => record.value));
-  compare.records = { loaded, full, fullFit: ByteMeInvestigation.compare(full, v.percent) };
+  const requests = await Promise.allSettled(COMPARE_SIDES.map((side) => comparisonSeries(compare[side], measurement)));
+  if (ticket !== compareTicket) return;   // the user changed a place or the measurement
+  const [a, b] = requests;
+  const full = matchMonths(a.value, b.value);
+  compare.records = { requests, full, fullFit: fitComparison(full, measurement.percent) };
   renderCompare();
 }
 
 function belowSourceFloor(values, v) {
   if (v.low_level === undefined) return false;
   const present = values.filter(Number.isFinite);
-  return present.length && present.reduce((sum, value) => sum + value, 0) / present.length < v.low_level;
+  return present.length > 0 && present.reduce((sum, value) => sum + value, 0) / present.length < v.low_level;
 }
 
-function compareFinding(fit, lowSignal, units) {
+function describeComparison(fit, lowSignal, units, aName, bName) {
   if (!fit || fit.slope === null) return ["Too little shared data for a trend comparison",
     "A comparison requires at least 24 shared observations spanning 10 years."];
   const rate = `The estimated rate at A minus the rate at B is ${num(fit.slope)} ${units} per decade.`;
@@ -986,8 +1002,8 @@ function compareFinding(fit, lowSignal, units) {
   const [low, high] = fit.interval;
   const range = `${rate} Approximate 95% interval ${num(low)} to ${num(high)} ${units} per decade.`;
   if (low <= 0 && high >= 0) return ["The rates could be the same", range];
-  const higher = low > 0 ? compare.a.name : compare.b.name;
-  const lower = low > 0 ? compare.b.name : compare.a.name;
+  const higher = low > 0 ? aName : bName;
+  const lower = low > 0 ? bName : aName;
   const [a, b] = fit.sides;
   if ([a, b].every((r) => r.verdict === "significant" && r.reliability !== "low")) {
     if (a.direction !== b.direction) return [`Rising near ${higher} and falling near ${lower}`, range];
@@ -998,63 +1014,91 @@ function compareFinding(fit, lowSignal, units) {
 }
 
 function renderCompare() {
-  const { loaded, full, fullFit } = compare.records;
-  const v = variable(compare.code), el = $("compare-finding");
-  const paired = compare.period ? match(...loaded.map((record) => record.value), compare.period) : full;
-  const fit = compare.period ? ByteMeInvestigation.compare(paired, v.percent) : fullFit;
-  const coverage = full?.count ? `Shared record · ${dateSpan(full.first, full.last)} · ${full.count} months observed in both places` : "No shared record available.";
+  const { requests, full, fullFit } = compare.records;
+  const measurement = variable(compare.code);
+  const [a, b] = requests;
+  const selected = compare.period ? matchMonths(a.value, b.value, compare.period) : full;
+  const fit = compare.period ? fitComparison(selected, measurement.percent) : fullFit;
+  const coverage = full?.count
+    ? `Shared record · ${dateSpan(full.first, full.last)} · ${full.count} months observed in both places`
+    : "No shared record available.";
   showPeriod("compare-period", compare.period, full?.count ? full : null, coverage);
+  renderComparisonFinding(measurement, selected, fit);
+  renderComparisonCharts(measurement, selected, fit);
+}
 
-  const lowSignal = paired?.values.some((values) => belowSourceFloor(values, v));
-  let [headline, detail] = compareFinding(fit, lowSignal, v.units);
-  if (loaded.some((record) => record.status === "rejected")) {
-    [headline, detail] = ["A data request failed", "Retry the request or choose another measurement."];
-  } else if (!paired?.count) {
-    [headline, detail] = ["No months observed in both places", full?.count ? "Choose another period or use the shared record." : "Try another place or measurement."];
+function renderComparisonFinding(measurement, selected, fit) {
+  const { requests, full, fullFit } = compare.records;
+  const el = $("compare-finding"), units = measurement.units;
+  const requestFailed = requests.some((record) => record.status === "rejected");
+  const lowSignal = selected?.values.some((values) => belowSourceFloor(values, measurement));
+  let headline, detail;
+  if (requestFailed) {
+    headline = "A data request failed";
+    detail = "Retry the request or choose another measurement.";
+  } else if (!selected?.count) {
+    headline = "No months observed in both places";
+    detail = full?.count ? "Choose another period or use the shared record." : "Try another place or measurement.";
+  } else {
+    [headline, detail] = describeComparison(fit, lowSignal, units, compare.a.name, compare.b.name);
   }
 
-  const recent = full?.count && recentPeriod(full.first, full.last, 15);
-  const narrowed = compare.period && full?.count && (paired?.count ?? 0) !== full.count;
+  const narrowed = compare.period && full?.count && (selected?.count ?? 0) !== full.count;
+  const recent = !compare.period && full?.count
+    ? recentPeriod(full.first, full.last, RECENT_COMPARISON_YEARS)
+    : null;
+  const lead = narrowed ? "Recheck the shared record" : recent ? `Check the latest ${RECENT_COMPARISON_YEARS} years` : "";
   const fullDifference = narrowed && fullFit && fullFit.slope !== null
-    ? `<p class="meta">Full shared record · A minus B ${num(fullFit.slope)} ${v.units} per decade</p>` : "";
-  const lead = narrowed ? "Recheck the shared record" : !compare.period && recent ? "Check the latest 15 years" : "";
+    ? `<p class="meta">Full shared record · A minus B ${num(fullFit.slope)} ${units} per decade</p>` : "";
+  const selectedCoverage = selected?.count
+    ? `<p class="meta">${measurement.source} · ${dateSpan(selected.first, selected.last)} · ${selected.count} of ${selected.dates.length} months observed in both places</p>`
+    : "";
   el.innerHTML = `<h3>${escapeHTML(headline)}</h3><p>${detail}</p>
-    ${paired?.count ? `<p class="meta">${v.source} · ${dateSpan(paired.first, paired.last)} · ${paired.count} of ${paired.dates.length} months observed in both places</p>` : ""}
+    ${selectedCoverage}
     ${fullDifference}
     ${fit?.interval && !lowSignal ? `<details><summary>How was the difference estimated?</summary><p>We subtract B from A in each shared month, remove the seasonal cycle, then fit a line. The interval uses a Newey–West adjustment with 12 calendar-month lags.</p></details>` : ""}
     <div class="compare-actions">
       ${lead ? `<button type="button" class="pill on" data-next-period>${lead}</button>` : ""}
-      ${loaded.some((record) => record.status === "rejected") ? `<button type="button" class="pill" data-retry>Retry</button>` : ""}
+      ${requestFailed ? `<button type="button" class="pill" data-retry>Retry</button>` : ""}
       <a class="pill" href="${escapeHTML(comparisonLink())}">Share comparison</a>
     </div>`;
   el.querySelector("[data-next-period]")?.addEventListener("click", () => setComparePeriod(narrowed ? null : recent));
   el.querySelector("[data-retry]")?.addEventListener("click", loadComparison);
+}
 
-  const plots = fit ? fit.sides.map((r, i) => {
-    const series = { dates: paired.dates, values: paired.values[i] };
-    const reference = { series: full, fit: fullFit?.sides[i] };
-    return { r, series, reference };
+function renderComparisonCharts(measurement, selected, fit) {
+  const { requests, full, fullFit } = compare.records;
+  const plots = fit ? fit.sides.map((result, index) => {
+    const series = { dates: selected.dates, values: selected.values[index] };
+    const reference = { dates: full.dates, fit: fullFit?.sides[index] };
+    return { result, series, reference };
   }) : [];
-  const all = plots.flatMap(({ r, series, reference }) => [
-    ...chartAnomalies(r, series, reference), ...r.band_low, ...r.band_high,
+  const values = plots.flatMap(({ result, series, reference }) => [
+    ...chartAnomalies(result, series, reference), ...result.band_low, ...result.band_high,
   ]).filter(Number.isFinite);
-  const yRange = all.length && Math.min(...all) !== Math.max(...all) ? [Math.min(...all), Math.max(...all)] : undefined;
-  ["a", "b"].forEach((side, i) => {
+  const low = Math.min(...values), high = Math.max(...values);
+  const yRange = low < high ? [low, high] : undefined;
+  COMPARE_SIDES.forEach((side, index) => {
     const panel = $(`cmp-panel-${side}`), id = `cmp-panel-${side}-chart`;
     const header = `<span class="tag">${side.toUpperCase()} · ${escapeHTML(compare[side].name)}</span>`;
-    if (!plots[i]) {
-      const record = loaded[i];
-      const message = record.status === "rejected" ? "Couldn’t load this record." : record.value ? "No shared observations in this period." : "No data for this measurement here.";
+    if (!plots[index]) {
+      const record = requests[index];
+      let message = "No data for this measurement here.";
+      if (record.status === "rejected") message = "Couldn’t load this record.";
+      else if (record.value) message = "No shared observations in this period.";
       panel.innerHTML = header + `<p>${message}</p>`;
       return;
     }
-    const { r, series, reference } = plots[i];
-    const low = belowSourceFloor(series.values, v);
-    panel.innerHTML = header + (r.verdict === "insufficient"
-      ? `<p>Monthly departures from the seasonal baseline of the full shared record.</p>`
-      : `<h3>${num(r.slope_per_decade)} ${v.units} per decade</h3>
-        <p>${low ? "Near the measurement’s detection limit." : verdictText(r) + " · 95% interval " + num(r.ci_low) + " to " + num(r.ci_high)}</p>`)
-      + `<div class="chart" id="${id}"></div>`;
-    drawChart(id, r, series, v, false, yRange, reference);
+    const { result, series, reference } = plots[index];
+    let summary = "Monthly departures from the seasonal baseline of the full shared record.";
+    let rate = "";
+    if (result.verdict !== "insufficient") {
+      rate = `<h3>${num(result.slope_per_decade)} ${measurement.units} per decade</h3>`;
+      summary = belowSourceFloor(series.values, measurement)
+        ? "Near the measurement’s detection limit."
+        : `${verdictText(result)} · 95% interval ${num(result.ci_low)} to ${num(result.ci_high)}`;
+    }
+    panel.innerHTML = header + rate + `<p>${summary}</p><div class="chart" id="${id}"></div>`;
+    drawChart(id, result, series, measurement, false, yRange, reference);
   });
 }

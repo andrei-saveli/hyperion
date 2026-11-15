@@ -1,99 +1,44 @@
-# Hyperion: Earth System Trend Detective
+# Hyperion · Earth System Trend Detective
 
-**NASA Space Apps Challenge**, *Be An Earth System Trend Detective!*
+ByteMe is the team's [NASA Space Apps Challenge](https://www.spaceappschallenge.org/) website. It helps
+students and curious readers see what changed in Earth's atmosphere, land, or water, where it changed,
+and how certain the trend is.
 
-> 🧭 **New here (person or AI chat)? Read [docs/HANDOVER.md](docs/HANDOVER.md) first.**
->
-> 🚀 **Team members:** read [docs/PLAN.md](docs/PLAN.md) (who does what, when) and
-> [docs/HANDSHAKES.md](docs/HANDSHAKES.md) (how our parts fit together).
-> 🤖 **AI coding agents:** read [AGENTS.md](AGENTS.md) first.
->
-> 🛰️ **Data person:** use the
-> [Giovanni data handover](docs/PERSON_2_DATA_GIOVANNI_HANDOVER.md) and the
-> [websites and data list](docs/WEBSITES_AND_DATA.md).
-> 🔎 **Person 3:** see [Task3](Task3/README.md) for Searchlight and the Person 3 handover.
+## Run ByteMe
 
----
-
-## The challenge in plain words
-
-NASA satellites and computer models have measured the Earth for more than 20 years: temperature,
-rain, soil moisture, air pollution and much more. The data is public but hard to use: there are
-thousands of variables, and the files are large and technical.
-
-We're building **a website that lets a student or curious adult investigate whether something on
-Earth is changing.** It answers four questions:
-
-| Question | Example answer |
-|---|---|
-| **What** is changing? | Air temperature |
-| **Where**? | Svalbard, in the Arctic |
-| **How much**? | +0.65 °C per decade |
-| **Is it real or just noise?** | Significant: the 95% interval doesn't include zero |
-
-Data goes up and down naturally: seasons, wet years, dry years. A **trend** is the steady drift
-underneath all that wobble. A **significance test** tells us whether the drift is strong enough
-that it's very unlikely to be random chance.
-
-## How it works for the user
-
-1. **Search or pick**: type a question (*"is the desert drying out?"*) or choose a place and a
-   variable. Every variable has a one-line plain definition.
-2. **See the data**: monthly NASA data since 2001, with a "remove seasons" switch.
-3. **Get the verdict**: a trend line with a shaded uncertainty band, and a card:
-   🟢 significant · 🟡 possible, not significant yet · ⚪ no clear trend · ⚫ not enough data,
-   with the change per decade, total change, p-value and a plain-language explanation.
-4. **Compare** two places side by side.
-5. **Learn**: a guided demo and a "How it works" page explain trends and significance.
-
-We say **what** changed, never claim **why**: a trend line can't prove a cause.
-
-## Under the hood
-
-```
-NASA Giovanni (MERRA-2, GPM, GLDAS, OMI: monthly averages over a box per place)
-        │  downloaded ahead of time and saved as CSV files
-        ▼
-stats.py   remove the seasons → straight-line trend → 95% interval + t-test, Mann-Kendall
-        ▼
-app.py     Streamlit website: search, chart, verdict card, compare, guided demo
-```
-
-**Statistics in one paragraph.** For each month we subtract that calendar month's average, which
-removes the seasons and leaves **anomalies**. A straight line fitted to the anomalies gives the
-**rate of change**. The **95% interval** and **t-test** show how sure we are, corrected for the fact
-that one month is similar to the next (which otherwise makes trends look more certain than they
-are). The **Mann-Kendall test** double-checks for a steady rise or fall without assuming a bell
-curve. As the challenge suggests, we stick to **linear trends**: a straight line is a
-simplification, and we say so.
-
-## Run the live NASA website
-
-From the repository root, serve `Website/` and open [localhost:8503](http://localhost:8503).
+From the repository root, serve `Website/` with Python's static file server.
 
 ```bash
 python -m http.server 8503 --bind 127.0.0.1 --directory Website
 ```
 
-Search by place, question, or coordinates. The browser requests NASA POWER records when
-you choose a location. Use **Apply period** in Explore or Compare to recalculate the trends
-for selected months. Compare uses the same observed months at both locations.
-See the [website README](Website/README.md) for data sources and tests.
+Open [http://127.0.0.1:8503](http://127.0.0.1:8503). The browser fetches 18 monthly measurements
+directly from [NASA POWER](https://power.larc.nasa.gov/) and loads eight additional products from
+the site's bundled NASA grids. The website needs internet for live records, map services, and chart
+libraries.
+
+1. Search for a place, enter coordinates, or try `Is Svalbard getting warmer from 2001 to 2015?`.
+   Search uses phrases, keywords, and place-name lookups.
+2. Choose a measurement and use **Apply period** to update the trend, uncertainty interval, and chart.
+   The **Raw monthly** option shows seasonal variation.
+3. Open **Compare** to estimate the difference in trends over months observed at both locations.
+   Try **Check the latest 15 years** to see how the finding depends on the period.
+
+The app fits season-adjusted linear trends. Its results describe the recorded change and its uncertainty.
+See the [website guide](Website/README.md) for the analysis, sources, and local checks.
 
 ## Repository
 
-```
-AGENTS.md            instructions for AI coding agents (and humans)
-docs/PLAN.md         roles, tasks, timeline, starter prompts
-docs/HANDSHAKES.md   interfaces between the 4 parts
-app.py, charts.py    website (Frontend)
-scripts/, data_io.py data download + loading (Data)
-search.py, explain.py, pages/  search, explanations, guided demo (Search + explainability)
-stats.py, tests/     trend + significance (Trend & integration)
-data/                places, variables, monthly CSVs, sources
-```
+| Location | Purpose |
+|---|---|
+| [`Website/`](Website/) | ByteMe's HTML, CSS, and JavaScript, including live NASA data, period controls, and comparison. |
+| [`Task2/`](Task2/) | Saved NASA Giovanni reference data for three regions, along with download and cleaning tools. |
+| [`Task3/`](Task3/) | Python Searchlight, explanations, and guided lessons for the reference app. |
+| [`Task4/`](Task4/) | Python trend analysis, tests, and the assembly script for the reference app. |
+| [`FrontEnd_claude/`](FrontEnd_claude/) | Streamlit frontend for the Python reference workflow. |
+| [`byte-me/`](byte-me/) | Separate splash-page prototype. |
 
-## Data sources
-Main source: [NASA Giovanni](https://giovanni.gsfc.nasa.gov) (fallback: [NASA POWER](https://power.larc.nasa.gov)).
-Other NASA and partner resources from the
-challenge are listed in [AGENTS.md](AGENTS.md#resources).
+Start with the [handover](docs/HANDOVER.md) for a maintainer's guide. The
+[team plan](docs/PLAN.md), [shared interfaces](docs/HANDSHAKES.md), and [project instructions](AGENTS.md)
+describe the team and the Python reference workflow. Giovanni download details are in the
+[data handover](docs/PERSON_2_DATA_GIOVANNI_HANDOVER.md).
