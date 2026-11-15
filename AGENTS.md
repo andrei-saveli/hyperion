@@ -146,7 +146,7 @@ variables makes it hard to pick ones that could indicate change and then analyze
 Search or pick a place + variable → monthly NASA data since 2001 → chart (seasons-removable) with
 trend line and 95% band → verdict card (🟢 significant / 🟡 possible, not significant yet /
 ⚪ no clear trend / ⚫ not enough data; rate per decade, total change, p-value, plain explanation)
-→ compare two places. Say *what* changed, never claim *why*. Demo cases are chosen from real results, not assumed.
+→ what might explain it (evidence ladder). Say *what* changed, never claim *why*. Demo cases are chosen from real results, not assumed.
 
 ### Data decision (global version)
 The public site uses **NASA POWER** monthly point data (MERRA-2 + CERES, 1981 onwards, any place on
@@ -229,7 +229,7 @@ Non-significant ≠ "no change". Never state causes (Investigate grades how well
 - 🌐 **Static website "ByteMe"** in `Website/` (current design; logo `B/ ByteMe`), now **global and
   live**: search or click any place on Earth → monthly NASA POWER data since 1981 (no login,
   18 measurements in `Website/data/variables.json`) → every measurement tested for a trend
-  ("What is changing here" list) → chart + verdict → compare two places. `Website/stats.js` is a
+  ("What is changing here" list) → chart + verdict → investigate. `Website/stats.js` is a
   tested copy of `Task4/stats.py` (`node Website/tests/test_stats.js`, 105 real series).
   `Website/build_world.py` (Python, real `stats.py`) builds the world overview squares
   (`data/world.json`). Run: `python3 -m http.server 8000 --directory Website`. Details:
@@ -248,9 +248,10 @@ Non-significant ≠ "no change". Never state causes (Investigate grades how well
   respects the direction asked and a named season. Countries and regions are **averaged over their
   outline** (`Website/area.js`: up to 16 NASA POWER points + every 1° satellite/model square, cos-latitude
   weighted; check: `node Website/tests/test_area.js`).
-- ⏱️ **Time periods** (from `codex/trend-detective`, `Website/investigation.js`): From/To in Explore and
-  Compare, periods in questions and links, whole-record result always shown next to a window. Compare
-  matches months at both places and reports A − B with a Newey–West range.
+- ⏱️ **Time periods** (from `codex/trend-detective`, `Website/investigation.js`): From/To in Explore,
+  periods in questions and links, whole-record result always shown next to a window.
+- ✂️ **Removed from the site** (team lead's decision): Compare, the Method section and the big footer;
+  the page ends with a one-line copyright. The measurement list scrolls inside its box.
 - 🔍 **Investigate: what might explain this?** (`Website/evidence.js`): ideas per measurement in
   `variables.json` (`explanations`) or the student's own, graded on an evidence ladder (month-to-month
   link with effective-n range → share of the trend explained → independent data). Never claims causes;

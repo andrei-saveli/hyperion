@@ -33,8 +33,7 @@ let VARS = [], POWER_VARS = [], NASA = null, NOT_AVAILABLE = [], FAMILIES = {}, 
 // state.full: every measurement's whole record for the chosen place or area.
 // state.place: the same, cut to the chosen period (state.period, null = whole record) and re-tested.
 const state = { lat: null, lon: null, name: "", code: "T2M", raw: false, loading: false, error: null, place: null, full: null, period: null, layer: true };
-const compare = { code: "AOD_55", a: { name: "Beijing (China)", lat: 40.0, lon: 116.25 }, b: { name: "Delhi (India)", lat: 28.5, lon: 77.5 }, period: null };
-const { monthText, periodOf, periodInQuestion, slicePeriod, matchMonths, recentPeriod, fitComparison } = ByteMeInvestigation;
+const { monthText, periodOf, periodInQuestion, slicePeriod } = ByteMeInvestigation;
 const dateSpan = (first, last) => `${monthText(first)} to ${monthText(last)}`;
 const $ = (id) => document.getElementById(id);
 
@@ -115,7 +114,7 @@ function applyPeriod(full, period) {
 }
 const periodLabel = (p) => p ? `${p.from || "start of record"} to ${p.to || "end of record"}` : "whole record";
 
-// The two period forms (Explore and Compare): From / To month boxes, Apply, and Whole record
+// The period form in Explore: From / To month boxes, Apply, and Whole record
 function bindPeriod(id, onChange) {
   const form = $(id);
   form.addEventListener("submit", (event) => {
@@ -359,14 +358,11 @@ Promise.all([
   catalogue.variables = catalogue.variables.filter((v) => v.dataset !== "nasa" || (nasa && nasa.variables[v.code]));
   POWER_VARS = catalogue.variables.filter((v) => v.dataset !== "nasa");
   VARS = catalogue.variables; NOT_AVAILABLE = catalogue.not_available || []; FAMILIES = catalogue.families || {}; LAND = land; WORLD = world;
-  if (world) $("built").textContent = `World overview built ${world.built}`;
   buildVariableSelect(catalogue.groups);
   buildCases();
   buildMap(mapStyle);
   buildSearch();
-  buildCompare(catalogue.groups);
   bindPeriod("explore-period", setExplorePeriod);
-  bindPeriod("compare-period", (period) => { compare.period = period; renderCompare(); });
   const fromLink = readHash();
   const first = fromLink || CASES[0];
   if (fromLink) { state.code = fromLink.code; state.period = fromLink.period; }
@@ -1167,96 +1163,6 @@ function renderAnswer() {
     $("to-investigate")?.addEventListener("click", () => { selectVariable(v.code); $("investigate").scrollIntoView({ behavior: "smooth" }); });
   }
   el.querySelectorAll(".chip").forEach((b) => b.addEventListener("click", () => { selectVariable(b.dataset.code); $("detail").scrollIntoView({ behavior: "smooth" }); }));
-}
-
-// ------------------------------------------------------------------ compare two places
-function buildCompare(groups) {
-  $("cmp-var").innerHTML = optionsHTML(groups);
-  $("cmp-var").value = compare.code;
-  $("cmp-var").addEventListener("change", (e) => { compare.code = e.target.value; renderCompare(); });
-  ["a", "b"].forEach((side) => {
-    $(`cmp-${side}`).value = compare[side].name;
-    placePicker($(`cmp-${side}`), $(`cmp-${side}-list`), async (hit) => {
-      const area = hit.kind === "large" ? await shapeFor(hit) : null;   // countries and regions: area average
-      compare[side] = { name: hit.name || hit.label, lat: hit.lat, lon: hit.lon, area };
-      $(`cmp-${side}`).value = compare[side].name;
-      renderCompare();
-    }, false);
-  });
-  $("cmp-use").addEventListener("click", () => {
-    compare.a = { name: state.name, lat: state.lat, lon: state.lon, area: state.area };
-    compare.code = state.code;
-    $("cmp-a").value = state.name; $("cmp-var").value = state.code;
-    renderCompare();
-  });
-  renderCompare();
-}
-
-let compareTicket = 0;
-// Compare: the same measurement at two places (or areas), over the months observed at both.
-// Each place gets its own trend; the finding is about A minus B, whose uncertainty uses a
-// Newey-West adjustment (investigation.js), because neighbouring months are not independent.
-async function renderCompare() {
-  const v = variable(compare.code), mine = ++compareTicket;
-  const sides = ["a", "b"].map((side) => ({ ...compare[side], ...snap(compare[side].lat, compare[side].lon), el: $(`cmp-panel-${side}`), id: `cmp-panel-${side}`, side }));
-  sides.forEach((p) => (p.el.innerHTML = `<span class="tag">${escapeHTML(p.name)}</span><div class="loading"><span class="spinner"></span>Reading NASA data…</div>`));
-  $("compare-finding").innerHTML = `<div class="loading"><span class="spinner"></span>Finding the months observed at both places…</div>`;
-  const places = await Promise.all(sides.map((p) => (p.area ? loadArea(p.area) : loadPlace(p.lat, p.lon)).catch(() => null)));
-  if (mine !== compareTicket) return;
-  const records = places.map((pl) => pl && pl.series[v.code]);
-  const full = matchMonths(records[0], records[1]);
-  const paired = compare.period ? matchMonths(records[0], records[1], compare.period) : full;
-  const fit = paired && paired.count ? fitComparison(paired, v.percent) : null;
-  showPeriod("compare-period", compare.period, full && full.count ? full : null,
-    full && full.count ? `Shared record: ${dateSpan(full.first, full.last)} · ${full.count} months observed at both places` : "");
-
-  // the finding: is the rate different at A and B?
-  const A = escapeHTML(compare.a.name), B = escapeHTML(compare.b.name);
-  let headline, detail = "";
-  if (places.some((pl) => !pl)) headline = "Couldn't reach NASA's data service for one of the places.";
-  else if (!paired || !paired.count) headline = `No months with ${v.name.toLowerCase()} data at both places${compare.period ? " in this period" : ""}.`;
-  else if (!fit || fit.slope === null) headline = "Too little shared data to compare the trends (at least 10 years are needed).";
-  else {
-    const rate = `A minus B: ${num(fit.slope)} ${v.units} per decade`;
-    if (!fit.interval) { headline = "The difference is uncertain."; detail = `${rate}. There are too few independent months for a 95% range.`; }
-    else {
-      const [low, high] = fit.interval;
-      detail = `${rate} (95% range ${num(low)} to ${num(high)}).`;
-      if (low <= 0 && high >= 0) headline = "The two places could be changing at the same rate.";
-      else {
-        const faster = low > 0 ? A : B, slower = low > 0 ? B : A;
-        const [ra, rb] = fit.sides, bothSig = [ra, rb].every((r) => r.verdict === "significant");
-        if (bothSig && ra.direction !== rb.direction) headline = `Rising at ${faster}, falling at ${slower}.`;
-        else if (bothSig && ra.direction === "increase") headline = `Rising faster at ${faster}.`;
-        else if (bothSig && ra.direction === "decrease") headline = `Falling faster at ${slower}.`;
-        else headline = `The rate is higher at ${faster} than at ${slower}.`;
-      }
-    }
-  }
-  const recent = !compare.period && full && full.count ? recentPeriod(full.first, full.last, 15) : null;
-  $("compare-finding").innerHTML = `<h3>${headline}</h3>${detail ? `<p>${detail}</p>` : ""}
-    ${paired && paired.count ? `<p class="meta">${escapeHTML(v.source)} · ${dateSpan(paired.first, paired.last)} · ${paired.count} months observed at both places</p>` : ""}
-    ${fit && fit.interval ? `<details><summary>How is the difference worked out?</summary><p>For every month observed at both places we subtract B from A, remove the seasons and fit a straight line. Its 95% range uses a Newey–West adjustment over 12 months, because a warm month tends to be followed by another.</p></details>` : ""}
-    <div class="compare-actions">${compare.period ? `<button class="pill" data-compare-full>Use the whole shared record</button>`
-      : recent ? `<button class="pill" data-compare-recent>Check only the latest 15 years</button>` : ""}</div>`;
-  $("compare-finding").querySelector("[data-compare-full]")?.addEventListener("click", () => { compare.period = null; renderCompare(); });
-  $("compare-finding").querySelector("[data-compare-recent]")?.addEventListener("click", () => { compare.period = recent; renderCompare(); });
-
-  // one chart per place, same months and same scale
-  const all = fit ? fit.sides.filter((r) => r.verdict !== "insufficient").flatMap((r) => [...r.anomaly, ...r.band_low, ...r.band_high]).filter((n) => n !== null) : [];
-  const yRange = all.length ? [Math.min(...all), Math.max(...all)] : undefined;
-  sides.forEach((p, i) => {
-    const r = fit && fit.sides[i];
-    if (!places[i]) { p.el.innerHTML = `<span class="tag">${escapeHTML(p.name)}</span><h3>Couldn't reach NASA's data service.</h3>`; return; }
-    if (!records[i]) { p.el.innerHTML = `<span class="tag">${escapeHTML(p.name)}</span><h3>No ${v.name.toLowerCase()} data here.</h3>`; return; }
-    if (!r || r.verdict === "insufficient") { p.el.innerHTML = `<span class="tag">${escapeHTML(p.name)}</span><h3>Not enough shared data for a trend.</h3>`; return; }
-    p.el.innerHTML = `<span class="tag">${p.side.toUpperCase()} · ${escapeHTML(p.name)}</span>
-      <h3>${num(r.slope_per_decade)} ${v.units} per decade</h3>
-      <div class="verdict">${dotHTML(r)}${verdictText(r)}</div>
-      <div class="chart" id="${p.id}-chart"></div>
-      <p class="caption">Total over these months: ${num(r.total_change)} ${v.units}${r.percent_change !== null ? ` (${num(r.percent_change)}%)` : ""} · p-value ${pText(r.p_value)}${p.area ? ` · ${areaText(p.area, places[i].info)}` : ""}</p>`;
-    drawChart(`${p.id}-chart`, r, { dates: paired.dates, values: paired.values[i] }, v, false, yRange);
-  });
 }
 
 // ------------------------------------------------------------------ Investigate: what might explain this trend?
